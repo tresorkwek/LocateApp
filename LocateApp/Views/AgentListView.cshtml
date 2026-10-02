@@ -1,0 +1,202 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+@using System.Collections.Generic;
+
+
+@{ AgentListViewModel Page = (AgentListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+   string cheminPhotos = Utilities.GetPhotoAgentPath();
+   bool inventaireEnCours = Page.AnneEnCours > 0;
+   int nbAgents = Page.Agents == null ? 0 : Page.Agents.Count;
+
+   // Comptages lus une seule fois par agent, réutilisés pour les indicateurs et le tableau.
+   long[] nbreBiens = new long[nbAgents];
+   long[] nbreInventories = new long[nbAgents];
+   string[] nomsOrganeAgent = new string[nbAgents];
+   Dictionary<string, string> nomsOrganes = new Dictionary<string, string>();
+   long totalBiens = 0;
+   long totalInventories = 0;
+   for (int i = 0; i < nbAgents; i++)
+   {
+       var a = Page.Agents[i];
+       string mat = a.Matricule.Substring(0, 6);
+       nbreBiens[i] = ImmoController.SelectNbreBienByResponsable(mat);
+       nbreInventories[i] = inventaireEnCours ? InventaireController.SelectQuantiteByResponsable(mat) : 0;
+       totalBiens += nbreBiens[i];
+       totalInventories += nbreInventories[i];
+       if (a.CodeOrgane != null)
+       {
+           string nom;
+           if (!nomsOrganes.TryGetValue(a.CodeOrgane, out nom))
+           {
+               nom = OrganeController.SelectById(a.CodeOrgane)?.Nom;
+               nomsOrganes[a.CodeOrgane] = nom;
+           }
+           nomsOrganeAgent[i] = nom;
+       }
+   }
+   int tauxInventaire = totalBiens == 0 ? 0 : (int)Math.Round(totalInventories * 100m / totalBiens);
+   string sousTitre = string.IsNullOrEmpty(Page.Description) ? "Agents responsables de biens dans cet organe." : Page.Description;
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<input type="hidden" id="NbrePatientTotal" name="NbrePatientTotal" value="@nbAgents" />
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-group"></i></span>
+            <div>
+                <p class="lc-kpi-label">Responsables</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAgents, 0)<small>agents</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalBiens, 0)<small>sous leur responsabilité</small></p>
+            </div>
+        </div>
+    </div>
+    @if (inventaireEnCours)
+    {
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-clipboard-check"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Inventoriés</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(totalInventories, 0)<small>en @Page.AnneEnCours</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-percentage"></i></span>
+                <div class="flex-grow-1">
+                    <p class="lc-kpi-label">Avancement</p>
+                    <p class="lc-kpi-value">@tauxInventaire %<small>de l'inventaire @Page.AnneEnCours</small></p>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">@sousTitre Survolez une photo pour l'agrandir, cliquez sur un agent pour voir ses biens.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/immo/responsable/list/" class="btn btn-light"><i class="iconoir-arrow-left me-1"></i>Organigramme</a>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-soft-primary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false"><i class="iconoir-settings me-1"></i>Utilisateurs</button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" href="javascript:void(0)" onclick="$(this).promptUrl('Importation des agents','/utilisateur/import/', 'Qui voulez-vous importer comme utilisateur ?', 'Saisissez une info de l\'agent')"><i class="iconoir-group me-2"></i>Transformer des agents en utilisateurs</a></li>
+                        <li><a class="dropdown-item" href="/utilisateur/add/"><i class="iconoir-user-plus me-2"></i>Créer un utilisateur externe</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item" href="/utilisateur/disable/"><i class="iconoir-user-xmark me-2"></i>Utilisateurs désactivés</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbAgents == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-group"></i></div>
+                <h6>Aucun responsable</h6>
+                <p>Aucun agent de cet organe n'est responsable d'un bien.</p>
+                <a href="/immo/responsable/list/" class="btn btn-light btn-sm"><i class="iconoir-arrow-left me-1"></i>Retour à l'organigramme</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Agent</th>
+                            <th>Matricule</th>
+                            <th>Organe</th>
+                            <th class="text-end" style="width: 220px;">@(inventaireEnCours ? "Biens inventoriés" : "Biens")</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < nbAgents; i++)
+                        {
+                            var agent = Page.Agents[i];
+                            string matriculeCourt = agent.Matricule.Substring(0, 6);
+                            string link = Page.Link + matriculeCourt;
+                            string nomComplet = $"{agent.Nom?.Trim()} {agent.Postnom?.Trim()} {agent.Prenom?.Trim()}".Trim();
+                            string photoUser = cheminPhotos + agent.Photo;
+                            string nomOrgane = nomsOrganeAgent[i];
+                            long nbreBien = nbreBiens[i];
+                            long nbreBienInventorie = nbreInventories[i];
+                            int pourcentage = nbreBien == 0 ? 0 : (int)Math.Round(nbreBienInventorie * 100m / nbreBien);
+                            string couleur = pourcentage >= 100 ? "success" : (pourcentage >= 50 ? "info" : (pourcentage > 0 ? "warning" : "secondary"));
+
+                            <tr>
+                                <td data-order="@nomComplet">
+                                    <div class="lc-entity">
+                                        <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@matriculeCourt)" class="lc-thumb avatar-zoom" loading="lazy" />
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@nomComplet</a>
+                                            <span class="lc-sub">@agent.Genre</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="lc-code">@matriculeCourt</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(nomOrgane))
+                                    {
+                                        <span class="d-block text-body text-truncate" style="max-width: 280px;" title="@nomOrgane">@nomOrgane</span>
+                                        <span class="d-block fs-12 text-muted mt-1"><span class="lc-code">@agent.CodeOrgane</span></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="lc-num" data-order="@nbreBien">
+                                    @if (inventaireEnCours)
+                                    {
+                                        <div class="d-flex align-items-center justify-content-end gap-2 mb-1">
+                                            <span><span class="fw-semibold text-body">@Utilities.FormatNumber(nbreBienInventorie, 0)</span> <span class="text-muted fs-12">/ @Utilities.FormatNumber(nbreBien, 0)</span></span>
+                                            <span class="badge lc-badge bg-@couleur-subtle text-@couleur">@pourcentage %</span>
+                                        </div>
+                                        <div class="progress lc-progress">
+                                            <div class="progress-bar bg-@couleur" role="progressbar" style="width: @pourcentage%"></div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="lc-count">@Utilities.FormatNumber(nbreBien, 0)</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Biens de cet agent" data-bs-toggle="tooltip"><i class="iconoir-box-iso"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

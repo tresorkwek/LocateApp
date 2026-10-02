@@ -1,0 +1,203 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ArticleListViewModel Page = (ArticleListViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    int anneeEnCours = Page.AnneEnCours;
+    int nbArticles = Page.Articles == null ? 0 : Page.Articles.Count;
+    long totalBiens = 0;
+    long totalInventories = 0;
+    int nbSansBien = 0;
+
+    // Quantités calculées une seule fois par article (réutilisées dans le tableau)
+    Dictionary<long, long> quantites = new Dictionary<long, long>();
+    Dictionary<long, long> quantitesInventoriees = new Dictionary<long, long>();
+    if (Page.Articles != null)
+    {
+        foreach (var a in Page.Articles)
+        {
+            long q = a.GetQuantiteImmo();
+            long qi = anneeEnCours > 0 ? a.GetQuantiteImmoInventorie() : 0;
+            quantites[a.Id] = q;
+            quantitesInventoriees[a.Id] = qi;
+            totalBiens += q;
+            totalInventories += qi;
+            if (q == 0) { nbSansBien++; }
+        }
+    }
+    int pctInventories = totalBiens == 0 ? 0 : (int)Math.Round(100.0 * totalInventories / totalBiens);
+    string sousTitre = string.IsNullOrEmpty(Page.Description) ? "Biens regroupés par article : ouvrez un article pour voir le détail de ses biens." : Page.Description;
+}
+
+<input type="hidden" id="NbreImmoTotal" name="NbreImmoTotal" value="@nbArticles" />
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Articles</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbArticles, 0)<small>référencés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-package"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalBiens, 0)<small>au total</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-clipboard-check"></i></span>
+            <div class="flex-grow-1">
+                @if (anneeEnCours > 0)
+                {
+                    <p class="lc-kpi-label">Inventoriés en @anneeEnCours</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(totalInventories, 0)<small>@pctInventories %</small></p>
+                    <div class="lc-progress mt-2"><div class="progress-bar bg-success" style="width: @pctInventories%"></div></div>
+                }
+                else
+                {
+                    <p class="lc-kpi-label">Inventaire</p>
+                    <p class="lc-kpi-value">—<small>aucune campagne en cours</small></p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-archive"></i></span>
+            <div>
+                <p class="lc-kpi-label">Sans bien</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbSansBien, 0)<small>articles non utilisés</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">@sousTitre</p>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbArticles == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Aucun article</h6>
+                <p>Aucun bien n'est encore rattaché à un article.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Article</th>
+                            <th>Code</th>
+                            <th>Catégorie</th>
+                            <th>Fournisseur</th>
+                            <th class="text-end">Biens</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var article in Page.Articles)
+                        {
+                            Categorie categorie = article.GetCategorie();
+                            string link = Page.Link + article.Id;
+                            string sousTitreArticle = string.Join(" · ", new[] { article.Marque, article.Modele }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                            long quantite = quantites[article.Id];
+                            long quantiteInventoriee = quantitesInventoriees[article.Id];
+                            int pct = quantite == 0 ? 0 : (int)Math.Round(100.0 * quantiteInventoriee / quantite);
+                            string fournisseur = article.IdFournisseur != null ? article.GetFournisseur()?.Nom : null;
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <img src="~/Content/images/articles/@article.Photo" alt="" class="lc-thumb" loading="lazy" />
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@article.Designation</a>
+                                            <span class="lc-sub">@(string.IsNullOrEmpty(sousTitreArticle) ? "Marque et modèle non renseignés" : sousTitreArticle)</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(article.Code))
+                                    {
+                                        <span class="lc-code">@article.Code</span>
+                                    }
+                                    <span class="d-block fs-12 text-muted mt-1">N° @article.Id</span>
+                                </td>
+                                <td>
+                                    @if (categorie != null)
+                                    {
+                                        <span class="d-block text-body">@categorie.Designation</span>
+                                        if (!string.IsNullOrEmpty(categorie.Famille))
+                                        {
+                                            <span class="d-block fs-12 text-muted">@categorie.Famille</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary">Non classé</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(fournisseur))
+                                    {
+                                        <span class="text-body">@fournisseur</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="lc-num" data-order="@quantite">
+                                    @if (anneeEnCours > 0)
+                                    {
+                                        <span class="fw-semibold">@Utilities.FormatNumber(quantiteInventoriee, 0)</span><span class="text-muted"> / @Utilities.FormatNumber(quantite, 0)</span>
+                                        <div class="lc-progress mt-1 ms-auto" style="width: 90px;" data-bs-toggle="tooltip" title="@pct % inventoriés en @anneeEnCours"><div class="progress-bar bg-success" style="width: @pct%"></div></div>
+                                    }
+                                    else
+                                    {
+                                        <span class="lc-count">@Utilities.FormatNumber(quantite, 0)</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Voir les biens" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        <a href="/article/id/@article.Id" title="Fiche de l'article" data-bs-toggle="tooltip"><i class="iconoir-box-iso"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

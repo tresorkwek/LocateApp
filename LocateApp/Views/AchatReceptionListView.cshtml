@@ -1,0 +1,130 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ AchatReceptionListViewModel Page = (AchatReceptionListViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    int nbReceptions = Page.Receptions.Count;
+    int nbUnites = Page.Receptions.Sum(r => r.QuantiteRecue);
+    int nbBiens = Page.Receptions.Sum(r => r.NbreBiens);
+    int nbCommandes = Page.Receptions.Select(r => r.IdCommande).Distinct().Count();
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-delivery-truck"></i></span>
+            <div>
+                <p class="lc-kpi-label">Livraisons</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbReceptions, 0)<small>enregistrées</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-cart"></i></span>
+            <div>
+                <p class="lc-kpi-label">Commandes livrées</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbCommandes, 0)<small>en tout ou partie</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Unités reçues</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbUnites, 0)<small>au total</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-check-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens créés</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbBiens, 0)<small>inventoriés</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">Livraisons reçues</h4>
+                <p class="lc-card-subtitle">Chaque livraison crée les biens reçus dans le local de réception choisi.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/achat/commande/" class="btn btn-light"><i class="iconoir-cart me-1"></i>Commandes d'achat</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbReceptions == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-delivery-truck"></i></div>
+                <h6>Aucune livraison</h6>
+                <p>Les livraisons s'enregistrent depuis une commande d'achat validée.</p>
+                <a href="/achat/commande/" class="btn btn-primary btn-sm"><i class="iconoir-cart me-1"></i>Voir les commandes</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Livraison</th>
+                            <th>Commande</th>
+                            <th>Fournisseur</th>
+                            <th>Local de réception</th>
+                            <th>Reçu par</th>
+                            <th class="text-end">Quantité</th>
+                            <th class="text-end">Biens créés</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Page.Receptions)
+                        {
+                            <tr>
+                                <td data-order="@r.DateReception.ToString("yyyyMMdd")">
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-delivery-truck"></i></span>
+                                        <div class="lc-entity-body">
+                                            <a href="/achat/reception/id/@r.Id" class="lc-name">Livraison du @r.DateReception.ToString("dd/MM/yyyy")</a>
+                                            <span class="lc-sub">@(string.IsNullOrEmpty(r.Bordereau) ? "Sans bordereau" : "Bordereau " + r.Bordereau)</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><a href="/achat/commande/id/@r.IdCommande" class="fw-medium">@r.NumeroCommande</a></td>
+                                <td><span class="text-body">@r.Fournisseur</span></td>
+                                <td><span class="lc-code">@r.LocalCode</span> <span class="text-body">@r.LocalDesignation</span></td>
+                                <td>@r.RecuPar</td>
+                                <td class="lc-num">@r.QuantiteRecue</td>
+                                <td class="lc-num"><span class="lc-count">@r.NbreBiens</span></td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/achat/reception/id/@r.Id" title="Voir la livraison" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        <a href="/achat/commande/id/@r.IdCommande" title="Voir la commande" data-bs-toggle="tooltip"><i class="iconoir-cart"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

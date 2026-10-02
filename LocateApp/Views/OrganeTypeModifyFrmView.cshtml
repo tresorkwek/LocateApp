@@ -1,0 +1,67 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ OrganeTypeModifyFrmViewModel Page = (OrganeTypeModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+@{
+    string sigle = Page.OrganeType.Sigle == null ? string.Empty : Page.OrganeType.Sigle.Trim();
+    string nom = Page.OrganeType.Nom ?? string.Empty;
+    string initiales = !string.IsNullOrEmpty(sigle) ? (sigle.Length > 3 ? sigle.Substring(0, 3) : sigle) : (nom.Length > 0 ? nom.Substring(0, 1) : "?");
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/organe/type/modify/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Modifier le type d'organe" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Les organes de ce type prennent immédiatement en compte les modifications.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        <span class="lc-thumb lc-initials bg-primary-subtle text-primary">@initiales</span>
+                        <div class="lc-entity-body">
+                            <span class="lc-name">@Page.OrganeType.Nom</span>
+                            <span class="lc-sub">Type d'organe N° @Page.OrganeType.Id</span>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Type d'organe</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" value="@Page.OrganeType.Nom" class="form-control" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Sigle">Sigle</label>
+                            <input id="Sigle" name="Sigle" type="text" value="@Page.OrganeType.Sigle" class="form-control">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Ordre">Ordre</label>
+                            <input id="Ordre" name="Ordre" type="text" inputmode="numeric" value="@Page.OrganeType.Ordre" class="form-control">
+                            <div class="form-text">Rang d'affichage du type dans les listes.</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="Id" value="@Page.OrganeType.Id" />
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/organe/type/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

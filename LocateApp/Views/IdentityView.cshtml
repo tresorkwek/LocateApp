@@ -1,0 +1,282 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ IdentityViewModel Page = (IdentityViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+   string cheminPhotos = Utilities.GetPhotoAgentPath();
+   bool listeDesactives = Page.Action != null && Page.Action.Contains("/enable/");
+   string actionIcone = listeDesactives ? "iconoir-user-plus" : "iconoir-user-xmark";
+   string actionClasse = listeDesactives ? "lc-success" : "lc-danger";
+   string actionTitre = listeDesactives ? "Réactiver le compte" : "Désactiver le compte";
+
+   int nbUtilisateurs = Page.Identities == null ? 0 : Page.Identities.Count;
+   int nbExternes = 0;
+   int nbVerrouilles = 0;
+   int nbJamaisConnectes = 0;
+   if (Page.Identities != null)
+   {
+       foreach (var u in Page.Identities)
+       {
+           if (u.IsExternalUser) { nbExternes++; }
+           if (u.IsLocked) { nbVerrouilles++; }
+           if (u.LastConnexion.Year == 1) { nbJamaisConnectes++; }
+       }
+   }
+   string sousTitre = string.IsNullOrEmpty(Page.Description)
+       ? (listeDesactives ? "Comptes désactivés : ils ne peuvent plus se connecter tant qu'ils ne sont pas réactivés." : "Comptes autorisés à se connecter à Locate, avec leur profil et leur affectation.")
+       : Page.Description;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-group"></i></span>
+            <div>
+                <p class="lc-kpi-label">@(listeDesactives ? "Comptes désactivés" : "Utilisateurs")</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbUtilisateurs, 0)<small>@(listeDesactives ? "à réactiver au besoin" : "comptes actifs")</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-user-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Externes</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbExternes, 0)<small>hors référentiel</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-danger-subtle text-danger"><i class="iconoir-lock"></i></span>
+            <div>
+                <p class="lc-kpi-label">Verrouillés</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbVerrouilles, 0)<small>connexion bloquée</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-clock"></i></span>
+            <div>
+                <p class="lc-kpi-label">Jamais connectés</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbJamaisConnectes, 0)<small>depuis la création</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">@sousTitre Survolez une photo pour l'agrandir.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                @if (!listeDesactives)
+                {
+                    <a href="/utilisateur/disable/" class="btn btn-light"><i class="iconoir-user-xmark me-1"></i>Comptes désactivés</a>
+                    <a href="javascript:void(0)" onclick="$(this).promptUrl('Importation des agents','/utilisateur/import/', 'Qui voulez-vous importer comme utilisateur ?', 'Saisissez une info de l\'agent')" class="btn btn-soft-primary"><i class="iconoir-group me-1"></i>Importer des agents</a>
+                    <a href="/utilisateur/add/" class="btn btn-primary"><i class="iconoir-user-plus me-1"></i>Utilisateur externe</a>
+                }
+                else
+                {
+                    <a href="/utilisateur/" class="btn btn-light"><i class="iconoir-arrow-left me-1"></i>Utilisateurs actifs</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbUtilisateurs == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-group"></i></div>
+                @if (listeDesactives)
+                {
+                    <h6>Aucun compte désactivé</h6>
+                    <p>Tous les comptes utilisateurs sont actifs.</p>
+                    <a href="/utilisateur/" class="btn btn-light btn-sm"><i class="iconoir-arrow-left me-1"></i>Utilisateurs actifs</a>
+                }
+                else
+                {
+                    <h6>Aucun utilisateur</h6>
+                    <p>Importez des agents du référentiel ou créez un utilisateur externe.</p>
+                    <a href="/utilisateur/add/" class="btn btn-primary btn-sm"><i class="iconoir-user-plus me-1"></i>Utilisateur externe</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Utilisateur</th>
+                            <th>Contact</th>
+                            <th>Organe</th>
+                            <th>Profil</th>
+                            <th>Organe d'inventaire</th>
+                            <th>Dernière activité</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var identity in Page.Identities)
+                        {
+                            string compte = identity.UserName?.Trim();
+                            string lienModifier = Page.Link + identity.UserName;
+                            string lienAgent = identity.IsExternalUser ? null : Page.LinkForAgent + identity.UserName;
+                            string action = Page.Action + identity.UserName;
+                            string nomComplet = $"{identity.Nom?.Trim()} {identity.Postnom?.Trim()} {identity.Prenom?.Trim()}".Trim();
+                            string nomJs = nomComplet.Replace("'", @"\'");
+                            string photoUser = cheminPhotos + identity.Photo;
+                            string telephone = identity.Telephone?.Trim();
+                            string email = identity.Email?.Trim();
+                            Organe organe = identity.Organe;
+                            string structure = organe == null || organe.Id == organe.IdStructure ? null : organe.NomStructure;
+                            string profil = identity.Profil?.Nom;
+                            string institution = identity.Institution?.Nom;
+                            bool jamaisConnecte = identity.LastConnexion.Year == 1;
+                            string imageBox = $"<img src=\\'{photoUser}\\' width=\\'120px\\' class=\\'rounded-circle shadow-sm\\'>";
+                            string onclik = $"$(this).confirmUrl('{Page.ActionName} <br/> {imageBox}', '{action}', 'Etes-vous sûr de vouloir {Page.ActionLabel} <br/> <div class=\\'chip\\'> {nomJs} </div> ?', '{Page.ActionName} de <div class=\\'chip\\'> {nomJs} </div> annul&eacute;e')";
+                            string onclikReset = $"$(this).confirmUrl('Réinitialisation <br/> {imageBox}', '/utilisateur/reset/{identity.UserName}', 'Etes-vous sûr de réinitialiser le compte de <br/> <div class=\\'chip\\'> {nomJs} </div> ?', 'La réinitialisation du compte de <div class=\\'chip\\'> {nomJs} </div> est annul&eacute;e')";
+
+                            <tr>
+                                <td data-order="@nomComplet">
+                                    <div class="lc-entity">
+                                        <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@compte)" class="lc-thumb avatar-zoom" loading="lazy" />
+                                        <div class="lc-entity-body">
+                                            <a href="@lienModifier" class="lc-name">@nomComplet</a>
+                                            <span class="lc-sub">
+                                                @if (lienAgent != null)
+                                                {
+                                                    <a href="@lienAgent" class="text-muted text-decoration-underline" title="Fiche de l'agent" data-bs-toggle="tooltip">@compte</a>
+                                                }
+                                                else
+                                                {
+                                                    <span>@compte</span>
+                                                }
+                                                <span class="mx-1">·</span>@(identity.Sexe == "F" ? "Femme" : "Homme")
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(email))
+                                    {
+                                        <a href="mailto:@email" class="d-block text-body text-truncate" style="max-width: 220px;" title="@email"><i class="iconoir-mail me-1 text-muted"></i>@email</a>
+                                    }
+                                    @if (!string.IsNullOrEmpty(telephone))
+                                    {
+                                        <span class="d-block fs-12 text-muted"><i class="iconoir-phone me-1"></i>@telephone</span>
+                                    }
+                                    @if (string.IsNullOrEmpty(email) && string.IsNullOrEmpty(telephone))
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (organe != null)
+                                    {
+                                        <span class="d-block text-body text-truncate" style="max-width: 260px;" title="@organe.Nom">@organe.Nom</span>
+                                        <span class="d-block fs-12 text-muted mt-1">
+                                            <span class="lc-code">@organe.Id</span>
+                                            @if (structure != null)
+                                            {
+                                                <span class="ms-1">@structure</span>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(profil))
+                                    {
+                                        <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-shield-check"></i>@profil</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(institution))
+                                    {
+                                        <span class="d-block text-truncate" style="max-width: 220px;" title="@institution">@institution</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td data-order="@((jamaisConnecte ? identity.DateCreation : identity.LastConnexion).ToString("yyyyMMddHHmm"))">
+                                    @if (!jamaisConnecte)
+                                    {
+                                        <span class="d-block text-body">@identity.LastConnexion.ToString("dd MMM yyyy HH:mm")</span>
+                                        <span class="d-block fs-12 text-muted">dernière connexion</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="d-block text-body">@identity.DateCreation.ToString("dd MMM yyyy HH:mm")</span>
+                                        <span class="d-block fs-12 text-muted">créé, jamais connecté</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @if (identity.IsLocked)
+                                        {
+                                            <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-lock"></i>Verrouillé</span>
+                                        }
+                                        else if (listeDesactives)
+                                        {
+                                            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivé</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Actif</span>
+                                        }
+                                        @if (identity.IsExternalUser)
+                                        {
+                                            <span class="badge lc-badge bg-info-subtle text-info">Externe</span>
+                                            if (identity.FirstConnexion)
+                                            {
+                                                <span class="badge lc-badge bg-warning-subtle text-warning" title="Mot de passe initial à changer" data-bs-toggle="tooltip">1<sup>re</sup> connexion</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="badge lc-badge bg-secondary-subtle text-secondary">Interne</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@lienModifier" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        @if (identity.IsExternalUser)
+                                        {
+                                            <a href="javascript:void(0)" onclick="@Html.Raw(onclikReset)" class="lc-warning" title="Réinitialiser le mot de passe" data-bs-toggle="tooltip"><i class="iconoir-refresh-double"></i></a>
+                                        }
+                                        <a href="javascript:void(0)" onclick="@Html.Raw(onclik)" class="@actionClasse" title="@actionTitre" data-bs-toggle="tooltip"><i class="@actionIcone"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

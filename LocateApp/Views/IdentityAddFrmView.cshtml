@@ -1,0 +1,169 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using System.Linq;
+@using System.Collections.Generic;
+
+
+@{ // Binding du ViewModel.
+    IdentityAddFrmViewModel Page = (IdentityAddFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{
+    Layout = "Views/Layout/_LayoutForm.cshtml";
+    string titre = string.IsNullOrEmpty(Page.Title) ? "Nouvel utilisateur externe" : Page.Title;
+}
+
+<div class="row justify-content-center">
+    <div class="col-xxl-10">
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <a href="/utilisateur/" class="btn btn-sm btn-light"><i class="iconoir-arrow-left me-1"></i>Utilisateurs</a>
+            <span class="text-muted fs-13">Création d'un compte hors référentiel des agents</span>
+        </div>
+
+        <form class="lc-form" method="post" action="/utilisateur/add/" enctype="multipart/form-data">
+
+            <input type="hidden" id="FirstConnexion" name="FirstConnexion" value="true">
+            <input type="hidden" id="IsHospitalUser" name="IsHospitalUser" value="true">
+            <input type="hidden" id="IsExternalUser" name="IsExternalUser" value="true">
+
+            <div class="row g-3">
+                <div class="col-xl-8">
+                    <div class="card h-100 mb-0">
+                        <div class="card-header">
+                            <h4 class="card-title">@titre</h4>
+                            <p class="lc-card-subtitle">Un utilisateur externe n'est pas un agent du référentiel : son identité, ses coordonnées et sa photo sont saisies ici.</p>
+                        </div>
+                        <div class="card-body">
+
+                            <div class="lc-section-title"><i class="iconoir-user"></i>Identité</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                                    <input id="Nom" name="Nom" type="text" value="" class="form-control" placeholder="Ex. Mukendi">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Postnom">Postnom</label>
+                                    <input id="Postnom" name="Postnom" type="text" value="" class="form-control" placeholder="Ex. Kalala">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Prenom">Prénom</label>
+                                    <input id="Prenom" name="Prenom" type="text" value="" class="form-control" placeholder="Ex. Grâce">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label d-block">Sexe</label>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" name="Sexe" value="M" type="radio" id="M" />
+                                        <label class="form-check-label" for="M">Masculin</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" name="Sexe" value="F" type="radio" id="F" />
+                                        <label class="form-check-label" for="F">Féminin</label>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lc-section-title"><i class="iconoir-lock"></i>Compte et droits</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="UserName">Compte<span class="lc-req">*</span></label>
+                                    <div class="lc-input-icon">
+                                        <i class="iconoir-user-circle"></i>
+                                        <input id="UserName" name="UserName" type="text" value="" class="form-control" placeholder="Identifiant de connexion" autocomplete="off" required>
+                                    </div>
+                                    <div class="form-text">Identifiant utilisé pour se connecter à Locate.</div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="IdProfil">Profil<span class="lc-req">*</span></label>
+                                    <select name="IdProfil" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdProfil">
+                                        <option value="" disabled selected>Choisissez un profil</option>
+                                        @foreach (var profil in Page.Profil)
+                                        {
+                                            if (profil.Externe)
+                                            {
+                                                <option value="@profil.IdProfil">@profil.Nom</option>
+                                            }
+                                        }
+                                    </select>
+                                    <div class="form-text">Seuls les profils prévus pour les utilisateurs externes sont proposés.</div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="IdInstitution">Institution</label>
+                                    <select name="IdInstitution" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdInstitution">
+                                        <option value="" disabled selected>Choisissez une institution</option>
+                                        @foreach (var hopital in Page.Hopital)
+                                        {
+                                            string denominationHopital = hopital.Nom?.Trim();
+                                            <option value="@hopital.Id">@denominationHopital</option>
+                                        }
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="lc-section-title"><i class="iconoir-phone"></i>Coordonnées</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="Email">E-mail</label>
+                                    <div class="lc-input-icon">
+                                        <i class="iconoir-mail"></i>
+                                        <input id="Email" type="email" name="Email" value="" class="form-control" placeholder="prenom.nom@exemple.org">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="Telephone">Téléphone</label>
+                                    <div class="lc-input-icon">
+                                        <i class="iconoir-phone"></i>
+                                        <input id="Telephone" name="Telephone" class="masked form-control" type="text" value="" data-inputmask="'mask': '(+999) 99-9999999'">
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label" for="Adresse">Adresse</label>
+                                    <textarea id="Adresse" name="Adresse" rows="2" class="form-control" placeholder="Adresse postale ou de bureau"></textarea>
+                                </div>
+                            </div>
+
+                            <div class="lc-section-title"><i class="iconoir-camera"></i>Photo<span class="lc-section-hint">JPG ou PNG</span></div>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <img src="/Content/images/photos/photoVideHomme.png" alt="" class="lc-thumb lc-thumb-xl rounded-circle">
+                                <div class="flex-grow-1">
+                                    <label class="form-label" for="Photo">Photo d'identité</label>
+                                    <input type="file" name="Photo" id="Photo" accept="image/*" class="form-control" />
+                                    <div class="form-text">Facultative : une photo par défaut est affichée sinon.</div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="card-footer lc-form-actions">
+                            <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                            <a href="/utilisateur/" class="btn btn-light">Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer l'utilisateur</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="card h-100 mb-0">
+                        <div class="card-body">
+                            <div class="lc-aside">
+                                <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bon à savoir</h6>
+                                <ul>
+                                    <li>Le compte est l'identifiant de connexion : choisissez-le court et unique.</li>
+                                    <li>Le mot de passe initial est celui par défaut de l'application ; l'utilisateur devra le changer à sa première connexion.</li>
+                                    <li>Le profil détermine les menus et les actions accessibles.</li>
+                                    <li>Vous pourrez verrouiller le compte ou réinitialiser son mot de passe depuis la liste des utilisateurs.</li>
+                                </ul>
+                            </div>
+                            <div class="lc-callout mt-3">
+                                <i class="iconoir-info-circle"></i>
+                                <div>Pour donner accès à un agent du référentiel, utilisez plutôt « Importer des agents » depuis la liste des utilisateurs : son identité et sa photo sont reprises automatiquement.</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+    </div>
+</div>

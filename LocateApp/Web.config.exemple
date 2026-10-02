@@ -1,0 +1,235 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Pour plus d'informations sur la configuration de votre application ASP.NET, visitez
+  https://go.microsoft.com/fwlink/?LinkId=169433
+  -->
+<!--
+  Modèle de configuration de Locate. Copiez ce fichier en « Web.config » (non versionné) puis renseignez
+  les valeurs « A_RENSEIGNER » : mots de passe SQL (base Locate et base Movia), compte de l'API Movia,
+  mot de passe par défaut des nouveaux comptes.
+-->
+<configuration>
+  
+  
+  <configSections>
+    <section name="log4net" type="log4net.Config.Log4NetConfigurationSectionHandler,log4net" />
+    <sectionGroup name="system.web.webPages.razor" type="System.Web.WebPages.Razor.Configuration.RazorWebSectionGroup, System.Web.WebPages.Razor, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31BF3856AD364E35">
+      <section name="pages" type="System.Web.WebPages.Razor.Configuration.RazorPagesSection, System.Web.WebPages.Razor, Version=2.0.0.0, Culture=neutral, PublicKeyToken=31BF3856AD364E35" requirePermission="false" />
+    </sectionGroup>
+  </configSections>
+  
+  
+  <appSettings>
+    <!--<add key="clinique" value="A_RENSEIGNER" />-->
+	  <add key="Logiciel" value="Locate" />
+	  <add key="Version" value="1.3.0" />
+	  <add key="Url" value="https://etracking.bcc.cd" />
+	  <add key="NbreTentative" value="5" />
+	  <add key="Company" value="RandareCx" />
+	  <add key="Acronyme" value="RCx" />
+	  <add key="CompanyAdress" value="2bis Av Dialogue, C/Jolie Parc, C/Ngaliema, Kinshasa" />
+	  <add key="CompanyLogo" value="/Content/images/logoBcc.png" />
+	  <add key="DefaultPassword" value="A_RENSEIGNER" />
+	  <add key="MoviaApiBaseUrl" value="https://movia.bcc.cd/" />
+	  <add key="MoviaApiLoginUrl" value="auth/login/" />
+	  <add key="MoviaApiPatientUrl" value="patient/select/" />
+	  <add key="MoviaUserName" value="eTracking" />
+	  <add key="MoviaUserPassword" value="A_RENSEIGNER" />
+      <add key="DomaineName" value="banconet1.local" />
+	  <add key="Serveur" value="LAPTOP-KWETUEND\SQLSERVERDEV2019" />
+	  <!--<add key="Serveur" value="SVR-CONSOLDB1" />-->
+	  <add key="DataBase" value="locate" />
+	  <!--<add key="DataBase" value="Env_Formation_etracking" />-->
+	  <add key="UserName" value="sa" />
+	  <!--<add key="UserName" value="etracking_sce" />-->
+	  <add key="Password" value="A_RENSEIGNER" />
+	  <!--<add key="Password" value="A_RENSEIGNER" />-->
+
+	  <add key="ServeurMovia" value="LAPTOP-KWETUEND\SQLSERVERDEV2019" />
+	  <!--<add key="ServeurMovia" value="SVR-CONSOLDB1" />-->
+	  <add key="DataBaseMovia" value="Movia_20" />
+	  <add key="UserNameMovia" value="sa" />
+	  <!--<add key="UserNameMovia" value="etracking_sce" />-->
+	  <add key="PasswordMovia" value="A_RENSEIGNER" />	  
+	  <!--<add key="PasswordMovia" value="A_RENSEIGNER" />-->
+	  
+	  <add key="Local" value="true" />
+	<!--<add key="UserName" value="movia" />
+	<add key="Password" value="A_RENSEIGNER"/>-->
+    <add key="connectionString" value="Connect Timeout=60;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False" />
+    <add key="webPages:Enabled" value="false" />
+
+    <add key="400" value="Oops! Vous avez saisie une requête erronée." />
+    <add key="401" value="Oops! Une authentification est nécessaire pour accéder à la ressource." />
+    <add key="403" value="Oops! Vous ne disposez pas des privilèges nécessaires pour accéder à cette ressource." />
+    <add key="404" value="Oops! Ressource non trouvée." />
+    <add key="409" value="Oops! La requête ne peut être traitée en l’état actuel." />
+    <add key="418" value="Oops! Je suis une théière" />
+    <add key="497" value="Oops! Une requête HTTP envoyé vers le port 443 est normalement destinée aux requêtes HTTPS" />
+    <add key="500" value="Oops! Erreur interne du serveur, Contactez l'administrateur." />
+    <add key="501" value="Oops! Fonctionnalité réclamée non supportée par le serveur." />
+    <add key="502" value="Oops! Vous avez contacté le mauvais serveur proxy ou passerelle" />
+    <add key="503" value="Oops! Service temporairement indisponible ou en maintenance." />
+    <add key="520" value="Oops! Erreur inconnu" />    
+    
+	  <!-- Tableau de bord : budget de calcul de la page (ms), durée du cache des statistiques (minutes, 0 = désactivé),
+	       délai SQL accordé aux statistiques chargées en arrière-plan (secondes) -->
+	  <add key="DashboardBudgetMs" value="20000" />
+	  <add key="StatCacheMinutes" value="10" />
+	  <add key="StatCommandTimeout" value="120" />
+  </appSettings>
+
+  
+  <!-- Serveur Web  -->
+  <system.web>
+    <compilation debug="true" targetFramework="4.7.2">
+      <buildProviders>
+        <add extension=".cshtml" type="Nancy.ViewEngines.Razor.BuildProviders.NancyCSharpRazorBuildProvider, Nancy.ViewEngines.Razor.BuildProviders" />
+        <add extension=".vbhtml" type="Nancy.ViewEngines.Razor.BuildProviders.NancyVisualBasicRazorBuildProvider, Nancy.ViewEngines.Razor.BuildProviders" />
+      </buildProviders>
+    </compilation>
+    <httpRuntime targetFramework="4.7.2" />
+    <httpHandlers>
+      <add verb="*" type="Nancy.Hosting.Aspnet.NancyHttpRequestHandler" path="*" />
+    </httpHandlers>
+  </system.web>
+
+  <!-- Configuration de l'outil de logs  -->
+  <log4net>
+    <root>
+      <level value="ALL" />
+      <appender-ref ref="console" />
+      <appender-ref ref="file" />
+    </root>
+    <appender name="console" type="log4net.Appender.ConsoleAppender">
+      <layout type="log4net.Layout.PatternLayout">
+        <conversionPattern value="%date %level %logger - %message%newline" />
+      </layout>
+    </appender>
+    <appender name="file" type="log4net.Appender.RollingFileAppender">
+      <file type="log4net.Util.PatternString" value="Logs/LocateLog_%date{yyyyMMdd}.log" />
+      <appendToFile value="true" />
+      <rollingStyle value="Size" />
+      <maxSizeRollBackups value="5" />
+      <maximumFileSize value="10MB" />
+      <staticLogFileName value="true" />
+      <layout type="log4net.Layout.PatternLayout">
+        <conversionPattern value="%date [%thread] %level %logger - %message%newline" />
+      </layout>
+    </appender>
+  </log4net>
+
+  <!-- le compilateur  -->
+  <system.codedom>
+    <compilers>
+      <compiler language="c#;cs;csharp" extension=".cs" type="Microsoft.CodeDom.Providers.DotNetCompilerPlatform.CSharpCodeProvider, Microsoft.CodeDom.Providers.DotNetCompilerPlatform, Version=2.0.1.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35" warningLevel="4" compilerOptions="/langversion:default /nowarn:1659;1699;1701" />
+    </compilers>
+  </system.codedom>
+  
+
+  <!-- gestion d'erreur   -->
+  <system.webServer>
+    <validation validateIntegratedModeConfiguration="false" />
+    <!--<httpErrors existingResponse="PassThrough" />-->
+    <httpErrors errorMode="Custom" existingResponse="Replace">
+      <remove statusCode="400">
+      </remove>
+      <remove statusCode="401">
+      </remove>
+      <remove statusCode="403">
+      </remove>
+      <remove statusCode="404">
+      </remove>
+      <remove statusCode="409">
+      </remove>
+      <remove statusCode="418">
+      </remove>
+      <remove statusCode="497">
+      </remove>
+      <remove statusCode="500">
+      </remove>
+      <remove statusCode="501">
+      </remove>
+      <remove statusCode="502">
+      </remove>
+      <remove statusCode="503">
+      </remove>
+      <remove statusCode="520">
+      </remove>
+      <error statusCode="400" responseMode="ExecuteURL" path="/Error/400" />
+      <error statusCode="401" responseMode="ExecuteURL" path="/Error/401" />
+      <error statusCode="403" responseMode="ExecuteURL" path="/Error/403" />
+      <error statusCode="404" responseMode="ExecuteURL" path="/Error/404" />
+      <error statusCode="409" responseMode="ExecuteURL" path="/Error/409" />
+      <error statusCode="418" responseMode="ExecuteURL" path="/Error/418" />
+      <error statusCode="497" responseMode="ExecuteURL" path="/Error/497" />
+      <error statusCode="500" responseMode="ExecuteURL" path="/Error/500" />
+      <error statusCode="501" responseMode="ExecuteURL" path="/Error/501" />
+      <error statusCode="502" responseMode="ExecuteURL" path="/Error/502" />
+      <error statusCode="503" responseMode="ExecuteURL" path="/Error/503" />
+      <error statusCode="520" responseMode="ExecuteURL" path="/Error/520" />
+    </httpErrors>
+    <handlers>
+      <add name="Nancy" verb="*" type="Nancy.Hosting.Aspnet.NancyHttpRequestHandler" path="*" />
+    </handlers>
+  </system.webServer>
+  <system.web.webPages.razor>
+    <pages pageBaseType="Nancy.ViewEngines.Razor.NancyRazorViewBase">
+      <namespaces>
+        <add namespace="Nancy.ViewEngines.Razor" />
+      </namespaces>
+    </pages>
+  </system.web.webPages.razor>
+  <runtime>
+    <assemblyBinding xmlns="urn:schemas-microsoft-com:asm.v1">
+      <dependentAssembly>
+        <assemblyIdentity name="System.Reflection.Metadata" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-1.3.0.0" newVersion="1.3.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Collections.Immutable" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-1.2.0.0" newVersion="1.2.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="Microsoft.CodeDom.Providers.DotNetCompilerPlatform" publicKeyToken="31bf3856ad364e35" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-2.0.1.0" newVersion="2.0.1.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.Helpers" publicKeyToken="31bf3856ad364e35" />
+        <bindingRedirect oldVersion="1.0.0.0-3.0.0.0" newVersion="3.0.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.WebPages" publicKeyToken="31bf3856ad364e35" />
+        <bindingRedirect oldVersion="1.0.0.0-3.0.0.0" newVersion="3.0.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.Razor" publicKeyToken="31bf3856ad364e35" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-3.0.0.0" newVersion="3.0.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Web.Mvc" publicKeyToken="31bf3856ad364e35" />
+        <bindingRedirect oldVersion="1.0.0.0-5.2.7.0" newVersion="5.2.7.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Runtime.CompilerServices.Unsafe" publicKeyToken="b03f5f7f11d50a3a" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-5.0.0.0" newVersion="5.0.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="Newtonsoft.Json" publicKeyToken="30ad4fe6b2a6aeed" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-13.0.0.0" newVersion="13.0.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="Microsoft.Bcl.AsyncInterfaces" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-5.0.0.0" newVersion="5.0.0.0" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Threading.Tasks.Extensions" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-4.2.0.1" newVersion="4.2.0.1" />
+      </dependentAssembly>
+      <dependentAssembly>
+        <assemblyIdentity name="System.Memory" publicKeyToken="cc7b13ffcd2ddd51" culture="neutral" />
+        <bindingRedirect oldVersion="0.0.0.0-4.0.1.1" newVersion="4.0.1.1" />
+      </dependentAssembly>
+    </assemblyBinding>
+  </runtime>
+</configuration>

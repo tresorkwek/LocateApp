@@ -1,0 +1,550 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ AchatCommandeViewModel Page = (AchatCommandeViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    CommandeAchat c = Page.Commande;
+    string confirmValider = $"$(this).confirmUrl('Validation', '/achat/commande/valider/{c.Id}', 'Confirmez-vous la validation de la commande <b>{c.Numero}</b> ? Elle pourra ensuite être réceptionnée.')";
+    string confirmSoumettre = $"$(this).confirmUrl('Soumission', '/achat/commande/soumettre/{c.Id}', 'Soumettre la commande <b>{c.Numero}</b> à validation ? Elle ne sera plus modifiable.')";
+    string confirmSupprimer = $"$(this).confirmUrl('Suppression', '/achat/commande/supprimer/{c.Id}', 'Supprimer définitivement le brouillon <b>{c.Numero}</b> ?')";
+
+    Func<int, string> iconeStatut = s => s == StatutCommande.Brouillon ? "iconoir-page-edit"
+        : s == StatutCommande.Soumise ? "iconoir-clock"
+        : s == StatutCommande.Validee ? "iconoir-check"
+        : s == StatutCommande.PartiellementLivree ? "iconoir-delivery-truck"
+        : s == StatutCommande.Livree ? "iconoir-check-circle"
+        : s == StatutCommande.Cloturee ? "iconoir-lock"
+        : s == StatutCommande.Rejetee ? "iconoir-xmark-circle"
+        : "iconoir-info-circle";
+    Func<int, string> classeStatut = s => s == StatutCommande.Cloturee ? "bg-dark-subtle text-body" : StatutCommande.Badge(s);
+
+    // Suivi de livraison (3 étapes façon « Order details » du template)
+    bool etapeValidee = c.DateValidation.HasValue && c.Statut != StatutCommande.Rejetee;
+    bool etapeLivraison = c.QuantiteRecue > 0;
+    bool etapeTerminee = c.Statut == StatutCommande.Livree || c.Statut == StatutCommande.Cloturee;
+    int largeurSuivi = etapeTerminee ? 100 : (etapeLivraison ? 50 : 0);
+    var receptionsChrono = Page.Receptions.OrderBy(r => r.DateReception).ThenBy(r => r.DateCreation).ToList();
+    DateTime? premiereLivraison = receptionsChrono.Count > 0 ? receptionsChrono.First().DateReception : (DateTime?)null;
+    DateTime? derniereLivraison = receptionsChrono.Count > 0 ? receptionsChrono.Last().DateReception : (DateTime?)null;
+    DateTime? dateFin = c.Statut == StatutCommande.Cloturee ? c.DateCloture : (c.Statut == StatutCommande.Livree ? derniereLivraison : null);
+}
+
+<style>
+    .lc-timeline .activity-info:last-child::before { display: none; }
+    .lc-timeline .activity-info { min-height: 0; padding-bottom: .75rem; }
+    .lc-timeline .activity-info-text p { font-size: .8125rem; }
+</style>
+
+<!-- Identité de la commande -->
+<div class="card">
+    <div class="lc-cover"></div>
+    <div class="card-body pt-0">
+        <div class="lc-profile">
+            <span class="lc-profile-media"><i class="iconoir-cart"></i></span>
+            <div>
+                <h3 class="lc-profile-title">
+                    Commande @c.Numero
+                    <span class="badge lc-badge @classeStatut(c.Statut) align-middle ms-1"><i class="@iconeStatut(c.Statut)"></i>@c.StatutLibelle</span>
+                </h3>
+                <p class="lc-profile-sub">@c.Fournisseur · commandée le @c.DateCommande.ToString("dd/MM/yyyy")</p>
+            </div>
+            <div class="lc-profile-actions">
+                @if (Page.PeutSupprimer)
+                {
+                    <a href="javascript:void(0)" onclick="@Html.Raw(confirmSupprimer)" class="btn btn-soft-danger" data-bs-toggle="tooltip" title="Supprimer le brouillon"><i class="iconoir-trash"></i></a>
+                }
+                @if (Page.PeutModifier)
+                {
+                    <a href="/achat/commande/modify/@c.Id" class="btn btn-light"><i class="iconoir-edit-pencil me-1"></i>Modifier</a>
+                }
+                @if (Page.PeutSoumettre)
+                {
+                    <a href="javascript:void(0)" onclick="@Html.Raw(confirmSoumettre)" class="btn btn-primary"><i class="iconoir-send me-1"></i>Soumettre à validation</a>
+                }
+                @if (Page.PeutRejeter)
+                {
+                    <button type="button" class="btn btn-soft-danger" data-bs-toggle="modal" data-bs-target="#modalRejet"><i class="iconoir-xmark me-1"></i>Rejeter</button>
+                }
+                @if (Page.PeutValider)
+                {
+                    <a href="javascript:void(0)" onclick="@Html.Raw(confirmValider)" class="btn btn-success"><i class="iconoir-check me-1"></i>Valider la commande</a>
+                }
+                @if (Page.PeutCloturer)
+                {
+                    <button type="button" class="btn btn-light" data-bs-toggle="modal" data-bs-target="#modalCloture"><i class="iconoir-lock me-1"></i>Clôturer le reliquat</button>
+                }
+                @if (Page.PeutReceptionner)
+                {
+                    <a href="/achat/reception/add/@c.Id" class="btn btn-primary"><i class="iconoir-delivery-truck me-1"></i>Enregistrer une livraison</a>
+                }
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2 align-items-center">
+            <div class="col-lg-4">
+                <ul class="lc-meta">
+                    <li><i class="iconoir-shop"></i><b>Fournisseur :</b> @c.Fournisseur</li>
+                    <li><i class="iconoir-calendar"></i><b>Date de commande :</b> @c.DateCommande.ToString("dd/MM/yyyy")</li>
+                    <li><i class="iconoir-coins"></i><b>Devise :</b> @(c.EstEnDeviseReference ? c.Devise : c.Devise + " (taux " + c.Taux.ToString("0.######") + ")")</li>
+                    <li><i class="iconoir-user"></i><b>Saisie par :</b> @c.UserCreation</li>
+                </ul>
+            </div>
+            <div class="col-lg-8">
+                <div class="row g-3">
+                    <div class="col-sm-6 col-xxl-3">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-wallet"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Montant</p>
+                                <p class="lc-kpi-value">@Utilities.FormatNumber(c.Montant)<small>@c.Devise</small></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xxl-3">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-box-iso"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Commandé</p>
+                                <p class="lc-kpi-value">@c.QuantiteCommandee<small>@c.NbreLignes ligne(s)</small></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xxl-3">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-delivery-truck"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Reçu</p>
+                                <p class="lc-kpi-value">@c.QuantiteRecue<small>@Utilities.FormatNumber(c.PourcentageRecu, 0) %</small></p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6 col-xxl-3">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-hourglass"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Restant</p>
+                                <p class="lc-kpi-value">@c.QuantiteRestante<small>@(c.QuantiteAnnulee > 0 ? c.QuantiteAnnulee + " annulée(s)" : "à livrer")</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (c.Statut == StatutCommande.Rejetee && !string.IsNullOrEmpty(c.MotifRejet))
+        {
+            <div class="lc-callout lc-callout-danger mt-3">
+                <i class="iconoir-xmark-circle"></i>
+                <div><strong>Rejetée</strong> par @c.UserValidation le @(c.DateValidation?.ToString("dd/MM/yyyy HH:mm")) : @c.MotifRejet</div>
+            </div>
+        }
+        @if (c.Statut == StatutCommande.Cloturee && !string.IsNullOrEmpty(c.MotifCloture))
+        {
+            <div class="lc-callout lc-callout-warning mt-3">
+                <i class="iconoir-lock"></i>
+                <div><strong>Clôturée</strong> par @c.UserCloture le @(c.DateCloture?.ToString("dd/MM/yyyy HH:mm")) : @c.MotifCloture</div>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-8">
+
+        <!-- Lignes -->
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col">
+                        <h4 class="card-title">Articles commandés</h4>
+                        <p class="lc-card-subtitle">Quantités et prix négociés ; le restant diminue à chaque livraison enregistrée.</p>
+                    </div>
+                    <div class="col-auto"><span class="lc-count">@Page.Lignes.Count</span></div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="table-responsive">
+                    <table class="table lc-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Article</th>
+                                <th class="text-end">Commandé</th>
+                                <th class="text-end">Prix unitaire</th>
+                                <th class="text-end">Montant</th>
+                                <th class="text-end">Reçu</th>
+                                <th class="text-end">Restant</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ligne in Page.Lignes)
+                            {
+                                <tr>
+                                    <td>
+                                        <div class="lc-entity">
+                                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+                                            <div class="lc-entity-body">
+                                                <a href="/article/id/@ligne.IdArticle" class="lc-name">@ligne.ArticleComplet</a>
+                                                <span class="lc-sub">@ligne.ArticleCode @(string.IsNullOrEmpty(ligne.UniteMesure) ? "" : "· " + ligne.UniteMesure)</span>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td class="lc-num">@ligne.Quantite</td>
+                                    <td class="lc-num">@Utilities.FormatNumber(ligne.PrixUnitaire)</td>
+                                    <td class="lc-num fw-semibold text-body">@Utilities.FormatNumber(ligne.Montant)</td>
+                                    <td class="lc-num text-success">@ligne.QuantiteRecue</td>
+                                    <td class="lc-num">
+                                        @if (ligne.QuantiteAnnulee > 0)
+                                        {
+                                            <span class="text-muted" data-bs-toggle="tooltip" title="@ligne.QuantiteAnnulee annulée(s) à la clôture">0 <i class="iconoir-info-circle"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="@(ligne.QuantiteRestante > 0 ? "text-warning fw-semibold" : "text-muted")">@ligne.QuantiteRestante</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Livraisons -->
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col">
+                        <h4 class="card-title">Livraisons</h4>
+                        <p class="lc-card-subtitle">@c.QuantiteRecue unité(s) reçue(s) sur @c.QuantiteCommandee, en @Page.Receptions.Count livraison(s).</p>
+                    </div>
+                    @if (Page.PeutReceptionner)
+                    {
+                        <div class="col-auto">
+                            <a href="/achat/reception/add/@c.Id" class="btn btn-sm btn-soft-primary"><i class="iconoir-plus me-1"></i>Enregistrer une livraison</a>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="position-relative mx-4 mt-4 mb-4">
+                    <div class="progress" role="progressbar" aria-label="Suivi de livraison" aria-valuenow="@largeurSuivi" aria-valuemin="0" aria-valuemax="100" style="height: 2px;">
+                        <div class="progress-bar @(etapeTerminee ? "bg-success" : "")" style="width: @(largeurSuivi)%"></div>
+                    </div>
+                    <div class="position-absolute top-0 start-0 translate-middle rounded-pill thumb-md @(etapeValidee ? "bg-primary text-white" : "bg-secondary-subtle text-secondary")"><i class="iconoir-check fs-18"></i></div>
+                    <div class="position-absolute top-0 start-50 translate-middle rounded-pill thumb-md @(etapeLivraison ? "bg-primary text-white" : "bg-secondary-subtle text-secondary")"><i class="iconoir-delivery-truck fs-18"></i></div>
+                    <div class="position-absolute top-0 start-100 translate-middle rounded-pill thumb-md @(etapeTerminee ? "bg-success text-white" : "bg-secondary-subtle text-secondary")"><i class="@(c.Statut == StatutCommande.Cloturee ? "iconoir-lock" : "iconoir-map-pin") fs-18"></i></div>
+                </div>
+                <div class="row row-cols-3 mb-3">
+                    <div class="col text-start">
+                        <h6 class="mb-1 @(etapeValidee ? "" : "text-muted")">Commande validée</h6>
+                        <p class="mb-0 text-muted fs-12 fw-medium">@(etapeValidee ? c.DateValidation.Value.ToString("dd/MM/yyyy HH:mm") : "En attente")</p>
+                    </div>
+                    <div class="col text-center">
+                        <h6 class="mb-1 @(etapeLivraison ? "" : "text-muted")">En livraison</h6>
+                        <p class="mb-0 text-muted fs-12 fw-medium">@(premiereLivraison.HasValue ? "Depuis le " + premiereLivraison.Value.ToString("dd/MM/yyyy") : "Aucune livraison")</p>
+                    </div>
+                    <div class="col text-end">
+                        <h6 class="mb-1 @(etapeTerminee ? "" : "text-muted")">@(c.Statut == StatutCommande.Cloturee ? "Clôturée" : "Livrée")</h6>
+                        <p class="mb-0 text-muted fs-12 fw-medium">@(dateFin.HasValue ? dateFin.Value.ToString("dd/MM/yyyy") : c.QuantiteRestante + " unité(s) restante(s)")</p>
+                    </div>
+                </div>
+
+                @if (Page.Receptions.Count == 0)
+                {
+                    <div class="lc-empty py-4">
+                        <div class="lc-empty-icon"><i class="iconoir-delivery-truck"></i></div>
+                        <h6>Aucune livraison enregistrée</h6>
+                        <p class="mb-0">Chaque livraison reçue crée les biens correspondants dans le local de réception.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table lc-table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Date</th>
+                                    <th>Bordereau</th>
+                                    <th>Local de réception</th>
+                                    <th>Reçu par</th>
+                                    <th class="text-end">Quantité</th>
+                                    <th class="text-end">Biens créés</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var r in Page.Receptions)
+                                {
+                                    <tr>
+                                        <td><a href="/achat/reception/id/@r.Id" class="fw-medium text-body">@r.DateReception.ToString("dd/MM/yyyy")</a></td>
+                                        <td>
+                                            @if (string.IsNullOrEmpty(r.Bordereau))
+                                            {
+                                                <span class="text-muted">—</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="lc-code">@r.Bordereau</span>
+                                            }
+                                        </td>
+                                        <td><span class="lc-code">@r.LocalCode</span> <span class="text-body">@r.LocalDesignation</span></td>
+                                        <td>@r.RecuPar</td>
+                                        <td class="lc-num">@r.QuantiteRecue</td>
+                                        <td class="lc-num">@r.NbreBiens</td>
+                                        <td class="text-end">
+                                            <span class="lc-actions">
+                                                <a href="/achat/reception/id/@r.Id" title="Voir la livraison" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+
+        <!-- Récapitulatif -->
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col"><h4 class="card-title">Récapitulatif</h4></div>
+                    <div class="col-auto"><span class="badge lc-badge @classeStatut(c.Statut)"><i class="@iconeStatut(c.Statut)"></i>@c.StatutLibelle</span></div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="d-flex justify-content-between">
+                    <p class="text-body fw-semibold mb-2">Lignes :</p>
+                    <p class="text-body-emphasis fw-semibold mb-2">@c.NbreLignes</p>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <p class="text-body fw-semibold mb-2">Unités commandées :</p>
+                    <p class="text-body-emphasis fw-semibold mb-2">@c.QuantiteCommandee</p>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <p class="text-body fw-semibold mb-2">Unités reçues :</p>
+                    <p class="text-success fw-semibold mb-2">@c.QuantiteRecue</p>
+                </div>
+                @if (c.QuantiteAnnulee > 0)
+                {
+                    <div class="d-flex justify-content-between">
+                        <p class="text-body fw-semibold mb-2">Annulées à la clôture :</p>
+                        <p class="text-danger fw-semibold mb-2">@c.QuantiteAnnulee</p>
+                    </div>
+                }
+                <div class="d-flex justify-content-between">
+                    <p class="text-body fw-semibold mb-0">Restant à livrer :</p>
+                    <p class="@(c.QuantiteRestante > 0 ? "text-warning" : "text-body-emphasis") fw-semibold mb-0">@c.QuantiteRestante</p>
+                </div>
+                <hr class="hr-dashed" />
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">Total :</h4>
+                    <h4 class="mb-0 text-primary">@Utilities.FormatNumber(c.Montant) <small class="fs-13 text-muted">@c.Devise</small></h4>
+                </div>
+                @if (!c.EstEnDeviseReference)
+                {
+                    <div class="d-flex justify-content-between mt-2">
+                        <span class="text-muted fs-13">Soit en @Page.DeviseReference (taux @c.Taux.ToString("0.######"))</span>
+                        <span class="text-muted fs-13 fw-semibold">≈ @Utilities.FormatNumber(c.MontantReference) @Page.DeviseReference</span>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(c.Commentaire))
+                {
+                    <div class="bg-primary-subtle p-2 border-dashed border-primary rounded mt-3">
+                        <span class="text-primary fw-semibold">Note :</span> <span class="text-primary fw-normal">@c.Commentaire</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Chronologie -->
+        <div class="card">
+            <div class="card-header"><h4 class="card-title">Chronologie</h4></div>
+            <div class="card-body pt-0">
+                <div class="activity lc-timeline">
+                    <div class="activity-info">
+                        <div class="icon-info-activity"><i class="iconoir-page-edit text-primary"></i></div>
+                        <div class="activity-info-text">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="m-0">Commande créée</h6>
+                                <small class="text-muted">@c.DateCreation.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                            <p class="text-muted mb-0 mt-1">par @c.UserCreation</p>
+                        </div>
+                    </div>
+
+                    <div class="activity-info">
+                        <div class="icon-info-activity"><i class="iconoir-send @(c.DateSoumission.HasValue ? "text-warning" : "")"></i></div>
+                        <div class="activity-info-text">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 @(c.DateSoumission.HasValue ? "" : "text-muted")">Soumise à validation</h6>
+                                @if (c.DateSoumission.HasValue)
+                                {
+                                    <small class="text-muted">@c.DateSoumission.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                }
+                            </div>
+                            <p class="text-muted mb-0 mt-1">@(c.DateSoumission.HasValue ? "par " + c.UserSoumission : "Pas encore soumise")</p>
+                        </div>
+                    </div>
+
+                    <div class="activity-info">
+                        @if (c.Statut == StatutCommande.Rejetee)
+                        {
+                            <div class="icon-info-activity"><i class="iconoir-xmark-circle text-danger"></i></div>
+                        }
+                        else
+                        {
+                            <div class="icon-info-activity"><i class="iconoir-check-circle @(c.DateValidation.HasValue ? "text-success" : "")"></i></div>
+                        }
+                        <div class="activity-info-text">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="m-0 @(c.DateValidation.HasValue ? "" : "text-muted")">@(c.Statut == StatutCommande.Rejetee ? "Rejetée" : "Validée")</h6>
+                                @if (c.DateValidation.HasValue)
+                                {
+                                    <small class="text-muted">@c.DateValidation.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                }
+                            </div>
+                            <p class="text-muted mb-0 mt-1">@(c.DateValidation.HasValue ? "par " + c.UserValidation : (c.Statut == StatutCommande.Soumise ? "En attente du valideur" : "—"))</p>
+                        </div>
+                    </div>
+
+                    @foreach (var r in receptionsChrono)
+                    {
+                        <div class="activity-info">
+                            <div class="icon-info-activity"><i class="iconoir-delivery-truck text-info"></i></div>
+                            <div class="activity-info-text">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0"><a href="/achat/reception/id/@r.Id" class="text-body">Livraison de @r.QuantiteRecue unité(s)</a></h6>
+                                    <small class="text-muted">@r.DateReception.ToString("dd/MM/yyyy")</small>
+                                </div>
+                                <p class="text-muted mb-0 mt-1">reçue par @r.RecuPar · @r.NbreBiens bien(s) créé(s)</p>
+                            </div>
+                        </div>
+                    }
+
+                    @if (c.DateCloture.HasValue)
+                    {
+                        <div class="activity-info">
+                            <div class="icon-info-activity"><i class="iconoir-lock text-body"></i></div>
+                            <div class="activity-info-text">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <h6 class="m-0">Clôturée</h6>
+                                    <small class="text-muted">@c.DateCloture.Value.ToString("dd/MM/yyyy HH:mm")</small>
+                                </div>
+                                <p class="text-muted mb-0 mt-1">par @c.UserCloture</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Pièces jointes -->
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col"><h4 class="card-title">Pièces justificatives</h4></div>
+                    <div class="col-auto"><span class="lc-count">@Page.Pieces.Count</span></div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                @if (Page.Pieces.Count == 0)
+                {
+                    <p class="text-muted fs-13 mb-0">Aucune pièce jointe.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var piece in Page.Pieces)
+                        {
+                            <li class="list-group-item px-0 d-flex justify-content-between align-items-center">
+                                <div class="lc-entity">
+                                    <span class="lc-thumb lc-thumb-sm bg-secondary-subtle text-secondary"><i class="iconoir-attachment"></i></span>
+                                    <div class="lc-entity-body">
+                                        <a href="/achat/commande/piece/@piece.Id" class="lc-name">@piece.NomFichier</a>
+                                        <span class="lc-sub">@piece.TypePiece · @piece.UserCreation · @piece.DateCreation.ToString("dd/MM/yyyy")</span>
+                                    </div>
+                                </div>
+                                <span class="lc-actions">
+                                    <a href="/achat/commande/piece/@piece.Id" title="Télécharger" data-bs-toggle="tooltip"><i class="iconoir-download"></i></a>
+                                </span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@if (Page.PeutRejeter)
+{
+    <div class="modal fade" id="modalRejet" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="post" action="/achat/commande/rejeter/" class="modal-content lc-form">
+                <input type="hidden" name="Id" value="@c.Id" />
+                <div class="modal-header">
+                    <h6 class="modal-title m-0"><i class="iconoir-xmark-circle text-danger me-1"></i>Rejeter la commande @c.Numero</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <p class="text-muted fs-13">La commande sera renvoyée à son auteur, qui pourra la corriger et la soumettre à nouveau.</p>
+                    <label class="form-label" for="MotifRejet">Motif du rejet<span class="lc-req">*</span></label>
+                    <textarea class="form-control" id="MotifRejet" name="Motif" rows="4" required maxlength="1000" placeholder="Ex. prix supérieur au marché, fournisseur à changer…"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-danger"><i class="iconoir-xmark me-1"></i>Rejeter</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}
+
+@if (Page.PeutCloturer)
+{
+    <div class="modal fade" id="modalCloture" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <form method="post" action="/achat/commande/cloturer/" enctype="multipart/form-data" class="modal-content lc-form">
+                <input type="hidden" name="Id" value="@c.Id" />
+                <div class="modal-header">
+                    <h6 class="modal-title m-0"><i class="iconoir-lock me-1"></i>Clôturer la commande @c.Numero</h6>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="lc-callout lc-callout-warning mb-3">
+                        <i class="iconoir-warning-triangle"></i>
+                        <div>Le reliquat de <strong>@c.QuantiteRestante unité(s)</strong> non livrée(s) sera annulé définitivement. Cette action doit être justifiée par une preuve (courrier ou courriel du fournisseur, avoir, procès-verbal…).</div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label" for="MotifCloture">Motif<span class="lc-req">*</span></label>
+                        <textarea class="form-control" id="MotifCloture" name="Motif" rows="3" required maxlength="1000"></textarea>
+                    </div>
+                    <div class="mb-0">
+                        <label class="form-label" for="Pieces">Pièces justificatives<span class="lc-req">*</span></label>
+                        <input type="file" class="form-control" id="Pieces" name="Pieces" multiple required accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx,.msg,.eml" />
+                        <div class="form-text">Plusieurs fichiers possibles (PDF, image, Word, Excel, courriel).</div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                    <button type="submit" class="btn btn-dark"><i class="iconoir-lock me-1"></i>Clôturer la commande</button>
+                </div>
+            </form>
+        </div>
+    </div>
+}

@@ -1,0 +1,75 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ LocalAddOrModifyFrmViewModel Page = (LocalAddOrModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/local/add/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Nouveau local" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Le local sera rattaché à l'organe ci-dessous ; son QR code pourra lui être affecté ensuite.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-building"></i></span>
+                        <div class="lc-entity-body">
+                            <span class="lc-name">@Page.Organe.Nom</span>
+                            <span class="lc-sub">Organe <span class="lc-code">@Page.Organe.Id</span></span>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-home-simple"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="Code">Code</label>
+                            <input id="Code" name="Code" type="text" class="form-control" placeholder="Ex. B12">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="Designation">Désignation<span class="lc-req">*</span></label>
+                            <input id="Designation" name="Designation" type="text" class="form-control" placeholder="Ex. Bureau du directeur" required>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Classement</div>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label class="form-label" for="IdTypeLocal">Type de local</label>
+                            <select name="IdTypeLocal" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdTypeLocal">
+                                @foreach (var localType in Page.LocalTypes)
+                                {
+                                    <option value="@localType.Id">@localType.Nom</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-5 d-flex align-items-end">
+                            <div class="form-check form-switch mb-2">
+                                <input role="switch" type="checkbox" id="IsSpace" name="IsSpace" value="true" class="form-check-input" />
+                                <label class="form-check-label" for="IsSpace">C'est un espace</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="CodeOrgane" id="CodeOrgane" value="@Page.Organe.Id" />
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/local/organe/@Page.Organe.Id" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer le local</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

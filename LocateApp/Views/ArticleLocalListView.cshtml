@@ -1,0 +1,243 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ArticleListViewModel Page = (ArticleListViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    bool parOrgane = Page.Local == null && Page.Organe != null;
+    Organe organe = Page.Organe ?? Page.Local?.GetOrgane();
+
+    string nomOrgane = organe == null ? "" : (organe.Id == organe.IdStructure ? organe.Nom : $"{organe.Nom} ({organe.NomStructure})");
+    string titreLocal = Page.Local != null ? Page.Local.Designation : parOrgane ? nomOrgane : Page.Title;
+    string ici = parOrgane ? "dans cet organe" : "dans ce local";
+    string lienParArticle = Page.LienParArticle ?? (Page.Local == null ? null : "/article/local/" + Page.Local.Id);
+    string lienDetails = Page.LienDetails ?? (Page.Local == null ? null : "/immo/local/" + Page.Local.Id);
+
+    int anneeEnCours = Page.AnneEnCours;
+    long totalBiens = 0;
+    long totalInventories = 0;
+    int nbPhotographies = 0;
+    Dictionary<long, long> inventoriesParArticle = new Dictionary<long, long>();
+
+    foreach (var a in Page.Articles)
+    {
+        long inventories = Page.InventoriesParArticle != null
+            ? (Page.InventoriesParArticle.TryGetValue(a.Id, out long n) ? n : 0)
+            : (Page.Local == null ? 0 : a.GetQuantiteImmoInventorie(Page.Local.Id));
+        inventoriesParArticle[a.Id] = inventories;
+        totalBiens += a.NbreImmo;
+        totalInventories += inventories;
+        if (a.IsPhotographed) { nbPhotographies++; }
+    }
+
+    string colKpi = anneeEnCours > 0 ? "col-sm-6 col-xl-3" : "col-sm-6 col-xl-4";
+    int tauxInventaire = totalBiens == 0 ? 0 : (int)Math.Min(100, Math.Round(totalInventories * 100.0 / totalBiens));
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<input type="hidden" id="NbreImmoTotal" name="NbreImmoTotal" value="@Page.Articles.Count" />
+
+<!-- En-tête du local -->
+<div class="card">
+    <div class="card-body">
+        <div class="row g-3 align-items-center">
+            <div class="col-lg">
+                <div class="lc-entity">
+                    <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="@(parOrgane ? "iconoir-community" : "iconoir-building")"></i></span>
+                    <div class="lc-entity-body">
+                        <span class="lc-name fs-16 fw-semibold">@titreLocal</span>
+                        <span class="lc-sub">
+                            @if (parOrgane)
+                            {
+                                <text>Biens de l'organe, groupés par article</text>
+                                <span class="lc-code ms-1">@organe.Id</span>
+                            }
+                            else if (!string.IsNullOrEmpty(nomOrgane))
+                            {
+                                <text>@nomOrgane</text>
+                            }
+                            else
+                            {
+                                <text>Articles présents dans ce local</text>
+                            }
+                            @if (!string.IsNullOrEmpty(Page.Local?.Code))
+                            {
+                                <span class="lc-code ms-1">@Page.Local.Code</span>
+                            }
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-auto lc-toolbar">
+                @if (anneeEnCours > 0)
+                {
+                    <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-clipboard-check"></i>Inventaire @anneeEnCours</span>
+                }
+                @if (lienParArticle != null && lienDetails != null)
+                {
+                    <div class="btn-group" role="group" aria-label="Mode d'affichage">
+                        <a href="@lienParArticle" class="btn btn-sm btn-primary active" data-bs-toggle="tooltip" title="Vue par article">
+                            <i class="iconoir-view-grid"></i>
+                        </a>
+                        <a href="@lienDetails" class="btn btn-sm btn-outline-primary" data-bs-toggle="tooltip" title="Vue détaillée des biens">
+                            <i class="iconoir-list"></i>
+                        </a>
+                    </div>
+                }
+                <a href="/article/add/" class="btn btn-sm btn-soft-primary"><i class="iconoir-plus me-1"></i>Nouvel article</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Indicateurs -->
+<div class="row g-3 mb-3">
+    <div class="@colKpi">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Articles</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(Page.Articles.Count, 0)<small>@ici</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="@colKpi">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-archive"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalBiens, 0)<small>enregistrés</small></p>
+            </div>
+        </div>
+    </div>
+    @if (anneeEnCours > 0)
+    {
+        <div class="@colKpi">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-clipboard-check"></i></span>
+                <div class="flex-grow-1">
+                    <p class="lc-kpi-label">Inventoriés @anneeEnCours</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(totalInventories, 0)<small>@tauxInventaire % des biens</small></p>
+                    <div class="progress lc-progress mt-2">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: @tauxInventaire%" aria-valuenow="@tauxInventaire" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    }
+    <div class="@colKpi">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-camera"></i></span>
+            <div>
+                <p class="lc-kpi-label">Photographiés</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbPhotographies, 0)<small>sur @Page.Articles.Count articles</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Articles présents dans le local ou l'organe -->
+@if (Page.Articles.Count == 0)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Aucun article @ici</h6>
+                <p>Aucun bien n'est encore enregistré @ici : les articles apparaîtront ici dès l'ajout du premier bien.</p>
+                @if (lienDetails != null)
+                {
+                    <a href="@lienDetails" class="btn btn-primary btn-sm"><i class="iconoir-list me-1"></i>Voir les biens</a>
+                }
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="row g-3">
+        @{
+            string link;
+            Categorie categorie;
+            long quantiteImmoInventorie;
+            string quantiteToShow;
+        }
+
+        @foreach (var article in Page.Articles)
+        {
+            categorie = article.GetCategorie();
+            link = Page.Link + article.Id;
+            quantiteImmoInventorie = inventoriesParArticle[article.Id];
+            quantiteToShow = anneeEnCours > 0 ? $"{quantiteImmoInventorie} / {article.NbreImmo}" : $"{article.NbreImmo}";
+            int tauxArticle = article.NbreImmo == 0 ? 0 : (int)Math.Min(100, Math.Round(quantiteImmoInventorie * 100.0 / article.NbreImmo));
+
+            <div class="col-md-6 col-lg-4 col-xxl-3">
+                <div class="card article-card h-100 mb-0">
+                    <div class="card-body d-flex flex-column">
+
+                        @if (article.IsPhotographed)
+                        {
+                            <img src="~/Content/images/articles/@article.Photo" alt="@article.Code" class="article-card-img" data-zoom-image="/Content/images/articles/@article.Photo" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: 11 })" />
+                        }
+                        else
+                        {
+                            <img src="~/Content/images/articles/@article.Photo" alt="Non photographié" class="article-card-img" />
+                        }
+
+                        <div class="d-flex flex-wrap align-items-center gap-1 mt-3">
+                            @if (categorie != null)
+                            {
+                                <span class="badge lc-badge bg-primary-subtle text-primary">@categorie.Designation</span>
+                                if (!string.IsNullOrEmpty(categorie.Famille))
+                                {
+                                    <span class="fs-12 text-muted ms-1">@categorie.Famille</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="badge lc-badge bg-secondary-subtle text-secondary">Sans catégorie</span>
+                            }
+                        </div>
+
+                        <a href="@Html.Raw(link)" class="article-card-title my-2" title="@article.Designation">@article.Designation</a>
+
+                        <ul class="article-meta">
+                            <li><span>N° d'article</span><span>@article.Id</span></li>
+                            <li><span>Marque</span><span>@(string.IsNullOrEmpty(article.Marque) ? "—" : article.Marque)</span></li>
+                            <li><span>Modèle</span><span>@(string.IsNullOrEmpty(article.Modele) ? "—" : article.Modele)</span></li>
+                            <li><span>Unité de mesure</span><span>@(string.IsNullOrEmpty(article.UniteMesure) ? "—" : article.UniteMesure)</span></li>
+                        </ul>
+
+                        <div class="mt-auto pt-3">
+                            @if (anneeEnCours > 0)
+                            {
+                                <div class="progress lc-progress mb-2">
+                                    <div class="progress-bar @(tauxArticle >= 100 ? "bg-success" : "bg-primary")" role="progressbar" style="width: @tauxArticle%" aria-valuenow="@tauxArticle" aria-valuemin="0" aria-valuemax="100"></div>
+                                </div>
+                            }
+                            <div class="d-flex justify-content-between align-items-center border-top border-dashed pt-3">
+                                <div>
+                                    <span class="lc-count bg-primary-subtle text-primary">@quantiteToShow</span>
+                                    <small class="text-muted ms-1">@(anneeEnCours > 0 ? "inventoriés / biens" : "biens")</small>
+                                </div>
+                                <span class="lc-actions">
+                                    <a href="/article/id/@article.Id" title="Fiche de l'article" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                    <a href="@Html.Raw(link)" title="Voir les biens" data-bs-toggle="tooltip"><i class="iconoir-arrow-right"></i></a>
+                                </span>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}

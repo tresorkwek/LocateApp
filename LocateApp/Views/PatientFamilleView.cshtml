@@ -1,0 +1,388 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ PatientFamilleViewModel Page = (PatientFamilleViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div>
+
+    <div class="row">
+        <div class="col-12 col-md-4 col-lg-5">
+            <div class="card">
+                <div class="card-body text-center">
+
+                    @{string couleur = (Page.Patients[0].Actif == 1) ? "blue" : "orange";
+                      int nbrePatientModifiable = (Page.Patients[0].Statut[0] == "0") ? 1 : 0;
+                      int nbrePatientPrisEnCharge = (Page.Patients[0].PrisEnCharge == "OUI") ? 1 : 0;
+                      int membrefamille = (Page.Patients[0].PrisEnCharge == "OUI") ? 1 : 0;
+                     }
+
+                    <p class="mt-4">@Page.Patients[0].Matricule</p>
+
+                    <img src="~/Content/images/photos/@Page.Patients[0].Photo" class="img-fluid rounded-circle" width="300px" alt="">
+
+                    <p class="mt-4">
+
+                        @Html.Raw(ForString.ShowCorrectionBetween(Page.Patients[0].Nom, Page.Patients[0].NomAfficheable))  @Html.Raw(ForString.ShowCorrectionBetween(Page.Patients[0].Postnom, Page.Patients[0].PostnomAfficheable)) @Html.Raw(ForString.ShowCorrectionBetween(Page.Patients[0].Prenom, Page.Patients[0].PrenomAfficheable))
+
+                    </p>
+
+                    <div class="chip mt-2 text-bg-secondary text-white">
+
+                        @{string naissance = (Page.Patients[0].Sexe == 1) ? "Né" : "Née";}
+                        @naissance le @Page.Patients[0].DateNaissance
+
+                    </div>
+                    <div class="chip mt-2 text-bg-secondary text-white">@Page.Patients[0].EtatCivil</div>
+
+                    <br /> <br />
+                    <p> Sexe : @Html.Raw(ForString.ShowCorrectionBetween(Page.Patients[0].Genre, Page.Patients[0].GenreAfficheable)) </p>
+                    <hr /> <br />
+
+                    @{ string couleurTexte = (Page.Patients[0].PrisEnCharge == "NON") ? "" : (Page.Patients[0].Actif == 1) ? "color: #4585BB" : "color: #FF9800";}
+
+                    @if (Page.Patients[0].IsCorrect && !Page.Patients[0].MoviaAccordAgent && Page.Patients[0].IsPhotographed)
+                    {
+                        string accordLink = Page.AccordLink+ Page.Patients[0].Matricule;
+
+                        if (Page.IsMyProfil || Page.CanValidate) 
+                        { 
+                            <a class="btn @couleur mb-1 btn-primary" href="@accordLink">D'accord ?</a>
+                        }
+                        
+                    }
+                    else
+                    {
+                        <address>
+                            <strong style="@couleurTexte" class="text-center">@Html.Raw(Page.Patients[0].Statut[1])</strong>
+                        </address>
+                    }
+                    <br />
+
+                    @if(Page.Patients[0].PassageHopital.Count > 0) 
+                    { 
+                        <address>
+                            <strong style="@couleurTexte" class="text-center"><a href="">Voir les mouvements du mois</a></strong>
+                        </address>
+                        <br />
+                    }                   
+
+                </div>
+
+            </div>
+
+       @if (Page.NonPrisEnCharge.Count > 0 || (Page.Patients[0].MoviaMatricule != null && !string.IsNullOrEmpty(Page.Patients[0].MoviaCommentaire)))
+        {
+            <div class="card">
+                <div class="card-body">
+               @if (Page.Patients[0].MoviaMatricule != null && !string.IsNullOrEmpty(Page.Patients[0].MoviaCommentaire))
+                {
+                    <h4 class="card-title">Commentaire</h4>
+                    <address>
+                        @Page.Patients[0].MoviaCommentaire
+                    </address>
+                }
+
+               @if (Page.NonPrisEnCharge.Count > 0)
+                {
+                    string nbreAffichable = (Page.NonPrisEnCharge.Count == 1) ? "Voir la personne" : $"Voir les {Page.NonPrisEnCharge.Count} Personnes";
+
+                    <br /><br />
+                    <div class="text-center">
+                         <a class="btn btn-danger" href="#modal3">@nbreAffichable non pris en charge</a>
+                    </div>
+                }
+
+
+                </div>
+            </div>
+        }
+
+
+        </div>
+
+   @if (Page.Patients.Count - Page.NonPrisEnCharge.Count > membrefamille)
+    {
+        <div class="col-12 col-md-4 col-lg-6">
+            <div class="card">
+                <div class="card-body">
+
+               @if (Page.Patients.Count > 1)
+                {
+                    <h4 class="card-title">Membre de famille</h4>
+                    <ul class="collapsible" data-collapsible="expandable">
+
+                       @{int nbreMembreFamille = 0;}
+
+                       @foreach (var patient in Page.Patients)
+                        {
+                            nbrePatientModifiable += (patient.Statut[0] == "0") ? 1 : 0;
+                            if (patient.Matricule.Substring(6, 2) != "00" && patient.PrisEnCharge == "OUI")
+                            {
+                                nbreMembreFamille++;
+                                naissance = (patient.Sexe == 1) ? "Né" : "Née";
+                                nbrePatientPrisEnCharge++;
+
+                                <li>
+                                     <div class="collapsible-header active">
+
+                                         <strong>
+                                             N°@nbreMembreFamille  @Html.Raw(ForString.ShowCorrectionBetween(patient.Nom, patient.NomAfficheable))  @Html.Raw(ForString.ShowCorrectionBetween(patient.Postnom, patient.PostnomAfficheable))  @Html.Raw(ForString.ShowCorrectionBetween(patient.Prenom, patient.PrenomAfficheable))
+                                         </strong>
+
+                                     </div>
+                                     <div class="collapsible-body">
+                                         <table align="center" class="table table-hover align-middle w-100">
+                                             <tr>
+                                                 <td>
+                                                     <div class="text-center">
+                                                         <img src="~/Content/images/photos/@patient.Photo" class="img-fluid rounded-circle" width="250px" alt="">
+                                                     </div>
+                                                 </td>
+                                                 <td>
+                                                    <address>
+                                                        <div class="text-center">
+                                                            @if (@patient.IsCorrect && !patient.MoviaAccordAgent && patient.IsPhotographed)
+                                                            {
+                                                                string accordLink = Page.AccordLink + patient.Matricule;
+                                                                if (Page.IsMyProfil || Page.CanValidate)
+                                                                {
+                                                                    <a class="btn btn-success mb-1" href="@accordLink">D'accord ?</a>
+                                                                }
+
+
+                                                            }
+                                                            else
+                                                            {
+                                                                string status = (patient.Statut[0] == "-1") ? "En attente de synchronisation" : patient.Statut[1];
+
+                                                        <address><strong style="color: #009900"> @Html.Raw(status) </strong></address>}
+                                                            <br /><br />
+                                                        </div>
+                                                        <br />
+                                                        <strong>Matricule : </strong>@patient.Matricule<br />
+                                                        <strong>Sexe : </strong> @Html.Raw(ForString.ShowCorrectionBetween(patient.Genre, patient.GenreAfficheable)) <br />
+                                                        <strong>@naissance le </strong> @patient.DateNaissance <br />
+                                                        <strong>Statut : </strong>@patient.TypeString
+                                                    </address>
+
+                                                    @if (patient.MoviaMatricule != null && !string.IsNullOrEmpty(patient.MoviaCommentaire))
+                                                    {
+                                                        <br /><br />
+                                                        <address>
+                                                            <strong class="text-danger">Commentaire</strong><br/>
+                                                            @patient.MoviaCommentaire
+                                                        </address>
+                                                     }
+
+                                                 </td>
+                                             </tr>
+                                             <tr>
+                                                 <td colspan="2" align="center">
+                                                     <div class="text-center">
+                                                    @if (patient.Statut[0] == "-1")
+                                                     {
+                                                        <address>
+                                                            <strong style="color: #009900">@Html.Raw(patient.Statut[1])</strong>
+                                                        </address> <br />
+                                                     }
+                                                     </div>
+                                                 </td>
+                                             </tr>
+                                         </table>
+                                     </div>
+                                </li>
+                             }
+                        }
+
+                    </ul>
+                }
+
+                </div>
+            </div>
+        </div>
+    }
+
+
+
+        @if (Page.NonPrisEnCharge.Count > 0)
+        {
+
+            <div id="modal3" class="modal bottom-sheet" style="z-index: 1003; display: block; opacity: 0; bottom: -100%;">
+                <div class="modal-content">
+                    <h4>Personne non pris en charge</h4>
+                    <ul class="list-group">
+
+                        @foreach (var patient in Page.NonPrisEnCharge)
+                         {
+                            naissance = (patient.Sexe == 1) ? "Né" : "Née";
+
+                            <li class="list-group-item d-flex align-items-center">
+                                <img src="~/Content/images/photos/@patient.Photo" class="img-fluid rounded-circle" width="300px" alt="" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: -11 })">
+                                <span class="title">@patient.NomAfficheable @patient.PostnomAfficheable @patient.PrenomAfficheable</span>
+                                <p>
+                                    Matricule : @patient.Matricule <br />
+                                    Sexe: @patient.GenreAfficheable <br>
+                                    @naissance le @patient.DateNaissance <br />
+                                    Statut : @patient.TypeString
+                                </p>
+                                <a href="#!" class="secondary-content"><i class="material-icons">grade</i></a>                   
+                            </li>
+                         }
+
+                    </ul>
+                </div>
+            </div>
+         }
+
+
+        @if (nbrePatientPrisEnCharge >= 8 && (Page.IsMyProfil || Page.CanEtablishBE))
+        {
+
+            <div id="billetEnvoi" class="modal bottom-sheet" style="z-index: 1003; display: block; opacity: 0; bottom: -100%;">
+                <div class="modal-content">
+                    <h4>Génération du billet d'envoi</h4>
+                    <ul class="list-group">
+
+                        @foreach (var patient in Page.Patients)
+                        {
+                            naissance = (patient.Sexe == 1) ? "Né" : "Née";
+
+                            if (patient.PrisEnCharge == "OUI")
+                            {
+                                string createBilletEnvoiLink = Page.Link + patient.Matricule;
+
+                                <li class="list-group-item d-flex align-items-center">
+                                    <a href="@createBilletEnvoiLink"><img src="~/Content/images/photos/@patient.Photo" class="img-fluid rounded-circle" width="300px" alt=""></a>
+                                    <span class="title"><a href="@createBilletEnvoiLink"> @patient.NomAfficheable @patient.PostnomAfficheable @patient.PrenomAfficheable</a> </span>
+                                    <p>
+                                        Matricule : @patient.Matricule <br />
+                                        Sexe: @patient.GenreAfficheable <br>
+                                        @naissance le @patient.DateNaissance <br />
+                                        Statut : @patient.TypeString
+                                    </p>                                   
+
+                                    <a href="@createBilletEnvoiLink" class="secondary-content"><i class="material-icons">airplane_ticket</i></a>
+                                </li>
+                             }
+                         }
+
+                    </ul>
+                </div>
+            </div>
+         }
+
+        @if (nbrePatientModifiable >= 8 && (Page.IsMyProfil || Page.CanModify))
+        {
+            <div id="modification" class="modal bottom-sheet" style="z-index: 1003; display: block; opacity: 0; bottom: -100%;">
+                <div class="modal-content">
+                    <h4>Correction des ayant-droits</h4>
+                    <ul class="list-group">
+
+                        @foreach (var patient in Page.Patients)
+                        {
+                            naissance = (patient.Sexe == 1) ? "Né" : "Née";
+
+                            if (patient.PrisEnCharge == "OUI" && patient.Statut[0] == "0")
+                            {
+                                string modifyPatientLink = $"/patient/modify/" + patient.Matricule.Trim();
+
+                                <li class="list-group-item d-flex align-items-center">
+                                    <a href="@modifyPatientLink"><img src="~/Content/images/photos/@patient.Photo" class="img-fluid rounded-circle" width="300px" alt=""></a>
+                                    <a href="/patient/modify/@patient.Matricule">
+                                        <span class="title"><a href="@modifyPatientLink">@patient.NomAfficheable @patient.PostnomAfficheable @patient.PrenomAfficheable</a></span>
+                                    </a>
+                                    <p>
+                                        Matricule : @patient.Matricule <br />
+                                        Sexe: @patient.GenreAfficheable <br>
+                                        @naissance le @patient.DateNaissance <br />
+                                        Statut : @patient.TypeString
+                                    </p>
+                                    <a href="@modifyPatientLink" class="secondary-content"><i class="iconoir-edit-pencil"></i></a>
+                                </li>
+                             }
+                         }
+
+                    </ul>
+                </div>
+            </div>
+         }
+
+
+        @{ string cordY = (nbrePatientModifiable == 0) ? "20px" : "90px";}
+
+        @if (Page.IsMyProfil || Page.CanEtablishBE)
+        {
+            <div class="fab-action click-to-toggle">
+
+                @{ string classCss2 = (nbrePatientPrisEnCharge < 8) ? "class=\"btn-floating btn-large red\" " : "class=\"btn-floating btn-large red modal-trigger\" href=\"#billetEnvoi\""; }
+
+                <a @Html.Raw(classCss2)>
+
+                    <i class="iconoir-menu"></i>
+                </a>
+                <ul>
+
+                    @if (nbrePatientPrisEnCharge <= 7)
+                    {
+
+                        foreach (var patient in Page.Patients)
+                        {
+
+                            if (patient.PrisEnCharge == "OUI")
+                            {
+                                string createBilletEnvoiLink = Page.Link + patient.Matricule;
+            <li>
+                <a class="img-responsive" data-bs-placement="bottom" data-bs-toggle="tooltip" title="@patient.NomAfficheable @patient.PostnomAfficheable @patient.PrenomAfficheable" href="@createBilletEnvoiLink"><img src="~/Content/images/photos/@patient.Photo" alt="" class="img-fluid rounded-circle" width="50px"></a>
+            </li>                        }
+                                }
+                            }
+
+                </ul>
+            </div>
+
+        }
+        
+
+        @if (nbrePatientModifiable > 0 && (Page.IsMyProfil || Page.CanModify))
+        {
+
+            <div class="fab-action">
+
+                @{ string classCss = (nbrePatientModifiable <= 7) ? "class=\"btn-floating btn-large red\" " : "class=\"btn-floating btn-large red modal-trigger\" href=\"#modification\""; }
+
+                <a @Html.Raw(classCss)>
+                    <i class="iconoir-edit-pencil"></i>
+                </a>
+            
+                <ul>
+
+                    @if (nbrePatientModifiable <= 7)
+                    {
+                        string modifyLink;
+
+                        foreach (var patient in Page.Patients)
+                        {
+                            modifyLink = Page.ModifyLink + patient.Matricule.Trim();
+
+                            if (patient.PrisEnCharge == "OUI" && patient.Statut[0] == "0")
+                            {
+                                <li><a class="img-responsive" data-bs-placement="left" data-bs-toggle="tooltip" title="@patient.NomAfficheable @patient.PostnomAfficheable @patient.PrenomAfficheable" href="@modifyLink"><img src="~/Content/images/photos/@patient.Photo" alt="" class="img-fluid rounded-circle" width="50px"></a></li>
+                            }
+                        }
+                     }
+
+                </ul>
+            </div>
+            
+         }
+
+    </div>
+</div>

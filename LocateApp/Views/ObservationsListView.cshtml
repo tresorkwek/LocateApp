@@ -1,0 +1,159 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ObservationsListViewModel Page = (ObservationsListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Observations> observations = Page.Observations ?? new List<Observations>();
+   int nbObservations = observations.Count;
+   int nbBon = observations.Count(x => x.Etat == "B");
+   int nbMauvais = observations.Count(x => x.Etat == "M");
+   int nbAutres = nbObservations - nbBon - nbMauvais;
+
+   // Filtre actif (routes /observation/etat/B et /observation/etat/M).
+   string chemin = (RenderContext?.Context?.Request?.Path ?? "").TrimEnd('/').ToUpperInvariant();
+   string filtre = chemin.EndsWith("/ETAT/B") ? "B" : (chemin.EndsWith("/ETAT/M") ? "M" : "");
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-notes"></i></span>
+            <div>
+                <p class="lc-kpi-label">Observations</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbObservations, 0)<small>libellés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-thumbs-up"></i></span>
+            <div>
+                <p class="lc-kpi-label">Bon état</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbBon, 0)<small>libellés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-thumbs-down"></i></span>
+            <div>
+                <p class="lc-kpi-label">Mauvais état</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbMauvais, 0)<small>libellés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i></span>
+            <div>
+                <p class="lc-kpi-label">Non vu</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAutres, 0)<small>libellés</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Libellés proposés lors de l'inventaire pour qualifier l'état constaté d'un bien.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <div class="btn-group" role="group" aria-label="Filtrer par état">
+                    <a href="/observation/" class="btn btn-light @(filtre == "" ? "active" : "")">Toutes</a>
+                    <a href="/observation/etat/B" class="btn btn-light @(filtre == "B" ? "active" : "")"><i class="iconoir-thumbs-up me-1 text-success"></i>Bon</a>
+                    <a href="/observation/etat/M" class="btn btn-light @(filtre == "M" ? "active" : "")"><i class="iconoir-thumbs-down me-1 text-warning"></i>Mauvais</a>
+                </div>
+                <a href="/observation/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvelle observation</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbObservations == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-notes"></i></div>
+                <h6>Aucune observation</h6>
+                <p>Créez les libellés que les agents choisiront pour décrire l'état des biens inventoriés.</p>
+                <a href="/observation/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouvelle observation</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Observation</th>
+                            <th>État associé</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var observation in observations)
+                        {
+                            string link = Page.Link + observation.Id;
+                            string libelleJs = (observation.Observation ?? "").Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "&quot;");
+                            string onclik = $"$(this).confirmUrl('Suppression', '/observation/delete/{observation.Id}', 'Êtes-vous sûr de vouloir supprimer l\\'observation : <br/> <div class=\\'chip\\'> {libelleJs} </div> ?', 'Suppression de l\\'observation <div class=\\'chip\\'> {libelleJs} </div> annulée')";
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (observation.Etat == "B")
+                                        {
+                                            <span class="lc-thumb bg-success-subtle text-success"><i class="iconoir-notes"></i></span>
+                                        }
+                                        else if (observation.Etat == "M")
+                                        {
+                                            <span class="lc-thumb bg-warning-subtle text-warning"><i class="iconoir-notes"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb bg-danger-subtle text-danger"><i class="iconoir-notes"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@observation.Observation</a>
+                                            <span class="lc-sub">Réf. @observation.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-order="@observation.Etat">
+                                    @if (observation.Etat == "B")
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-thumbs-up"></i>Bon état</span>
+                                    }
+                                    else if (observation.Etat == "M")
+                                    {
+                                        <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-thumbs-down"></i>Mauvais état</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i>Non vu</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/observation/modify/@observation.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        <a onclick="@Html.Raw(onclik)" class="lc-danger" role="button" title="Supprimer" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,161 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ViewModel Page = (ViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<style>
+    .lc-apercu-feuille { background: var(--lc-soft-bg); border-radius: var(--lc-radius); padding: 1.25rem; display: flex; justify-content: center; }
+    .lc-apercu-grille { display: grid; gap: 4px; width: 100%; max-width: 260px; padding: 10px; background: #fff; border-radius: .375rem; box-shadow: 0 1px 2px rgba(15, 23, 42, .08), 0 4px 12px rgba(15, 23, 42, .08); }
+    .lc-apercu-grille > span { display: flex; align-items: center; justify-content: center; min-height: 6px; border: 1px dashed #94a3b8; border-radius: 2px; color: #334155; font-size: .875rem; overflow: hidden; }
+    .lc-apercu-grille > .lc-apercu-vide { grid-column: 1 / -1; border: 0; padding: 2rem .5rem; color: #64748b; font-size: .8125rem; text-align: center; }
+</style>
+
+<form class="lc-form" method="post" action="/etiquette/format/add/">
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Décrivez la planche d'étiquettes QR : disposition, taille de chaque étiquette et papier.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" placeholder="Ex. Planche standard 8 × 5">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Papier">Papier</label>
+                            <input id="Papier" name="Papier" type="text" value="A3" class="form-control" list="lcPapiers" placeholder="Ex. A3, A4">
+                            <datalist id="lcPapiers">
+                                <option value="A3"></option>
+                                <option value="A4"></option>
+                                <option value="A5"></option>
+                                <option value="Letter"></option>
+                            </datalist>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-view-grid"></i>Disposition sur la page</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Ligne">Lignes<span class="lc-req">*</span></label>
+                            <input id="Ligne" name="Ligne" type="number" min="1" step="1" inputmode="numeric" class="form-control" placeholder="Ex. 8">
+                            <div class="form-text">Nombre de rangées d'étiquettes par page.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Colone">Colonnes<span class="lc-req">*</span></label>
+                            <input id="Colone" name="Colone" type="number" min="1" step="1" inputmode="numeric" class="form-control" placeholder="Ex. 5">
+                            <div class="form-text">Nombre d'étiquettes par rangée.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-qr-code"></i>Taille d'une étiquette<span class="lc-section-hint">en millimètres</span></div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Largeur">Largeur<span class="lc-req">*</span></label>
+                            <div class="input-group">
+                                <input id="Largeur" name="Largeur" type="number" min="1" step="1" inputmode="numeric" class="form-control" placeholder="Ex. 30">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Hauteur">Hauteur<span class="lc-req">*</span></label>
+                            <div class="input-group">
+                                <input id="Hauteur" name="Hauteur" type="number" min="1" step="1" inputmode="numeric" class="form-control" placeholder="Ex. 30">
+                                <span class="input-group-text">mm</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-community"></i>Visibilité</div>
+                    <div class="form-check form-switch">
+                        <input role="switch" type="checkbox" id="IsPublic" name="IsPublic" value="true" checked class="form-check-input" />
+                        <label class="form-check-label fw-medium" for="IsPublic">Format public</label>
+                    </div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/etiquette/format/select/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer le format</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">Aperçu de la planche</h4>
+                    <p class="lc-card-subtitle">Mis à jour pendant la saisie.</p>
+                </div>
+                <div class="card-body">
+                    <div class="lc-apercu-feuille">
+                        <div id="lcApercuGrille" class="lc-apercu-grille"></div>
+                    </div>
+                    <ul class="lc-meta mt-3">
+                        <li><i class="iconoir-view-grid"></i><b>Par page :</b><span id="lcApercuParPage">—</span></li>
+                        <li><i class="iconoir-qr-code"></i><b>Étiquette :</b><span id="lcApercuTaille">—</span></li>
+                        <li><i class="iconoir-page"></i><b>Papier :</b><span id="lcApercuPapier">—</span></li>
+                    </ul>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>La largeur et la hauteur fixent la taille imprimée de chaque QR code : vérifiez-les sur une page test avant une grosse commande.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    (function () {
+        function entier(id) { var e = document.getElementById(id); var n = e ? parseInt(e.value, 10) : NaN; return isNaN(n) || n < 1 ? 0 : n; }
+        function texte(id) { var e = document.getElementById(id); return e && e.value ? e.value.trim() : ''; }
+        function ecrire(id, valeur) { var e = document.getElementById(id); if (e) { e.textContent = valeur; } }
+
+        function rendre() {
+            var grille = document.getElementById('lcApercuGrille');
+            if (!grille) { return; }
+            var lignes = entier('Ligne'), colonnes = entier('Colone'), largeur = entier('Largeur'), hauteur = entier('Hauteur');
+            var maxL = Math.min(lignes, 14), maxC = Math.min(colonnes, 10);
+            grille.innerHTML = '';
+            if (maxL === 0 || maxC === 0) {
+                grille.style.gridTemplateColumns = '1fr';
+                var vide = document.createElement('span');
+                vide.className = 'lc-apercu-vide';
+                vide.textContent = 'Renseignez les lignes et les colonnes';
+                grille.appendChild(vide);
+            } else {
+                grille.style.gridTemplateColumns = 'repeat(' + maxC + ', 1fr)';
+                var ratio = largeur > 0 && hauteur > 0 ? (largeur + ' / ' + hauteur) : '1 / 1';
+                for (var i = 0; i < maxL * maxC; i++) {
+                    var cellule = document.createElement('span');
+                    cellule.style.aspectRatio = ratio;
+                    if (maxC <= 6) { cellule.innerHTML = '<i class="iconoir-qr-code"></i>'; }
+                    grille.appendChild(cellule);
+                }
+            }
+            ecrire('lcApercuParPage', lignes && colonnes ? (lignes * colonnes) + ' étiquettes (' + lignes + ' × ' + colonnes + ')' : '—');
+            ecrire('lcApercuTaille', largeur && hauteur ? largeur + ' × ' + hauteur + ' mm' : '—');
+            ecrire('lcApercuPapier', texte('Papier') || '—');
+        }
+
+        ['Ligne', 'Colone', 'Largeur', 'Hauteur', 'Papier'].forEach(function (id) {
+            var e = document.getElementById(id);
+            if (e) { e.addEventListener('input', rendre); e.addEventListener('change', rendre); }
+        });
+        rendre();
+    })();
+</script>

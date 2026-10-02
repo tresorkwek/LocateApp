@@ -1,0 +1,443 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ DashboardViewModel Page = (DashboardViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+<input type="hidden" value="@Page.AppName" id="AppName" />
+
+@if (Page.StatistiquesIncompletes)
+{
+    <div class="alert alert-warning d-flex align-items-center" role="alert">
+        <i class="iconoir-warning-triangle fs-4 me-2"></i>
+        <div>
+            <strong>Statistiques incomplètes.</strong> Le serveur de base de données a répondu trop lentement : certains indicateurs sont à zéro.
+            Rechargez la page dans quelques instants ; le détail est dans le journal de l'application.
+        </div>
+    </div>
+}
+
+<!-- Indicateurs clés -->
+<div class="row">
+    <div class="col-md-6 col-lg-4">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 fw-medium">Biens inventoriés</p>
+                        <h3 class="mb-1"><span class="counter">@Page.NbreBienInventorie</span></h3>
+                        <p class="mb-0 small @Page.VariationBienColor(Page.VariationBienTotal)-text">
+                            @Utilities.FormatNumber(Math.Abs(Page.VariationBienTotal), 0)% <i class="material-icons">@Page.VariationBienIcone(Page.VariationBienTotal)</i>
+                            <span class="text-muted">par rapport à l'exercice précédent</span>
+                        </p>
+                    </div>
+                    <span class="badge text-bg-primary fs-13">@Page.LastAnneeComptable</span>
+                </div>
+                <div class="mt-auto pt-3">
+                    <!-- Même hauteur (60 px) que les graphiques miniatures des deux autres cartes -->
+                    <div class="d-flex flex-column justify-content-end" style="height: 60px;">
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar" role="progressbar" style="width: @Utilities.FormatNumber(Page.PourcentageInventaire,0)%"></div>
+                        </div>
+                        <small class="text-muted mt-1">@Utilities.FormatNumber(Page.PourcentageInventaire, 0)% de l'inventaire réalisé</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 fw-medium">Biens identifiés</p>
+                        <h3 class="mb-1"><span class="counter">@Page.NbreBienIdentifie</span></h3>
+                        <p class="mb-0 small text-muted">En @Page.LastAnneeComptable</p>
+                    </div>
+                    <span class="stat-icon bg-info-subtle text-info"><i class="iconoir-qr-code"></i></span>
+                </div>
+                <div class="mt-auto pt-3">
+                    <div style="height: 60px;"><canvas id="sparkline-bar"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6 col-lg-4">
+        <div class="card stat-card h-100">
+            <div class="card-body d-flex flex-column">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <p class="text-muted mb-1 fw-medium">Situation principale</p>
+                        <h3 class="mb-1"><span class="counter">@Page.NbreBienExistant</span></h3>
+                        <p class="mb-0 small text-muted">Biens existants en @Page.LastAnneeComptable</p>
+                    </div>
+                    <span class="stat-icon bg-success-subtle text-success"><i class="iconoir-box-iso"></i></span>
+                </div>
+                <div class="mt-auto pt-3">
+                    <div style="height: 60px;"><canvas id="sparkline-line"></canvas></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Colonne principale -->
+    <div class="col-lg-8">
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">Quantité de biens</h4>
+                        <p class="text-muted mb-0 small">En bon et/ou mauvais état en @Page.LastAnneeComptable, classifiés en fonction des observations faites sur le terrain</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="javascript:void(0)" class="card-refresh text-muted" title="Rafraîchir"><i class="iconoir-refresh fs-5"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div style="height: 320px;">
+                    <canvas id="observation-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">Observations</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th class="text-center">N°</th>
+                                <th>Observation</th>
+                                <th class="text-end">Bon</th>
+                                <th class="text-end">Mauvais</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int numero = 0;
+                                long total = 0;
+                            }
+
+                            @foreach (var stat in Page.StatObservation)
+                            {
+                                numero++;
+                                total = stat.NbreBon + stat.NbreMauvais;
+
+                                <tr>
+                                    <td class="text-center">@numero</td>
+                                    <td class="text-start">@stat.Observation</td>
+                                    <td class="text-end text-success">@Utilities.FormatNumber(stat.NbreBon, 0)</td>
+                                    <td class="text-end text-danger">@Utilities.FormatNumber(stat.NbreMauvais, 0)</td>
+                                    <td class="text-end fw-semibold">@Utilities.FormatNumber(total, 0)</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">Analyse qualitative des biens</h4>
+                        <p class="text-muted mb-0 small">% de bon et/ou mauvais en @Page.LastAnneeComptable pour chaque famille de biens</p>
+                    </div>
+                    <div class="col-auto">
+                        <a href="javascript:void(0)" class="card-refresh text-muted" title="Rafraîchir"><i class="iconoir-refresh fs-5"></i></a>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div style="height: 360px;">
+                    <canvas id="radar-chart"></canvas>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Colonne latérale -->
+    <div class="col-lg-4">
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">État des biens</h4>
+                    </div>
+                    <div class="col-auto">
+                        <span class="badge text-bg-secondary">Biens</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="row text-center mb-3">
+                    <div class="col-4">
+                        <h4 class="mb-0 text-success">@Utilities.FormatNumber(Page.NbreBienBon, 0)</h4>
+                        <small class="text-muted">Bons</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0 text-danger">@Utilities.FormatNumber(Page.NbreBienMauvais, 0)</h4>
+                        <small class="text-muted">Mauvais</small>
+                    </div>
+                    <div class="col-4">
+                        <h4 class="mb-0 text-warning">@Utilities.FormatNumber(Page.NbreBienNonVu, 0)</h4>
+                        <small class="text-muted">Non vus</small>
+                    </div>
+                </div>
+                <ul class="list-group list-group-flush mb-3">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        Bons
+                        <span class="small @Page.VariationBienColor(Page.VariationBienBon)-text">@Utilities.FormatNumber(Math.Abs(Page.VariationBienBon), 0)% <i class="material-icons">@Page.VariationBienIcone(Page.VariationBienBon)</i></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        Mauvais
+                        <span class="small @Page.VariationBienColor(Page.VariationBienMauvais)-text">@Utilities.FormatNumber(Math.Abs(Page.VariationBienMauvais), 0)% <i class="material-icons">@Page.VariationBienIcone(Page.VariationBienMauvais)</i></span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        Non vus
+                        <span class="small @Page.VariationBienColor(Page.VariationBienNonVu)-text">@Utilities.FormatNumber(Math.Abs(Page.VariationBienNonVu), 0)% <i class="material-icons">@Page.VariationBienIcone(Page.VariationBienNonVu)</i></span>
+                    </li>
+                </ul>
+                <p class="text-muted small mb-2">Analyse quantitative des biens par famille</p>
+                <div style="height: 260px;">
+                    <canvas id="chart4"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">Agents avec des biens à problème</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                @{
+                    string photoUser;
+                    long nbreBienLitigieux;
+                    int? limite = 3;
+                    int compteur = 0;
+                    int? reste = (limite == null || Page.ResponsableLitigieuxBien.Count == 0 || Page.ResponsableLitigieuxBien.Count <= limite) ? null : Page.ResponsableLitigieuxBien.Count - limite;
+                }
+
+                @if (Page.ResponsableLitigieuxBien.Count == 0)
+                {
+                    <p class="text-muted mb-0">Aucun agent concerné.</p>
+                }
+
+                @foreach (var agent in Page.ResponsableLitigieuxBien)
+                {
+                    compteur++;
+                    photoUser = Utilities.GetPhotoAgentPath() + agent.Photo;
+                    nbreBienLitigieux = ImmoController.SelectNbreBienLitigieuxByResponsable(agent.Matricule.Substring(0, 6));
+
+                    <div class="info-item">
+                        <img class="rounded-circle" src="@photoUser" alt="" />
+                        <div class="flex-grow-1">
+                            <div class="fw-semibold">@agent.Nom</div>
+                            <small class="text-muted"><a href="/immo/responsable/bien/@agent.Matricule.Substring(0, 6)/">@agent.Matricule.Substring(0, 6)</a></small>
+                        </div>
+                        <a href="/immo/responsable/bienlitigieux/@agent.Matricule.Substring(0, 6)/" class="badge text-bg-danger">@nbreBienLitigieux biens</a>
+                    </div>
+
+                    if (limite != null)
+                    {
+                        if (compteur == limite) { break; }
+                    }
+                }
+
+                @if (reste != null)
+                {
+                    <div class="text-center mt-3">
+                        <a href="/immo/responsable/litigieux/" class="btn btn-sm btn-light">Voir les @Utilities.FormatNumber((int)reste, 0) autres agents</a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">QR codes non affectés</h4>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="d-flex justify-content-between align-items-center py-2">
+                    <span><i class="iconoir-box-iso me-2 text-primary"></i>Biens</span>
+                    <span class="badge text-bg-primary">@Utilities.FormatNumber(Page.NbreBienSansQRCode, 0) / @Utilities.FormatNumber(Page.NbreBienExistant, 0) (@Utilities.FormatNumber(Page.PourcentageBienSansQRCode, 0)%)</span>
+                </div>
+                <div class="d-flex justify-content-between align-items-center py-2 border-top">
+                    <span><i class="iconoir-building me-2 text-danger"></i>Locaux</span>
+                    <span class="badge text-bg-danger">@Utilities.FormatNumber(Page.NbreLocalSansQRCode, 0) / @Utilities.FormatNumber(Page.NbreLocal, 0) (@Utilities.FormatNumber(Page.PourcentageLocalSansQRCode, 0)%)</span>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<!-- Entités : pleine largeur -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center">
+                    <div class="col">
+                        <h4 class="card-title">Entités <span id="entites-compteur" class="badge bg-primary-subtle text-primary ms-1"></span></h4>
+                        <p class="text-muted mb-0 small">Progression de l'inventaire par entité</p>
+                    </div>
+                    <div class="col-md-4 col-lg-3">
+                        <div class="input-group input-group-sm">
+                            <span class="input-group-text"><i class="iconoir-search"></i></span>
+                            <input type="search" id="entites-filtre" class="form-control" placeholder="Filtrer par code ou nom..." autocomplete="off">
+                            <button type="button" id="entites-filtre-effacer" class="btn btn-light" title="Effacer"><i class="iconoir-xmark"></i></button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="table-responsive">
+                    <table id="table-entites" class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>N°</th>
+                                <th>Code</th>
+                                <th>Nom</th>
+                                <th class="text-end">Inventoriés</th>
+                                <th class="text-end">Identifiés</th>
+                                <th class="text-end">Non vus</th>
+                                <th class="text-end">Initial</th>
+                                <th class="text-end">Progression</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int i = 0;
+                                decimal nbreBienInventorie;
+                                decimal nbreBien;
+                                decimal pourcentage;
+                                decimal nbreBienTotalInventorie;
+                                string couleur = "";
+                            }
+
+                            @foreach (var entite in Page.OrganeEntite)
+                            {
+                                if (entite.NbreBien > 0)
+                                {
+                                    i++;
+                                    nbreBienInventorie = entite.NbreBienInventorie;
+                                    nbreBien = entite.NbreBien + entite.NbreBienNonVu;
+                                    nbreBienTotalInventorie = nbreBienInventorie + entite.NbreBienNonVu;
+                                    pourcentage = (nbreBienTotalInventorie / nbreBien) * 100;
+
+                                    if (nbreBienInventorie + entite.NbreBienNonVu > nbreBien || entite.NbreBienInventorie > entite.NbreBienIdentifie)
+                                    {
+                                        couleur = "text-danger";
+                                    }
+                                    else if (nbreBienInventorie + entite.NbreBienNonVu == nbreBien || entite.NbreBienIdentifie == 0)
+                                    {
+                                        couleur = "";
+                                    }
+                                    else
+                                    {
+                                        couleur = "text-primary";
+                                    }
+
+                                    <tr class="@couleur">
+                                        <td>@i</td>
+                                        <td>@entite.Id</td>
+                                        <td>@entite.Nom</td>
+                                        <td class="text-end">@Utilities.FormatNumber(entite.NbreBienInventorie, 0)</td>
+                                        <td class="text-end">@Utilities.FormatNumber(entite.NbreBienIdentifie, 0)</td>
+                                        <td class="text-end">@Utilities.FormatNumber(entite.NbreBienNonVu, 0)</td>
+                                        <td class="text-end">@Utilities.FormatNumber(nbreBien, 0)</td>
+                                        <td class="text-end">
+                                            <span class="pie" data-bs-toggle="tooltip" data-bs-placement="right" title="@Utilities.FormatNumber(pourcentage, 0)%">@nbreBienTotalInventorie/@nbreBien</span>
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                    <p id="entites-aucun" class="text-muted text-center py-3 mb-0 d-none">Aucune entité ne correspond à ce filtre.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Données des graphiques, calculées avec la page : dessinées sans appel ni indicateur d'attente (voir dashboard.js).
+    window.LocateDashboard = @Html.Raw(Page.DonneesGraphiquesJson);
+</script>
+
+<script>
+    // Filtre local des lignes du tableau des entités (code ou nom), sans rechargement.
+    document.addEventListener('DOMContentLoaded', function () {
+        var champ = document.getElementById('entites-filtre');
+        var table = document.getElementById('table-entites');
+        if (!champ || !table) { return; }
+        var lignes = Array.prototype.slice.call(table.querySelectorAll('tbody tr'));
+        var compteur = document.getElementById('entites-compteur');
+        var aucun = document.getElementById('entites-aucun');
+        var effacer = document.getElementById('entites-filtre-effacer');
+
+        function normaliser(texte) {
+            return (texte || '').toString().normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        }
+
+        lignes.forEach(function (tr) {
+            var cellules = tr.querySelectorAll('td');
+            // colonnes 2 et 3 : code et nom
+            tr.setAttribute('data-recherche', normaliser((cellules[1] ? cellules[1].textContent : '') + ' ' + (cellules[2] ? cellules[2].textContent : '')));
+        });
+
+        function filtrer() {
+            var mots = normaliser(champ.value).split(/\s+/).filter(Boolean);
+            var visibles = 0;
+            lignes.forEach(function (tr) {
+                var cible = tr.getAttribute('data-recherche');
+                var ok = mots.every(function (m) { return cible.indexOf(m) !== -1; });
+                tr.classList.toggle('d-none', !ok);
+                if (ok) { visibles++; }
+            });
+            if (compteur) { compteur.textContent = mots.length ? visibles + ' / ' + lignes.length : lignes.length; }
+            if (aucun) { aucun.classList.toggle('d-none', visibles > 0); }
+        }
+
+        champ.addEventListener('input', filtrer);
+        champ.addEventListener('keydown', function (e) { if (e.key === 'Escape') { champ.value = ''; filtrer(); } });
+        if (effacer) { effacer.addEventListener('click', function () { champ.value = ''; filtrer(); champ.focus(); }); }
+        filtrer();
+    });
+</script>

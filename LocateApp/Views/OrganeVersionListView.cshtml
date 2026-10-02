@@ -1,0 +1,156 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ OrganeVersionListViewModel Page = (OrganeVersionListViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    bool vide = Page.OrganeVersions == null || Page.OrganeVersions.Count == 0;
+    OrganeVersion versionCourante = vide ? null : Page.OrganeVersions.FirstOrDefault(v => v.Defaut);
+    int nbVersions = vide ? 0 : Page.OrganeVersions.Count;
+    int nbVides = vide ? 0 : Page.OrganeVersions.Count(v => v.NbOrgane == 0);
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-git-branch"></i></span>
+            <div>
+                <p class="lc-kpi-label">Versions</p>
+                <p class="lc-kpi-value">@nbVersions<small>dont @nbVides vide(s)</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-check-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Version courante</p>
+                <p class="lc-kpi-value">@(versionCourante == null ? "—" : versionCourante.LibelleAffiche)</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-tree"></i></span>
+            <div>
+                <p class="lc-kpi-label">Organes en service</p>
+                <p class="lc-kpi-value">@(versionCourante == null ? 0 : versionCourante.NbOrgane)<small>dans la version courante</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">Versions de l'organigramme</h4>
+                <p class="lc-card-subtitle">Chaque version est un organigramme complet. Une seule est <strong>courante</strong> : c'est elle qu'utilisent tous les écrans (locaux, biens, inventaires, utilisateurs).</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/organe/version/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvelle version</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (vide)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-git-branch"></i></div>
+                <h6>Aucune version d'organigramme</h6>
+                <p>Créez une première version pour saisir l'organigramme.</p>
+                <a href="/organe/version/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouvelle version</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Version</th>
+                            <th class="text-end">Organes</th>
+                            <th>Statut</th>
+                            <th>Création</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var version in Page.OrganeVersions)
+                        {
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb @(version.Defaut ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary")"><i class="iconoir-network-left"></i></span>
+                                        <div class="lc-entity-body">
+                                            <a href="/organe/organigramme/version/@version.Id" class="lc-name" title="Voir l'organigramme de cette version">@version.LibelleAffiche</a>
+                                            <span class="lc-sub">
+                                                Version @version.Id@(string.IsNullOrEmpty(version.Commentaire) ? "" : " · " + version.Commentaire)
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="lc-num"><span class="lc-count">@version.NbOrgane</span></td>
+                                <td>
+                                    @if (version.Defaut)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check-circle"></i>Version courante</span>
+                                    }
+                                    else if (version.NbOrgane == 0)
+                                    {
+                                        <span class="badge lc-badge bg-warning-subtle text-warning">Vide</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary">Archivée</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="d-block text-body">@(version.DateCreation.HasValue ? version.DateCreation.Value.ToString("dd/MM/yyyy") : "—")</span>
+                                    @if (!string.IsNullOrEmpty(version.UserCreation))
+                                    {
+                                        <span class="d-block fs-12 text-muted">@version.UserCreation</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-inline-flex align-items-center gap-2">
+                                        @if (!version.Defaut && version.NbOrgane > 0)
+                                        {
+                                            <form method="post" action="/organe/version/modify/" class="d-inline" onsubmit="return confirm('Définir la version @version.Id comme version courante ? Tous les écrans basculeront sur cet organigramme.');">
+                                                <input type="hidden" name="Id" value="@version.Id" />
+                                                <input type="hidden" name="Libelle" value="@version.Libelle" />
+                                                <input type="hidden" name="Commentaire" value="@version.Commentaire" />
+                                                <input type="hidden" name="Defaut" value="true" />
+                                                <button type="submit" class="btn btn-sm btn-soft-primary text-nowrap"><i class="iconoir-check me-1"></i>Rendre courante</button>
+                                            </form>
+                                        }
+                                        <span class="lc-actions">
+                                            <a href="/organe/organigramme/version/@version.Id" title="Ouvrir l'organigramme" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                            <a href="/organe/version/modify/@version.Id" title="Modifier le libellé ou basculer" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                            @if (!version.Defaut && version.NbOrgane == 0)
+                                            {
+                                                <a href="javascript:void(0)" onclick="$(this).confirmUrl('Suppression', '/organe/version/delete/@version.Id', 'Supprimer la version <b>@version.Id</b> (vide) ?')" class="lc-danger" title="Supprimer cette version vide" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                            }
+                                        </span>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="lc-callout mt-3">
+                <i class="iconoir-info-circle"></i>
+                <div>Changer de version courante est immédiat et concerne toute l'application. Les versions archivées restent conservées pour l'historique : les biens et inventaires rattachés à leurs organes ne sont pas modifiés.</div>
+            </div>
+        }
+    </div>
+</div>

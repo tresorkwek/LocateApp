@@ -1,0 +1,268 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ DeviseListViewModel Page = (DeviseListViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    Devise reference = Page.Devises.FirstOrDefault(d => d.EstReference);
+    string codeReference = reference == null ? "USD" : reference.Code;
+    int nbActives = Page.Devises.Count(d => d.Actif);
+    int nbInactives = Page.Devises.Count - nbActives;
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-star"></i></span>
+            <div>
+                <p class="lc-kpi-label">Devise de référence</p>
+                <p class="lc-kpi-value">@codeReference<small>@(reference == null ? "par défaut" : reference.Libelle)</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-check-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Devises actives</p>
+                <p class="lc-kpi-value">@nbActives<small>proposées dans les commandes</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-secondary-subtle text-secondary"><i class="iconoir-xmark-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Devises inactives</p>
+                <p class="lc-kpi-value">@nbInactives<small>conservées pour l'historique</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">Devises et taux de change</h4>
+                <p class="lc-card-subtitle">Taux exprimés en <strong>@codeReference</strong> : combien vaut une unité de chaque devise dans la devise de référence.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAjout"><i class="iconoir-plus me-1"></i>Ajouter une devise</button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        <div class="lc-callout mb-3">
+            <i class="iconoir-info-circle"></i>
+            <div>Montant en <strong>@codeReference</strong> = montant en devise × taux. Le taux en vigueur lors de la saisie d'une commande y reste figé : modifier un taux n'affecte que les nouvelles commandes.</div>
+        </div>
+
+        @if (Page.Devises.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-coins"></i></div>
+                <h6>Aucune devise</h6>
+                <p>Ajoutez la devise de référence puis les devises dans lesquelles vos fournisseurs facturent.</p>
+                <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#modalAjout"><i class="iconoir-plus me-1"></i>Ajouter une devise</button>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table lc-table mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Devise</th>
+                            <th>Symbole</th>
+                            <th class="text-end">Taux (1 devise = ? @codeReference)</th>
+                            <th class="text-end">Équivalent</th>
+                            <th>Statut</th>
+                            <th>Mise à jour</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var d in Page.Devises)
+                        {
+                            <tr class="@(d.Actif || d.EstReference ? "" : "opacity-75")">
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb lc-initials @(d.EstReference ? "bg-primary text-white" : (d.Actif ? "bg-primary-subtle text-primary" : "bg-secondary-subtle text-secondary"))">@(string.IsNullOrEmpty(d.Symbole) ? d.Code : d.Symbole)</span>
+                                        <div class="lc-entity-body">
+                                            <span class="lc-name"><span class="lc-code">@d.Code</span></span>
+                                            <span class="lc-sub">@d.Libelle</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (string.IsNullOrEmpty(d.Symbole))
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-body">@d.Symbole</span>
+                                    }
+                                </td>
+                                <td class="lc-num">
+                                    <span class="fw-semibold text-body">@d.Taux.ToString("0.######")</span>
+                                </td>
+                                <td class="lc-num">
+                                    @if (d.EstReference || d.Taux <= 0)
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="fs-13 text-muted">1 @codeReference = @Utilities.FormatNumber(1 / d.Taux) @d.Code</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (d.EstReference)
+                                    {
+                                        <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-star"></i>Référence</span>
+                                    }
+                                    else if (d.Actif)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Inactive</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="d-block text-body">@d.DateMaj.ToString("dd/MM/yyyy")</span>
+                                    <span class="d-block fs-12 text-muted">@d.UserMaj</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <button type="button" class="btn-modifier" data-code="@d.Code" data-libelle="@d.Libelle" data-symbole="@d.Symbole" data-taux="@d.Taux.ToString(System.Globalization.CultureInfo.InvariantCulture)" data-reference="@(d.EstReference ? "1" : "0")" data-actif="@(d.Actif ? "1" : "0")" data-bs-toggle="tooltip" title="Modifier">
+                                            <i class="iconoir-edit-pencil"></i>
+                                        </button>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- Ajout -->
+<div class="modal fade" id="modalAjout" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" action="/devise/add/" class="modal-content lc-form">
+            <div class="modal-header">
+                <h6 class="modal-title m-0"><i class="iconoir-coins text-primary me-1"></i>Ajouter une devise</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-4">
+                        <label class="form-label" for="addCode">Code<span class="lc-req">*</span></label>
+                        <input type="text" class="form-control text-uppercase" id="addCode" name="Code" maxlength="3" minlength="3" pattern="[A-Za-z]{3}" required placeholder="CDF" />
+                        <div class="form-text">Code ISO (3 lettres).</div>
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label" for="addLibelle">Libellé<span class="lc-req">*</span></label>
+                        <input type="text" class="form-control" id="addLibelle" name="Libelle" maxlength="50" required placeholder="Franc congolais" />
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label" for="addSymbole">Symbole</label>
+                        <input type="text" class="form-control" id="addSymbole" name="Symbole" maxlength="5" placeholder="FC" />
+                    </div>
+                    <div class="col-8">
+                        <label class="form-label" for="addTaux">Taux : 1 devise = ? @codeReference<span class="lc-req">*</span></label>
+                        <input type="number" class="form-control text-end" id="addTaux" name="Taux" step="0.000001" min="0.000001" required placeholder="0.000350" />
+                    </div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="addActif" name="Actif" value="true" checked />
+                    <label class="form-check-label" for="addActif">Active (proposée dans les commandes)</label>
+                </div>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="addReference" name="EstReference" value="true" />
+                    <label class="form-check-label" for="addReference">Devise de référence (taux forcé à 1, remplace @codeReference)</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Ajouter</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modification -->
+<div class="modal fade" id="modalModif" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form method="post" action="/devise/modify/" class="modal-content lc-form">
+            <input type="hidden" name="Code" id="modCode" />
+            <div class="modal-header">
+                <h6 class="modal-title m-0"><i class="iconoir-edit-pencil text-primary me-1"></i>Modifier la devise <span id="modTitreCode" class="lc-code"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fermer"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3 mb-3">
+                    <div class="col-8">
+                        <label class="form-label" for="modLibelle">Libellé<span class="lc-req">*</span></label>
+                        <input type="text" class="form-control" id="modLibelle" name="Libelle" maxlength="50" required />
+                    </div>
+                    <div class="col-4">
+                        <label class="form-label" for="modSymbole">Symbole</label>
+                        <input type="text" class="form-control" id="modSymbole" name="Symbole" maxlength="5" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label" for="modTaux">Taux : 1 devise = ? @codeReference<span class="lc-req">*</span></label>
+                        <input type="number" class="form-control text-end" id="modTaux" name="Taux" step="0.000001" min="0.000001" required />
+                        <div class="form-text">Les commandes déjà saisies conservent leur ancien taux.</div>
+                    </div>
+                </div>
+                <div class="form-check form-switch">
+                    <input class="form-check-input" type="checkbox" role="switch" id="modActif" name="Actif" value="true" />
+                    <label class="form-check-label" for="modActif">Active (proposée dans les commandes)</label>
+                </div>
+                <div class="form-check form-switch mt-2">
+                    <input class="form-check-input" type="checkbox" role="switch" id="modReference" name="EstReference" value="true" />
+                    <label class="form-check-label" for="modReference">Devise de référence (taux forcé à 1)</label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Annuler</button>
+                <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        document.querySelectorAll('.btn-modifier').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                document.getElementById('modCode').value = btn.getAttribute('data-code');
+                document.getElementById('modTitreCode').textContent = btn.getAttribute('data-code');
+                document.getElementById('modLibelle').value = btn.getAttribute('data-libelle');
+                document.getElementById('modSymbole').value = btn.getAttribute('data-symbole');
+                document.getElementById('modTaux').value = btn.getAttribute('data-taux');
+                var estReference = btn.getAttribute('data-reference') === '1';
+                document.getElementById('modActif').checked = btn.getAttribute('data-actif') === '1';
+                document.getElementById('modReference').checked = estReference;
+                document.getElementById('modTaux').readOnly = estReference;
+                document.getElementById('modActif').disabled = estReference;
+                new bootstrap.Modal(document.getElementById('modalModif')).show();
+            });
+        });
+    });
+</script>

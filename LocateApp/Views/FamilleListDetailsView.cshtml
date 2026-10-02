@@ -1,0 +1,169 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ FamilleListViewModel Page = (FamilleListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Famille> familles = Page.Familles ?? new List<Famille>();
+   int nbFamilles = familles.Count;
+   long totalBiens = familles.Sum(f => f.Nbre);
+   Famille principale = familles.OrderByDescending(f => f.Nbre).FirstOrDefault();
+   int partPrincipale = (principale == null || totalBiens == 0) ? 0 : (int)Math.Round(principale.Nbre * 100.0 / totalBiens);
+   decimal moyenne = nbFamilles == 0 ? 0 : Math.Round((decimal)totalBiens / nbFamilles, 0);
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-view-grid"></i></span>
+            <div>
+                <p class="lc-kpi-label">Familles</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbFamilles, 0)<small>représentées</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-archive"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalBiens, 0)<small>toutes familles</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-graph-up"></i></span>
+            <div class="text-truncate">
+                <p class="lc-kpi-label">Famille principale</p>
+                @if (principale != null && principale.Nbre > 0)
+                {
+                    <p class="lc-kpi-value text-truncate" title="@principale.Nom">@principale.Nom<small>@partPrincipale % des biens</small></p>
+                }
+                else
+                {
+                    <p class="lc-kpi-value text-muted">—</p>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-percentage"></i></span>
+            <div>
+                <p class="lc-kpi-label">Moyenne</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(moyenne, 0)<small>biens par famille</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Répartition des biens inventoriés entre les familles du catalogue.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/famille/" class="btn btn-light"><i class="iconoir-view-grid me-1"></i>Toutes les familles</a>
+                <a href="/famille/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvelle famille</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbFamilles == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-stats-report"></i></div>
+                <h6>Aucun bien inventorié</h6>
+                <p>La répartition par famille apparaîtra dès que des biens auront été inventoriés.</p>
+                <a href="/famille/" class="btn btn-primary btn-sm"><i class="iconoir-view-grid me-1"></i>Voir les familles</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100" data-order='[[1, "desc"]]'>
+                    <thead class="table-light">
+                        <tr>
+                            <th>Famille</th>
+                            <th class="text-end">Biens</th>
+                            <th style="min-width: 180px;">Part</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            string link;
+                        }
+
+                        @foreach (var famille in familles)
+                        {
+                            link = Page.Link + famille.Id;
+                            string couleur = string.IsNullOrWhiteSpace(famille.Couleur) ? null : famille.Couleur.Trim();
+                            string styleVignette = couleur == null ? null : "background-color: color-mix(in srgb, " + couleur + " 16%, transparent); color: " + couleur + ";";
+                            int part = totalBiens == 0 ? 0 : (int)Math.Round(famille.Nbre * 100.0 / totalBiens);
+                            string styleBarre = "width: " + part + "%;" + (couleur == null ? "" : " background-color: " + couleur + ";");
+                            string onclik = $"$(this).confirmUrl('Suppression', '/famille/delete/{famille.Id}', 'Êtes-vous sûr de vouloir supprimer la famille : <br/> <div class=\\'chip\\'> {famille.Nom} </div> ?', 'Suppression de la famille <div class=\\'chip\\'> {famille.Nom} </div> annul&eacute;e')";
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (styleVignette != null)
+                                        {
+                                            <span class="lc-thumb" style="@styleVignette"><i class="iconoir-view-grid"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-view-grid"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@famille.Nom</a>
+                                            <span class="lc-sub">N° @famille.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="lc-num" data-order="@famille.Nbre"><span class="fw-semibold">@Utilities.FormatNumber(famille.Nbre, 0)</span></td>
+                                <td data-order="@famille.Nbre">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="progress lc-progress flex-grow-1">
+                                            <div class="progress-bar" role="progressbar" style="@styleBarre" aria-valuenow="@part" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                        <span class="fs-12 text-muted text-end" style="min-width: 2.5rem;">@part %</span>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (famille.IsActive)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivée</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/famille/modify/@famille.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        <a onclick="@Html.Raw(onclik)" role="button" class="lc-danger" title="Supprimer" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

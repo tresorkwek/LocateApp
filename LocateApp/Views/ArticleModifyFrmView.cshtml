@@ -1,0 +1,191 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ ArticleModifyFrmViewModel Page = (ArticleModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    string checkedActif = Page.Article.IsActive ? "checked" : "";
+    Categorie categorieActuelle = Page.Article.GetCategorie();
+    string rappelSousTitre = string.Join(" · ", new[] { Page.Article.Marque, Page.Article.Modele, categorieActuelle?.Designation }.Where(x => !string.IsNullOrWhiteSpace(x)));
+}
+
+<form class="lc-form" method="post" action="/article/modify/" enctype="multipart/form-data">
+    <input type="hidden" name="Id" id="Id" value="@Page.Article.Id" />
+
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">Modifier l'article</h4>
+                    <p class="lc-card-subtitle">Les changements s'appliquent à tous les biens rattachés à cet article.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-4 rounded border border-dashed bg-light-subtle">
+                        <div class="lc-entity flex-grow-1">
+                            <img src="~/Content/images/articles/@Page.Article.Photo" alt="" class="lc-thumb lc-thumb-lg" />
+                            <div class="lc-entity-body">
+                                <a href="/article/id/@Page.Article.Id" class="lc-name fs-15">@Page.Article.Designation</a>
+                                <span class="lc-sub">@(string.IsNullOrEmpty(rappelSousTitre) ? "Marque et modèle non renseignés" : rappelSousTitre)</span>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-center gap-2">
+                            @if (!string.IsNullOrEmpty(Page.Article.Code))
+                            {
+                                <span class="lc-code">@Page.Article.Code</span>
+                            }
+                            <span class="text-muted fs-12">N° @Page.Article.Id</span>
+                            @if (Page.Article.IsActive)
+                            {
+                                <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Actif</span>
+                            }
+                            else
+                            {
+                                <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Inactif</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-box-iso"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="Designation">Désignation<span class="lc-req">*</span></label>
+                            <input id="Designation" type="text" value="@Page.Article.Designation" name="Designation" class="form-control" placeholder="Ex. Fauteuil de bureau ergonomique" />
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Code">Code Nav</label>
+                            <input id="Code" type="text" value="@Page.Article.Code" name="Code" class="form-control" placeholder="Ex. AA0000175" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Marque">Marque</label>
+                            <input id="Marque" type="text" value="@Page.Article.Marque" name="Marque" class="form-control" placeholder="Ex. HP, Samsung…" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Modele">Modèle</label>
+                            <input id="Modele" type="text" value="@Page.Article.Modele" name="Modele" class="form-control" placeholder="Ex. ProDesk 600 G5" />
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-folder"></i>Classement</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdCategorie">Catégorie<span class="lc-req">*</span></label>
+                            <select class="js-states form-select" tabindex="-1" style="width: 100%" name="IdCategorie" id="IdCategorie">
+                                @if (Page.Article.IdCategorie == null)
+                                {
+                                    <option value="" disabled selected>Choisissez une catégorie</option>
+                                }
+                                @foreach (var categorie in Page.Categories)
+                                {
+                                    if (Page.Article?.IdCategorie == categorie.Id)
+                                    {
+                                        <option value="@categorie.Id" selected>@categorie.Designation</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@categorie.Id">@categorie.Designation</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdPosteBudget">Poste budgétaire</label>
+                            <input id="IdPosteBudget" type="text" value="@Page.Article.IdPosteBudget" name="IdPosteBudget" class="form-control" placeholder="Ex. 2.4.1" />
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-coins"></i>Valeur</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="CoutUnitaire">Coût unitaire</label>
+                            <div class="lc-input-icon">
+                                <i class="iconoir-dollar"></i>
+                                <input id="CoutUnitaire" type="text" inputmode="decimal" value="@Utilities.FormatNumber(Page.Article.CoutUnitaire)" name="CoutUnitaire" class="form-control" placeholder="0,00" />
+                            </div>
+                            <div class="form-text">Valeur indicative ; le prix réel est fixé par les commandes d'achat.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="UniteMesure">Unité de mesure</label>
+                            <input id="UniteMesure" type="text" value="@Page.Article.UniteMesure" name="UniteMesure" class="form-control" placeholder="Ex. pièce, lot, mètre" />
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-camera"></i>Photo<span class="lc-section-hint">JPG ou PNG</span></div>
+                    <div class="row g-3 align-items-center mb-3">
+                        <div class="col-sm-auto">
+                            @if (Page.Article.IsPhotographed)
+                            {
+                                <img src="~/Content/images/articles/@Page.Article.Photo" alt="@Page.Article.Designation" class="lc-thumb lc-thumb-xl border" data-zoom-image="/Content/images/articles/@Page.Article.Photo" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: 11 })" />
+                            }
+                            else
+                            {
+                                <img src="~/Content/images/articles/@Page.Article.Photo" alt="Non photographié" class="lc-thumb lc-thumb-xl border" />
+                            }
+                        </div>
+                        <div class="col-sm">
+                            <label class="form-label" for="Photo">@(Page.Article.IsPhotographed ? "Remplacer la photo" : "Ajouter une photo")</label>
+                            <input type="file" name="Photo" id="Photo" class="form-control" accept="image/*" />
+                            <div class="form-text">
+                                @if (Page.Article.IsPhotographed)
+                                {
+                                    <text>Laissez vide pour conserver la photo actuelle (survolez-la pour l'agrandir).</text>
+                                }
+                                else
+                                {
+                                    <text>Aucune photo enregistrée pour cet article.</text>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-settings"></i>Statut</div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="IsActive" name="IsActive" value="true" @checkedActif />
+                        <label class="form-check-label" for="IsActive">Article actif</label>
+                    </div>
+                    <div class="form-text">Un article inactif n'est plus proposé lors de la création d'un bien.</div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/article/id/@Page.Article.Id" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer les modifications</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-aside">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bonnes pratiques</h6>
+                        <ul>
+                            <li>Une désignation courte et générique : « Fauteuil de bureau » plutôt que « Fauteuil bleu du bureau 12 ».</li>
+                            <li>La marque et le modèle permettent de distinguer deux articles proches.</li>
+                            <li>Une photo nette facilite l'identification sur le terrain avec Locate Terrain.</li>
+                        </ul>
+                    </div>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Le fournisseur et le prix d'achat réels sont fixés par les commandes d'achat, pas par la fiche article.</div>
+                    </div>
+                    <div class="lc-callout lc-callout-warning mt-3">
+                        <i class="iconoir-warning-triangle"></i>
+                        <div>Désactiver l'article ne supprime pas les biens qui y sont déjà rattachés.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

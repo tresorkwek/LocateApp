@@ -1,0 +1,138 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ FournisseurListViewModel Page = (FournisseurListViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    int nbFournisseurs = Page.Fournisseurs == null ? 0 : Page.Fournisseurs.Count;
+    int nbAvecAdresse = Page.Fournisseurs == null ? 0 : Page.Fournisseurs.Count(f => !string.IsNullOrWhiteSpace(f.Adresse));
+    string[] teintes = { "primary", "info", "success", "warning", "danger" };
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-shop"></i></span>
+            <div>
+                <p class="lc-kpi-label">Fournisseurs</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbFournisseurs, 0)<small>référencés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-map-pin"></i></span>
+            <div>
+                <p class="lc-kpi-label">Adresse renseignée</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAvecAdresse, 0)<small>fiches complètes</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-warning-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Sans adresse</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbFournisseurs - nbAvecAdresse, 0)<small>à compléter</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Les fournisseurs auprès desquels sont passées les commandes d'achat.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/fournisseur/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouveau fournisseur</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbFournisseurs == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-shop"></i></div>
+                <h6>Aucun fournisseur</h6>
+                <p>Enregistrez vos fournisseurs pour pouvoir leur passer des commandes d'achat.</p>
+                <a href="/fournisseur/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouveau fournisseur</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Fournisseur</th>
+                            <th>Adresse</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var fournisseur in Page.Fournisseurs)
+                        {
+                            string link = Page.Link + fournisseur.Id;
+                            string nom = fournisseur.Nom ?? "";
+                            string initiales = string.Concat(nom.Split(new[] { ' ', '-', '\'' }, StringSplitOptions.RemoveEmptyEntries).Take(2).Select(m => char.ToUpper(m[0])));
+                            string teinte = teintes[(int)(fournisseur.Id % teintes.Length)];
+                            string adresse = fournisseur.Adresse?.Trim();
+                            string onclik = $"$(this).confirmUrl('Suppression', '/fournisseur/delete/{fournisseur.Id}', 'Êtes-vous sûr de vouloir supprimer le fournisseur : <br/> <div class=\\'chip\\'> {fournisseur.Nom} </div> ?', 'Suppression du fournisseur <div class=\\'chip\\'> {fournisseur.Nom} </div> annul&eacute;e')";
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb rounded-circle lc-initials bg-@(teinte)-subtle text-@(teinte)">@initiales</span>
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@fournisseur.Nom</a>
+                                            <span class="lc-sub">N° @fournisseur.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (string.IsNullOrEmpty(adresse))
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="d-inline-flex align-items-start gap-1 text-body"><i class="iconoir-map-pin text-muted mt-1"></i>@adresse</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (fournisseur.IsActive)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Actif</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivé</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/fournisseur/modify/@fournisseur.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        <a onclick="@Html.Raw(onclik)" role="button" class="lc-danger" title="Supprimer" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

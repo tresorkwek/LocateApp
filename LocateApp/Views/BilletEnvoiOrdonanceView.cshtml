@@ -1,0 +1,280 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+
+
+@{ BilletEnvoiViewModel Page = (BilletEnvoiViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+
+<div class="no-p">
+    <div class="bg-info">
+        <div>
+            <div class="row">
+                <div class="col-12 col-md-12 col-lg-12">
+                    <div class="card card-transparent no-m">
+                        <div class="card-body text-white">
+                            <div class="row">
+                                <div class="col-6 text-start">
+
+                                    <div class="col-12 col-md-6 col-lg-7 text-center">
+                                        <span class="mt-4 f-s-17">BANQUE CENTRALE DU CONGO</span>
+                                        <img src="~/Content/images/logoBcc.png" width="128px" alt="">
+                                        <address>
+                                            <span class="mt-4 f-s-14">Direction des Ressources Humaines </span> <br />
+                                            Service Centre de Santé
+                                        </address>
+                                    </div>
+
+                                </div>
+                                <div class="col-6 text-end">
+
+                                    <div style="margin-top:-30px;">
+                                        <div class="text-center">
+
+                                            <img src="~/Content/images/photos/@Page.BilletEnvoi.Patient.Photo" style="width: 100px;" data-zoom-image="/Content/images/photos/@Page.BilletEnvoi.Patient.Photo" alt="" class="rounded-circle mailbox-profile-image shadow-sm" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: 11 })">
+
+                                            <span class="fw-semibold text-white">
+                                                @Page.BilletEnvoi.Patient.Matricule <br /><br />
+
+                                                @Page.BilletEnvoi.Patient.NomAfficheable @Page.BilletEnvoi.Patient.PostnomAfficheable @Page.BilletEnvoi.Patient.PrenomAfficheable <br />
+
+                                                <span class="text-muted small text-dark">
+                                                    @Page.BilletEnvoi.Patient.TypeString (@Page.BilletEnvoi.Patient.Genre)<br />
+                                                    @Page.BilletEnvoi.Patient.DateNaissance
+                                                    @Page.BilletEnvoi.Patient.Direction
+                                                </span>
+
+                                            </span>
+
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div>
+        <div class="row">
+
+            <div class="card-title mt-4 text-center f-bold">
+                @Page.Title.ToUpper() N° @Page.BilletEnvoi.NumBilletEnvoi
+            </div>
+
+            <div class="col-12 col-md-12 col-lg-12">
+                <div class="card card-transparent no-m">
+                    <div class="card-body invoice-relative-content">
+                        <div class="row">
+
+                            <br /><br />
+
+                            <span class="fw-semibold text-dark f-s-13">
+
+                                <div class="col-6 text-start">
+                                    <p>
+                                        <span class="text-primary">Date d'émission</span><br>
+                                        <b>@Page.BilletEnvoi.DateCreation.ToString("D")</b><br>
+                                    </p>
+                                </div>
+                                <div class="col-6 text-end">
+                                    <p>
+                                        <span class="text-primary">Date d'expiration</span><br>
+                                        <b>@Page.BilletEnvoi.DateExpiration.ToString("D")</b><br>
+                                    </p>
+                                </div>
+                            </span>
+
+                            @if (Page.BilletEnvoi.PrintNumber == 0 && Page.BilletEnvoi.CanBeModified && Page.CanModify)
+                            {
+                                string modifyBilletEnvoi = Page.Link + Page.BilletEnvoi.Id;
+
+                <div class="col-12 col-md-6 col-lg-6 text-end">
+                    <a href="@modifyBilletEnvoi" class="btn btn-success invoice-edit-btn"><i class="iconoir-edit-pencil"></i></a>
+                </div>}
+
+
+                        </div>
+                        <div class="row">
+
+                            <div class="col-12 col-md-12 col-lg-12">
+                                <span class="fw-semibold text-dark f-s-16">
+
+                                    @{string medecin = Page.BilletEnvoi.ServiceBilletEnvois.Count > 1 ? "Mmes/Mrs les Médecins" : "Mme/Mr le Médecin";}
+
+                                    @{ string services = "";
+                                        int compteur = 0;
+                                        string raison = !string.IsNullOrEmpty(Page.BilletEnvoi.Observation) ? $" pour {Page.BilletEnvoi.Observation}." : " les soins appropriés.";
+
+                                        foreach (var service in Page.BilletEnvoi.ServiceBilletEnvois)
+                                        {
+                                            compteur++;
+                                            services += Page.BilletEnvoi.ServiceBilletEnvois.Count > compteur ? $"{service.Denomination.ToLower()}, " : $"{service.Denomination}";
+                                        }
+
+                                        string article = Page.BilletEnvoi.ServiceBilletEnvois.Count > 1 ? "des services" : "du service";
+                                        string pronom = Page.BilletEnvoi.ServiceBilletEnvois.Count > 1 ? "vos services" : "votre service";
+
+                                        string texteIntro = Page.BilletEnvoi.ServiceBilletEnvois.Count > 1 ? $"{medecin} des services suivants :" : $"{medecin} {article} {services}";
+
+                                        string facture = Page.BilletEnvoi.ServiceBilletEnvois.Count > 1 ? "les factures à chaque service correspondant" : "la facture au service bien identifié en marge"; }
+
+
+
+                                    <br />
+
+                                    @texteIntro
+
+                                </span>
+
+
+                            </div>
+
+                            @if (Page.BilletEnvoi.ServiceBilletEnvois.Count > 1)
+                            {
+
+                <div class="col-12 col-md-12 col-lg-12">
+                    <br />
+                    <span class="fw-semibold text-dark f-s-16">
+
+                        <table class="table table-hover align-middle w-100">
+                            <thead>
+                                <tr>
+                                    <th>N°</th>
+                                    <th>Description</th>
+                                    <th>Raison</th>
+                                    <th class="text-center">Date</th>
+                                    <th class="text-center">Etat</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                @{ int num = 0;
+                                    string icone;
+                                    string color;
+                                    string text;
+                                    string onclik;
+                                    string approvedValues;
+                                    string nomPatient;
+                                    string imageBox;
+                                    string observation;
+                                    }
+
+                                @foreach (var serviceHopital in Page.BilletEnvoi.ServiceBilletEnvois)
+                                {
+                                    num++;
+
+                                    approvedValues = $"{serviceHopital.IdBilletEnvoi}-{serviceHopital.IdService}";
+
+                                    icone = (serviceHopital.IsApproved) ? "verified_user" : "pause_circle_filled";
+                                    color = (serviceHopital.IsApproved) ? "green" : "orange";
+                                    text = (serviceHopital.IsApproved) ? "Approuvé" : "... En attente d'approbation";
+
+                                    nomPatient = Page.BilletEnvoi.Patient.NomAfficheable.Trim() + " " + Page.BilletEnvoi.Patient.PostnomAfficheable.Trim() + " " + Page.BilletEnvoi.Patient.PrenomAfficheable.Trim();
+                                    imageBox = $"<img src =\\'/Content/images/photos/{Page.BilletEnvoi.Patient.Photo}\\' width=\\'130px\\'  class=\\'circle mailbox-profile\\'>";
+                                    onclik = (serviceHopital.IsApproved || !Page.CanApprove) ? "" : $"$(this).confirmUrl('Approbation <br/> {imageBox}', '/billetenvoi/approve/{approvedValues}', 'Etes-vous sûr de vouloir approuver la demande du billet d\\'envoi de <div class=\\'chip\\'> {nomPatient.Replace("'", @"\'")} </div> au service {serviceHopital.Denomination} de {Page.BilletEnvoi.Hopital.Denomination} ?', 'Approbation du billet d\\'envoi de <div class=\\'chip\\'> {nomPatient.Replace("'", @"\'")} </div> au service {serviceHopital.Denomination} annul&eacute;e')";
+
+                                    color = (serviceHopital.IsUsed) ? "blue" : color;
+                                    text = (serviceHopital.IsUsed) ? "Pris en charge" : text;
+
+                                    icone = (serviceHopital.IsUrgent) ? "new_releases" : icone;
+                                    color = (serviceHopital.IsUrgent) ? "red" : color;
+                                    text = (serviceHopital.IsUrgent) ? "En urgence" : text;
+                                    onclik = (serviceHopital.IsUrgent) ? "" : onclik;
+                                    observation = string.IsNullOrEmpty(serviceHopital.Observation) ? "une prise en charge totale" : serviceHopital.Observation;
+
+                                <tr>
+                                    <td>@num</td>
+                                    <td>@serviceHopital.Denomination</td>
+                                    <td>@observation</td>
+                                    <td class="text-center">@serviceHopital.DateCreation.ToString("f")</td>
+                                    <td class="text-center f-s-28">
+
+                                        <a onclick="@Html.Raw(onclik)" class="btn btn-light @color-text" data-bs-placement="right" data-bs-toggle="tooltip" title="@text">
+                                            <i class="material-icons">@icone</i>
+                                        </a>
+
+                                    </td>
+                                </tr>}
+
+                            </tbody>
+                        </table>
+
+                    </span>
+                </div>}
+
+                        </div>
+
+                        <div class="row">
+                            <div class="col-12 col-md-6 col-lg-8">
+
+                                <span class="fw-semibold text-dark f-s-16">
+
+                                    <p class="text-justify"> Voudriez-vous avoir l'obligeance de recevoir  dans @pronom le malade mieux identifié ci-dessus à <b>@Page.BilletEnvoi.Hopital.Denomination</b>  votre Formation Médical d'attache @raison </p>
+                                    <br />
+                                    <p class="text-justify">
+                                        Les <b>frais</b> étant à la charge de la <b>Banque Centrale du Congo</b> (frais de repas exceptés), la présente tient lieu
+                                        d'attestation de <b>prise en charge.</b>
+                                    </p>
+
+                                    <br />
+
+                                    <p class="text-justify">
+                                        <u><b>N.B</b></u> : Nous vous prions de lier obligatoirement <b>@facture</b> pour nous permettre le paiement.
+                                    </p>
+                                    <p class="text-justify">
+                                        Nous souhaitons avoir votre avis médical par écrit et sous pli fermé sur son état de santé.
+                                    </p>
+
+                                </span>
+                            </div>
+                            <div class="col-12 col-md-6 col-lg-4 text-end">
+                                <div class="text-right">
+
+                                    <div style="margin-top:-10px;">
+                                        <div class="text-center">
+
+                                            <img src="~/Content/images/photos/@Page.BilletEnvoi.Agent.Photo" style="width: 100px;" data-zoom-image="/Content/images/photos/@Page.BilletEnvoi.Agent.Photo" alt="" class="rounded-circle mailbox-profile-image shadow-sm" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: -11 })">
+
+                                            <span class="fw-semibold text-dark">
+                                                Dr  @Page.BilletEnvoi.Agent.NomAfficheable @Page.BilletEnvoi.Agent.PostnomAfficheable @Page.BilletEnvoi.Agent.PrenomAfficheable <br />
+                                                <br />
+                                                <span class="text-muted small">
+                                                    @Page.BilletEnvoi.Agent.Telephone
+                                                </span>
+
+                                            </span>
+
+                                        </div>
+                                    </div>
+
+                                    <div class="border-top my-2"></div>
+                                </div>
+                            </div>
+                        </div>
+
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @{ string printUrl = Page.PrintLink + Page.BilletEnvoi.Id;}
+
+
+        <div class="fab-action">
+            <a class="btn btn-danger" href="#" onclick="javascript: window.open('@printUrl', '_blank', 'toolbar=no,scrollbars=yes,resizable=no,top=150,left=250, width=950')">
+                <i class="iconoir-printer"></i>
+            </a>
+        </div>
+
+    
+
+</div>

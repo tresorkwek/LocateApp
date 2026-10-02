@@ -1,0 +1,304 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ AchatCommandeFormViewModel Page = (AchatCommandeFormViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    string dateCommande = (Page.Commande?.DateCommande ?? DateTime.Today).ToString("yyyy-MM-dd");
+    long idFournisseur = Page.Commande?.IdFournisseur ?? 0;
+    string lienAnnuler = Page.IsModification ? "/achat/commande/id/" + Page.Commande.Id : "/achat/commande/";
+}
+
+<form class="lc-form" method="post" action="@Page.Link" id="formCommande">
+    @if (Page.IsModification)
+    {
+        <input type="hidden" name="Id" value="@Page.Commande.Id" />
+    }
+    <input type="hidden" name="LignesJson" id="LignesJson" value="[]" />
+
+    <div class="row g-3">
+
+        <div class="col-xl-8">
+
+            @if (Page.IsModification && Page.Commande.Statut == StatutCommande.Rejetee)
+            {
+                <div class="lc-callout lc-callout-danger mb-3">
+                    <i class="iconoir-xmark-circle"></i>
+                    <div><strong>Commande rejetée</strong> : @Page.Commande.MotifRejet<br />Corrigez-la puis soumettez-la de nouveau à validation.</div>
+                </div>
+            }
+
+            <!-- En-tête de la commande -->
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">@(Page.IsModification ? "Commande " + Page.Commande.Numero : "Nouvelle commande d'achat")</h4>
+                    <p class="lc-card-subtitle">Le fournisseur, la date et la devise s'appliquent à toutes les lignes de la commande.</p>
+                </div>
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-shop"></i>Fournisseur et conditions</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdFournisseur">Fournisseur<span class="lc-req">*</span></label>
+                            <select name="IdFournisseur" id="IdFournisseur" class="js-states form-select" style="width: 100%" required>
+                                <option value="">Choisissez le fournisseur</option>
+                                @foreach (var fournisseur in Page.Fournisseurs)
+                                {
+                                    if (fournisseur.Id == idFournisseur)
+                                    {
+                                        <option value="@fournisseur.Id" selected>@fournisseur.Nom</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@fournisseur.Id">@fournisseur.Nom</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <label class="form-label" for="DateCommande">Date de la commande</label>
+                            <input type="date" class="form-control" id="DateCommande" name="DateCommande" value="@dateCommande" />
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <label class="form-label" for="Devise">Devise<span class="lc-req">*</span></label>
+                            <select class="form-select" id="Devise" name="Devise" required>
+                                @foreach (var devise in Page.Devises)
+                                {
+                                    if (devise.Code == Page.Devise)
+                                    {
+                                        <option value="@devise.Code" data-taux="@devise.Taux.ToString(System.Globalization.CultureInfo.InvariantCulture)" selected>@devise.Code</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@devise.Code" data-taux="@devise.Taux.ToString(System.Globalization.CultureInfo.InvariantCulture)">@devise.Code</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Commentaire">Commentaire</label>
+                            <textarea class="form-control" id="Commentaire" name="Commentaire" rows="2" maxlength="500" placeholder="Référence de l'offre, conditions, remarques…">@Page.CommentaireCommande</textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Lignes de la commande -->
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Articles commandés</h4>
+                    <p class="lc-card-subtitle">Choisissez un article, indiquez la quantité et le prix négocié avec ce fournisseur, puis ajoutez la ligne.</p>
+                </div>
+                <div class="card-body">
+                    <div class="bg-body-tertiary rounded-3 p-3 mb-3">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-6">
+                                <label class="form-label" for="pickArticle">Article</label>
+                                <select id="pickArticle" class="js-states form-select" style="width: 100%">
+                                    <option value="">Rechercher un article…</option>
+                                    @foreach (var article in Page.Articles)
+                                    {
+                                        <option value="@article.Id" data-designation="@article.DesignationToShow" data-code="@article.Code" data-unite="@article.UniteMesure" data-prix="@article.CoutUnitaire.ToString(System.Globalization.CultureInfo.InvariantCulture)">@article.DesignationToShow</option>
+                                    }
+                                </select>
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label" for="pickQuantite">Quantité</label>
+                                <input type="number" id="pickQuantite" class="form-control text-end" min="1" step="1" value="1" />
+                            </div>
+                            <div class="col-6 col-md-2">
+                                <label class="form-label" for="pickPrix">Prix unitaire</label>
+                                <input type="number" id="pickPrix" class="form-control text-end" min="0" step="0.01" value="0" />
+                            </div>
+                            <div class="col-md-2 d-grid">
+                                <button type="button" class="btn btn-primary" id="btnAjouterLigne"><i class="iconoir-plus me-1"></i>Ajouter</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table lc-table mb-0" id="tableLignes">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Article</th>
+                                    <th class="text-end" style="width: 120px;">Quantité</th>
+                                    <th class="text-end" style="width: 150px;">Prix unitaire</th>
+                                    <th class="text-end" style="width: 150px;">Montant</th>
+                                    <th style="width: 60px;"></th>
+                                </tr>
+                            </thead>
+                            <tbody id="lignes">
+                                <tr id="ligneVide">
+                                    <td colspan="5" class="text-center text-muted py-4">Aucune ligne pour le moment.</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Récapitulatif et envoi -->
+        <div class="col-xl-4">
+            <div class="card position-sticky" style="top: 88px;">
+                <div class="card-header">
+                    <h4 class="card-title">Récapitulatif</h4>
+                    <p class="lc-card-subtitle">Mis à jour à chaque ligne ajoutée ou modifiée.</p>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="text-body fw-semibold mb-2">Lignes :</p>
+                        <p class="text-body-emphasis fw-semibold mb-2" id="totalLignes">0</p>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <p class="text-body fw-semibold mb-0">Quantité totale :</p>
+                        <p class="text-body-emphasis fw-semibold mb-0" id="totalQuantite">0</p>
+                    </div>
+                    <hr class="hr-dashed" />
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Total :</h4>
+                        <h4 class="mb-0 text-primary"><span id="totalMontant">0</span> <small class="fs-13 text-muted" id="codeDevise">@Page.Devise</small></h4>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2 d-none" id="ligneEquivalent">
+                        <span class="text-muted fs-13">Soit en @Page.DeviseReference</span>
+                        <span class="fs-13 text-muted">≈ <span id="totalReference">0</span> @Page.DeviseReference <span id="tauxInfo"></span></span>
+                    </div>
+
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Une commande soumise n'est plus modifiable : elle attend la décision du valideur, qui peut la valider ou la rejeter avec un motif.</div>
+                    </div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <div class="d-grid gap-2 w-100">
+                        <button type="submit" class="btn btn-primary" name="Soumettre" value="1"><i class="iconoir-send me-1"></i>Enregistrer et soumettre à validation</button>
+                        <button type="submit" class="btn btn-light" name="Soumettre" value="0"><i class="iconoir-floppy-disk me-1"></i>Enregistrer en brouillon</button>
+                        <a href="@lienAnnuler" class="btn btn-link text-muted">Annuler</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</form>
+
+<script>
+    // Lignes existantes (modification) et catalogue pour retrouver les libellés.
+    var lignesInitiales = @Html.Raw(Page.LignesInitialesJson);
+
+    document.addEventListener('DOMContentLoaded', function () {
+        var lignes = [];
+        var tbody = document.getElementById('lignes');
+        var pickArticle = document.getElementById('pickArticle');
+        var pickQuantite = document.getElementById('pickQuantite');
+        var pickPrix = document.getElementById('pickPrix');
+
+        function formatMontant(n) {
+            return n.toLocaleString('fr-FR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        var selectDevise = document.getElementById('Devise');
+        var deviseReference = '@Page.DeviseReference';
+        var dernierTotal = 0;
+
+        // Affiche l'équivalent en devise de référence quand la commande est saisie dans une autre devise.
+        function majDevise(total) {
+            dernierTotal = total;
+            var option = selectDevise.options[selectDevise.selectedIndex];
+            var taux = option ? parseFloat(option.getAttribute('data-taux')) : 1;
+            document.getElementById('codeDevise').textContent = selectDevise.value;
+            var ligne = document.getElementById('ligneEquivalent');
+            if (selectDevise.value && selectDevise.value !== deviseReference && taux) {
+                document.getElementById('totalReference').textContent = formatMontant(total * taux);
+                document.getElementById('tauxInfo').textContent = '(taux ' + taux + ')';
+                ligne.classList.remove('d-none');
+            } else {
+                ligne.classList.add('d-none');
+            }
+        }
+
+        selectDevise.addEventListener('change', function () { majDevise(dernierTotal); });
+
+        function rendre() {
+            tbody.innerHTML = '';
+            if (lignes.length === 0) {
+                tbody.innerHTML = '<tr id="ligneVide"><td colspan="5" class="text-center text-muted py-4">Aucune ligne pour le moment.</td></tr>';
+            }
+            var totalQ = 0, totalM = 0;
+            lignes.forEach(function (l, i) {
+                var montant = l.Quantite * l.PrixUnitaire;
+                totalQ += l.Quantite; totalM += montant;
+                var tr = document.createElement('tr');
+                tr.innerHTML = '<td><div class="fw-semibold">' + l.Designation + '</div></td>' +
+                    '<td class="text-end"><input type="number" class="form-control form-control-sm text-end qte" data-index="' + i + '" min="1" step="1" value="' + l.Quantite + '"></td>' +
+                    '<td class="text-end"><input type="number" class="form-control form-control-sm text-end prix" data-index="' + i + '" min="0" step="0.01" value="' + l.PrixUnitaire + '"></td>' +
+                    '<td class="text-end fw-semibold">' + formatMontant(montant) + '</td>' +
+                    '<td class="text-end"><button type="button" class="btn btn-sm btn-light text-danger supprimer" data-index="' + i + '" title="Retirer"><i class="iconoir-trash"></i></button></td>';
+                tbody.appendChild(tr);
+            });
+            document.getElementById('totalLignes').textContent = lignes.length;
+            document.getElementById('totalQuantite').textContent = totalQ;
+            document.getElementById('totalMontant').textContent = formatMontant(totalM);
+            majDevise(totalM);
+            document.getElementById('LignesJson').value = JSON.stringify(lignes.map(function (l) { return { IdArticle: l.IdArticle, Quantite: l.Quantite, PrixUnitaire: l.PrixUnitaire }; }));
+        }
+
+        function ajouter() {
+            var option = pickArticle.options[pickArticle.selectedIndex];
+            var idArticle = parseInt(pickArticle.value, 10);
+            var quantite = parseInt(pickQuantite.value, 10);
+            var prix = parseFloat(pickPrix.value);
+            if (!idArticle) { LocateToast('Choisissez un article.', 3000, 'warning'); return; }
+            if (!quantite || quantite < 1) { LocateToast('La quantité doit être au moins 1.', 3000, 'warning'); return; }
+            if (isNaN(prix) || prix < 0) { LocateToast('Le prix unitaire est invalide.', 3000, 'warning'); return; }
+
+            var existante = lignes.find(function (l) { return l.IdArticle === idArticle; });
+            if (existante) {
+                existante.Quantite += quantite;
+                existante.PrixUnitaire = prix;
+            } else {
+                lignes.push({ IdArticle: idArticle, Designation: option.getAttribute('data-designation'), Quantite: quantite, PrixUnitaire: prix });
+            }
+            rendre();
+
+            if (window.jQuery) { jQuery(pickArticle).val('').trigger('change'); } else { pickArticle.value = ''; }
+            pickQuantite.value = 1;
+            pickPrix.value = 0;
+        }
+
+        pickArticle.addEventListener('change', function () {
+            var option = pickArticle.options[pickArticle.selectedIndex];
+            if (option && option.getAttribute('data-prix')) { pickPrix.value = option.getAttribute('data-prix'); }
+        });
+
+        document.getElementById('btnAjouterLigne').addEventListener('click', ajouter);
+
+        tbody.addEventListener('click', function (e) {
+            var btn = e.target.closest('.supprimer');
+            if (btn) { lignes.splice(parseInt(btn.getAttribute('data-index'), 10), 1); rendre(); }
+        });
+
+        tbody.addEventListener('change', function (e) {
+            var i = parseInt(e.target.getAttribute('data-index'), 10);
+            if (isNaN(i)) { return; }
+            if (e.target.classList.contains('qte')) { lignes[i].Quantite = Math.max(1, parseInt(e.target.value, 10) || 1); }
+            if (e.target.classList.contains('prix')) { lignes[i].PrixUnitaire = Math.max(0, parseFloat(e.target.value) || 0); }
+            rendre();
+        });
+
+        document.getElementById('formCommande').addEventListener('submit', function (e) {
+            if (!document.getElementById('IdFournisseur').value) { e.preventDefault(); LocateToast('Le fournisseur est obligatoire.', 3000, 'danger'); return; }
+            if (lignes.length === 0) { e.preventDefault(); LocateToast('Ajoutez au moins une ligne à la commande.', 3000, 'danger'); }
+        });
+
+        lignes = lignesInitiales.slice();
+        rendre();
+    });
+</script>

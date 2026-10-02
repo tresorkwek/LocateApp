@@ -1,0 +1,97 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ OrganeTypeListViewModel Page = (OrganeTypeListViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    int nbTypes = Page.OrganeTypes == null ? 0 : Page.OrganeTypes.Count;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage <span class="lc-count ms-1">@nbTypes</span></h4>
+                <p class="lc-card-subtitle">Types d'organes utilisés pour classer les nœuds de l'organigramme (direction, service, bureau…).</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/organe/type/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouveau type</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbTypes == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-label"></i></div>
+                <h6>Aucun type d'organe</h6>
+                <p>Créez les types d'organes avant de construire l'organigramme.</p>
+                <a href="/organe/type/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouveau type</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Type d'organe</th>
+                            <th>Sigle</th>
+                            <th class="text-end">Ordre</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var organeType in Page.OrganeTypes)
+                        {
+                            string link = Page.Link + organeType.Id;
+                            string sigle = organeType.Sigle == null ? string.Empty : organeType.Sigle.Trim();
+                            string nom = organeType.Nom ?? string.Empty;
+                            string initiales = !string.IsNullOrEmpty(sigle) ? (sigle.Length > 3 ? sigle.Substring(0, 3) : sigle) : (nom.Length > 0 ? nom.Substring(0, 1) : "?");
+                            string nomJs = nom.Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "&quot;");
+                            string onclik = $"$(this).confirmUrl('Suppression', '/organe/type/delete/{organeType.Id}', 'Êtes-vous sûr de vouloir supprimer le type d\\'organe : <br/> <div class=\\'chip\\'> {nomJs} </div> ?', 'Suppression du type d\\'organe <div class=\\'chip\\'> {nomJs} </div> annul&eacute;e')";
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb lc-initials bg-primary-subtle text-primary">@initiales</span>
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@organeType.Nom</a>
+                                            <span class="lc-sub">N° @organeType.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(sigle))
+                                    {
+                                        <span class="lc-code">@sigle</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="lc-num">@organeType.Ordre</td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/organe/type/modify/@organeType.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        <a href="javascript:void(0)" onclick="@Html.Raw(onclik)" class="lc-danger" title="Supprimer" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

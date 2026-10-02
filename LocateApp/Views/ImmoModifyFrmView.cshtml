@@ -1,0 +1,420 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+@using System.Collections.Generic;
+
+
+@{ ImmoModifyFrmViewModel Page = (ImmoModifyFrmViewModel)Model;
+                Local localImmo = Page.Immo.GetLocal(); }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    string desableInfo = Page.Immo.Inventorier? "disabled=\"disabled\"" : "";
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    bool inventorie = Page.Immo.Inventorier;
+    string designationImmo = Page.Immo.Designation;
+    List<ImmoPhotos> photosExistantes = Page.Immo.GetImmoPhotos() ?? new List<ImmoPhotos>();
+    string vignette = photosExistantes.Count > 0 ? photosExistantes[0].Id + ".jpg" : null;
+    string etatCouleur = Page.Immo.LastEtat == "B" ? "success" : (Page.Immo.LastEtat == "M" ? "warning" : "danger");
+    string etatIcone = Page.Immo.LastEtat == "B" ? "iconoir-check-circle" : (Page.Immo.LastEtat == "M" ? "iconoir-warning-triangle" : "iconoir-eye-closed");
+    string lienFiche = "/immo/id/" + Page.Immo.Id;
+}
+
+<style>
+    .immo-recap { border: var(--lc-dashed); background: var(--lc-soft-bg); border-radius: var(--lc-radius); }
+    .immo-photo-tile { border: 1px solid var(--bs-border-color); border-radius: var(--lc-radius); overflow: hidden; height: 100%; display: flex; flex-direction: column; }
+    .immo-photo-tile > .immo-photo-img { aspect-ratio: 4 / 3; background: var(--lc-soft-bg); overflow: hidden; }
+    .immo-photo-tile > .immo-photo-img img { width: 100%; height: 100%; object-fit: cover; }
+    .immo-photo-tile > .immo-photo-body { padding: .75rem; display: flex; flex-direction: column; gap: .5rem; }
+</style>
+
+<form class="lc-form" method="post" action="@Page.Link" enctype="multipart/form-data">
+    <input type="hidden" id="Id" name="Id" value="@Page.Immo.Id" />
+
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Corrigez l'identification, l'affectation, l'état ou les photos du bien.</p>
+                </div>
+                <div class="card-body">
+
+                    <!-- Rappel du bien modifié -->
+                    <div class="immo-recap d-flex flex-wrap align-items-center gap-3 p-3 mb-4">
+                        <div class="lc-entity flex-grow-1">
+                            @if (vignette != null)
+                            {
+                                <img src="~/Content/images/equipements/@vignette" alt="" class="lc-thumb lc-thumb-lg" />
+                            }
+                            else
+                            {
+                                <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+                            }
+                            <div class="lc-entity-body">
+                                <a href="@lienFiche" class="lc-name fs-15">@designationImmo</a>
+                                <span class="lc-sub">
+                                    N° @Page.Immo.Id
+                                    @if (!string.IsNullOrEmpty(Page.Immo.CodeADM))
+                                    {
+                                        <span> · ADM @Page.Immo.CodeADM</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(Page.Immo.CodeImmo))
+                                    {
+                                        <span> · <span class="lc-code">@Page.Immo.CodeImmo</span></span>
+                                    }
+                                </span>
+                            </div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            <span class="badge lc-badge bg-@(etatCouleur)-subtle text-@(etatCouleur)"><i class="@etatIcone"></i>@Page.Immo.LastEtatString</span>
+                            @if (Page.Immo.QrCode != null)
+                            {
+                                <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-qr-code"></i>QR code</span>
+                            }
+                            @if (localImmo != null)
+                            {
+                                <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-map-pin"></i>@localImmo.Designation</span>
+                            }
+                        </div>
+                    </div>
+
+                    @if (inventorie)
+                    {
+                        <div class="lc-callout lc-callout-warning mb-4">
+                            <i class="iconoir-lock"></i>
+                            <div>Ce bien a déjà été inventorié cette année : son affectation (organe, local, responsable) et son état ne sont plus modifiables.</div>
+                        </div>
+                    }
+
+                    <div class="lc-section-title"><i class="iconoir-box-iso"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="IdArticle">Article<span class="lc-req">*</span></label>
+                            <select name="IdArticle" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdArticle">
+
+                                @{ string selected = Page.Immo.IdArticle == null ? "selected" : ""; }
+
+                                <option value="" disabled @selected>Choisissez un article</option>
+
+                                @foreach (var article in Page.Articles)
+                                {
+                                    if (Page.Immo.IdArticle == article.Id)
+                                    {
+                                        <option value="@article.Id" selected>@article.DesignationToShow</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@article.Id"> @article.DesignationToShow</option>
+                                    }
+                                }
+
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="CodeImmo">Code immo</label>
+                            <input id="CodeImmo" name="CodeImmo" type="text" value="@Page.Immo.CodeImmo" class="form-control" placeholder="Code d'immobilisation">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="IdImmoParent">Bien principal</label>
+                            <select name="IdImmoParent" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdImmoParent">
+
+                                @if (Page.Immo.IdImmoParent == null)
+                                {
+                                    <option value="" selected>Aucun</option>
+                                }
+                                else
+                                {
+                                    <option value="">Aucun</option>
+                                }
+
+                                @{ string codeImmoTshow, categorie, categorieToShow, famille, familleToShow, selectedIdImmoParent; }
+
+                                @foreach (var immoAutonome in Page.ImmoAutonome)
+                                {
+                                    categorie = immoAutonome.GetArticle()?.GetCategorie()?.Designation;
+                                    famille = immoAutonome.GetArticle()?.GetCategorie()?.Famille;
+                                    selectedIdImmoParent = Page.Immo.IdImmoParent == immoAutonome.Id ? "selected" : "";
+
+                                    categorieToShow = !string.IsNullOrEmpty(categorie) ? $" /{categorie}" : "";
+                                    familleToShow = !string.IsNullOrEmpty(famille) ? $" /{famille}" : "";
+                                    codeImmoTshow = !string.IsNullOrEmpty(immoAutonome.CodeImmo) ? $"({immoAutonome.CodeImmo})" : "";
+
+                                    <option value="@immoAutonome.Id" @selectedIdImmoParent>@immoAutonome.Id @immoAutonome.Designation @categorieToShow @familleToShow @codeImmoTshow</option>
+                                }
+
+                            </select>
+                            <div class="form-text">Renseignez-le si ce bien est un composant d'un autre bien du local.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-map-pin"></i>Affectation</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="CodeOrgane">Organe</label>
+
+                            <select name="CodeOrgane" class="js-states form-select" tabindex="-1" style="width: 100%" id="CodeOrgane" @Html.Raw(desableInfo)>
+
+                                @if (localImmo?.CodeOrgane == null)
+                                {
+                                    <option value="" disabled selected>Choisissez l'organe</option>
+                                }
+
+                                @{
+                                    int j = 0;
+                                    string nomOrgageStructure;
+                                }
+
+                                @foreach (var organe in Page.Organigramme)
+                                {
+                                    int spaceCharNum = 0;
+                                    nomOrgageStructure = organe.Id == organe.IdStructure ? "" : $"   ({organe.NomStructure})";
+
+                                    if (localImmo?.CodeOrgane == organe.Id)
+                                    {
+                                        <option value="@organe.Id" selected>@organe.Nom  @nomOrgageStructure</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@organe.Id">@organe.Nom @nomOrgageStructure</option>
+                                    }
+
+                                    if (organe.Organes.Count > 0)
+                                    {
+                                        @Html.Raw(GetChildrenOrganes(organe.Organes, localImmo, Page, spaceCharNum + 1).ToString());
+                                    }
+                                    j++;
+                                }
+
+                            </select>
+                            <div class="form-text">Changer d'organe recharge la liste des locaux et des responsables.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdLocal">Local</label>
+
+                            @if (Page.Immo.Inventorier)
+                            {
+                                <input type="hidden" name="IdLocal" value="@Page.Immo.IdLocal">
+                            }
+
+                            <select class="js-states form-select" tabindex="-1" style="width: 100%" name="IdLocal" id="IdLocal" @Html.Raw(desableInfo)>
+
+                                @if (localImmo == null)
+                                {
+                                    <option value="" disabled selected>Choisissez le local</option>
+                                }
+
+                                @foreach (var local in Page.GetLocaux())
+                                {
+                                    if (localImmo?.Id == local.Id)
+                                    {
+                                        <option value="@local.Id" selected>@local.Designation</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@local.Id"> @local.Designation</option>
+                                    }
+                                }
+
+                            </select>
+                        </div>
+
+                        @{ string selectResponsable = Page.Immo.Responsable == null ? "selected" : ""; }
+
+                        <div class="col-md-6">
+                            <label class="form-label" for="Responsable">Responsable</label>
+
+                            @if (Page.Immo.Inventorier)
+                            {
+                                <input type="hidden" name="Responsable" value="@Page.Immo.Responsable">
+                            }
+
+                            <select name="Responsable" class="js-states form-select" tabindex="-1" style="width: 100%" id="Responsable" @Html.Raw(desableInfo)>
+
+                                <option value="" @selectResponsable>Personne</option>
+
+                                @foreach (var occupant in Page.Occupants)
+                                {
+                                    selectResponsable = Page.Immo.Responsable == occupant.Matricule.Trim().Substring(0, 6) ? "selected" : "";
+
+                                    <option value="@occupant.Matricule.Substring(0, 6)" @selectResponsable>@occupant.Nom @occupant.Postnom @occupant.Prenom (@occupant.Matricule.Substring(0, 6))</option>
+                                }
+
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-clipboard-check"></i>État</div>
+                    <div class="row g-3 mb-3">
+
+                        @if (Page.Immo.Inventorier)
+                        {
+                            <input type="hidden" name="LastEtat" value="@Page.Immo.LastEtat">
+                        }
+
+                        <div class="col-md-5">
+                            <label class="form-label d-block">État constaté</label>
+                            <div class="d-flex flex-wrap gap-4 pt-1">
+                                @{ string checkEtat = Page.Immo.LastEtat == "B" ? "checked" : "";}
+                                <div class="form-check">
+                                    <input class="with-gap form-check-input" name="LastEtat" type="radio" value="B" id="LastEtat1" @checkEtat @Html.Raw(desableInfo) />
+                                    <label class="form-check-label" for="LastEtat1"><i class="iconoir-check-circle text-success me-1"></i>Bon</label>
+                                </div>
+                                @{ checkEtat = Page.Immo.LastEtat == "M" ? "checked" : "";}
+                                <div class="form-check">
+                                    <input class="with-gap form-check-input" name="LastEtat" type="radio" value="M" id="LastEtat2" @checkEtat @Html.Raw(desableInfo) />
+                                    <label class="form-check-label" for="LastEtat2"><i class="iconoir-warning-triangle text-warning me-1"></i>Mauvais</label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="col-md-7">
+
+                            @if (Page.Immo.Inventorier)
+                            {
+                                <input type="hidden" name="IdLastObservation" value="@Page.Immo.IdLastObservation">
+                            }
+
+                            <label class="form-label" for="IdLastObservation">Observation</label>
+                            <select name="IdLastObservation" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdLastObservation" @Html.Raw(desableInfo)>
+
+                                @{ string selectObservation;}
+
+                                @foreach (var observation in Page.GetObservations())
+                                {
+                                    selectObservation = observation.Id == Page.Immo.IdLastObservation ? "selected" : "";
+
+                                    <option value="@observation.Id" @selectObservation>@observation.Observation</option>
+                                }
+
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            @{ string checkedLocked = Page.Immo.IsActive ? "checked=\"checked\"" : "";}
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="IsActive" name="IsActive" value="true" @Html.Raw(checkedLocked) class="form-check-input" />
+                                <label class="form-check-label" for="IsActive">Bien actif</label>
+                            </div>
+                            <div class="form-text">Décochez pour marquer le bien comme inactif (hors service, déclassé).</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-camera"></i>Photos<span class="lc-section-hint">@photosExistantes.Count photo(s) enregistrée(s)</span></div>
+
+                    @if (photosExistantes.Count > 0)
+                    {
+                        <div class="row g-3 mb-3">
+                            @{ int i = 0;
+                                string image;
+                                string idCheckBox; }
+
+                            @foreach (var photo in photosExistantes)
+                            {
+                                image = $"{photo.Id}.jpg";
+                                i++;
+                                idCheckBox = $"photo{photo.Id}";
+
+                                <div class="col-sm-6 col-lg-4">
+                                    <div class="immo-photo-tile">
+                                        <div class="immo-photo-img">
+                                            <img src="~/Content/images/equipements/@image" data-zoom-image="/Content/images/equipements/@image" alt="@photo.Constat" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: -11 })">
+                                        </div>
+                                        <div class="immo-photo-body">
+                                            <input type="text" name="ConstatToModify" value="@photo.Constat" class="form-control form-control-sm" placeholder="Constat" aria-label="Constat de la photo" />
+                                            <input type="hidden" id="@photo.Id" name="IdPhoto" value="@photo.Id" />
+                                            <div class="form-check form-switch mb-0">
+                                                <input role="switch" type="checkbox" id="@idCheckBox" name="IdPhotoToDelete" value="@photo.Id" class="form-check-input" />
+                                                <label class="form-check-label text-danger fs-13" for="@idCheckBox">Supprimer cette photo</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    }
+
+                    <p class="fs-13 fw-medium mb-2">Ajouter des photos</p>
+                    <div id="photoSource">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <input type="file" name="Photo" accept="image/*" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <input id="Constat" name="Constat" type="text" class="form-control" placeholder="Constat (ex. vue de face, plaque signalétique)">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="photoDestination"></div>
+                    <button type="button" class="btn btn-sm btn-soft-primary" onclick="$(this).insertHTML('photoSource','photoDestination')"><i class="iconoir-plus me-1"></i>Ajouter une autre photo</button>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="@lienFiche" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer les modifications</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-aside">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>À savoir</h6>
+                        <ul>
+                            <li>Changer d'organe recharge automatiquement les locaux et les responsables proposés.</li>
+                            <li>La liste des observations dépend de l'état choisi (bon ou mauvais).</li>
+                            <li>Cochez « Supprimer cette photo » pour retirer une photo à l'enregistrement.</li>
+                            <li>Chaque nouvelle photo peut recevoir son propre constat.</li>
+                        </ul>
+                    </div>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Le QR code du bien se gère depuis sa <a href="@lienFiche" class="fw-semibold">fiche</a> (détacher pour réaffecter ou jeter).</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@helper GetChildrenOrganes(IEnumerable<Organe> organes, Local localImmo,ImmoModifyFrmViewModel Page, int spaceCharNum)
+{
+    string str = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+    string strs = "";
+    string nomOrgageStructure;
+
+    for (var i = 0; i < spaceCharNum; i++)
+    {
+        strs = string.Format("{0}{1}", strs, str);
+    }
+
+    foreach (var organe in organes)
+    {
+        nomOrgageStructure = organe.Id == organe.IdStructure ? "" : $"   ({organe.NomStructure})";
+
+        if (localImmo?.CodeOrgane == organe.Id)
+        {
+            <option value="@organe.Id" selected>@Html.Raw(strs) @organe.Nom @nomOrgageStructure</option>
+        }
+        else
+        {
+            <option value="@organe.Id">@Html.Raw(strs) @organe.Nom @nomOrgageStructure</option>
+        }
+
+        if (organe.Organes.Count > 0)
+        {
+            @Html.Raw(GetChildrenOrganes(organe.Organes, localImmo, Page, spaceCharNum + 1).ToString());
+        }
+    }
+}

@@ -1,0 +1,277 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ClaimModifyFrmViewModel Page = (ClaimModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    // Les propriétés du modèle interrogent la base à chaque lecture : on les lit une seule fois.
+    bool aDesDroits = Page.UserClaims != null && Page.UserClaims.Count > 0;
+    Profil profil = aDesDroits ? Page.UserClaims[0].Profil : null;
+    List<GroupMenu> groupes = aDesDroits ? (Page.GroupMenus ?? new List<GroupMenu>()) : new List<GroupMenu>();
+    Func<string, string> libelleSection = s => s == "Principale" ? "Barre latérale" : (s == "Profil" ? "Menu utilisateur" : (s == "Invisible" ? "Routes protégées" : s));
+    Func<string, string> couleurSection = s => s == "Principale" ? "primary" : (s == "Profil" ? "info" : "secondary");
+    bool premier = true;
+
+    string initiales = "";
+    string couleurProfil = "primary";
+    if (profil != null)
+    {
+        string nom = profil.Nom ?? "";
+        string[] mots = nom.Split(new[] { ' ', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+        initiales = mots.Length >= 2 ? mots[0].Substring(0, 1) + mots[1].Substring(0, 1) : (nom.Length >= 2 ? nom.Substring(0, 2) : nom);
+        couleurProfil = profil.Externe ? "info" : "primary";
+    }
+}
+
+<style>
+    .lc-rights .accordion-button { gap: .75rem; }
+    .lc-rights .accordion-button .lc-thumb .material-icons,
+    .lc-right-tile .material-icons { font-size: 1.125rem; }
+    .lc-right-tile { border: 1px solid var(--bs-border-color); border-radius: .5rem; padding: .65rem .85rem; height: 100%; transition: border-color .15s, background-color .15s; }
+    .lc-right-tile:hover { border-color: var(--bs-primary-border-subtle); }
+    .lc-right-tile:has(.form-check-input:checked) { border-color: var(--bs-primary-border-subtle); background: var(--bs-primary-bg-subtle); }
+    .lc-right-tile .form-check-label { cursor: pointer; width: 100%; }
+</style>
+
+@if (!aDesDroits)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-key-command"></i></div>
+                <h6>Aucun droit pour ce profil</h6>
+                <p>Ce profil n'a encore aucun droit : attribuez-lui ses premiers menus depuis l'écran d'attribution.</p>
+                <a href="/claim/" class="btn btn-light btn-sm me-1"><i class="iconoir-arrow-left me-1"></i>Droits d'accès</a>
+                <a href="/claim/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Attribuer des droits</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+<form id="lcFormDroits" class="lc-form" method="post" action="/claim/modify/">
+    <input type="hidden" name="Update" id="Update" value="true" />
+    <input type="hidden" name="IdProfil" id="IdProfil" value="@profil.IdProfil" />
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">Droits du profil</h4>
+                    <p class="lc-card-subtitle">Activez ou désactivez les menus accessibles aux utilisateurs de ce profil.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-3 rounded bg-light-subtle border">
+                        <span class="lc-thumb lc-thumb-lg rounded-circle lc-initials bg-@couleurProfil-subtle text-@couleurProfil">@initiales</span>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h5 class="m-0 fw-bold fs-16 text-truncate">@profil.Nom</h5>
+                            <p class="text-muted mb-1 fs-13 text-truncate">@(string.IsNullOrWhiteSpace(profil.Libelle) ? "Aucun libellé" : profil.Libelle)</p>
+                            <div class="d-flex flex-wrap gap-1">
+                                @if (profil.Externe)
+                                {
+                                    <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-globe"></i>Externe</span>
+                                }
+                                else
+                                {
+                                    <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-user"></i>Interne</span>
+                                }
+                                @if (profil.DefaultProfil)
+                                {
+                                    <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Par défaut</span>
+                                }
+                                <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-key-command"></i>@Page.UserClaims.Count droit(s) enregistré(s)</span>
+                            </div>
+                        </div>
+                        <a href="/profil/modify/@profil.IdProfil" class="btn btn-sm btn-light"><i class="iconoir-edit-pencil me-1"></i>Modifier le profil</a>
+                    </div>
+
+                    <div class="lc-section-title">
+                        <i class="iconoir-key-command"></i>Menus autorisés
+                        <span class="lc-section-hint"><span class="lc-count" data-lc-total>0</span> sélectionné(s)</span>
+                    </div>
+                    <div class="lc-toolbar mb-3">
+                        <button type="button" class="btn btn-sm btn-soft-primary" data-lc-action="tout"><i class="iconoir-check me-1"></i>Tout cocher</button>
+                        <button type="button" class="btn btn-sm btn-light" data-lc-action="rien"><i class="iconoir-xmark me-1"></i>Tout décocher</button>
+                        <span class="ms-auto"></span>
+                        <button type="button" class="btn btn-sm btn-light" data-lc-action="deplier"><i class="iconoir-nav-arrow-down me-1"></i>Tout déplier</button>
+                        <button type="button" class="btn btn-sm btn-light" data-lc-action="replier"><i class="iconoir-nav-arrow-right me-1"></i>Tout replier</button>
+                    </div>
+
+                    <div class="accordion lc-rights" id="lcDroits">
+                        @{ string checkedMenu; }
+                        @foreach (var groupMenu in groupes)
+                        {
+                            List<Menu> menus = groupMenu.AllMenu;
+                            if (menus == null || menus.Count == 0) { continue; }
+                            string section = groupMenu.Section;
+                            string cible = "lcGroupe" + groupMenu.IdGroupMenu;
+                            string libelleGroupe = string.IsNullOrWhiteSpace(groupMenu.Libelle) ? groupMenu.Nom : groupMenu.Libelle;
+
+                            <div class="accordion-item" data-lc-groupe>
+                                <h5 class="accordion-header m-0">
+                                    <button class="accordion-button @(premier ? "" : "collapsed")" type="button" data-bs-toggle="collapse" data-bs-target="#@cible" aria-expanded="@(premier ? "true" : "false")" aria-controls="@cible">
+                                        <span class="lc-thumb lc-thumb-sm bg-@(couleurSection(section))-subtle text-@(couleurSection(section))"><i class="material-icons">@groupMenu.Icone</i></span>
+                                        <span class="flex-grow-1 overflow-hidden">
+                                            <span class="d-block fw-semibold text-truncate">@libelleGroupe</span>
+                                            <span class="d-block fs-12 text-muted fw-normal">@libelleSection(section) · @menus.Count menu(s)</span>
+                                        </span>
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary me-2" data-lc-compteur>0 / @menus.Count</span>
+                                    </button>
+                                </h5>
+                                <div id="@cible" class="accordion-collapse collapse @(premier ? "show" : "")">
+                                    <div class="accordion-body">
+                                        <div class="d-flex align-items-center justify-content-between gap-2 mb-2">
+                                            <span class="fs-12 text-muted">Activez chaque menu à autoriser pour ce profil.</span>
+                                            <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" data-lc-action="groupe" data-lc-toggle-groupe>Tout cocher</button>
+                                        </div>
+                                        <div class="row g-2">
+                                            @foreach (var menu in menus)
+                                            {
+                                                checkedMenu = Page.UserClaims.Exists(userClaim => userClaim.IdMenu == menu.IdMenu) ? "checked=\"checked\"" : "";
+                                                string libelleMenu = string.IsNullOrWhiteSpace(menu.Libelle) ? menu.Nom : menu.Libelle;
+
+                                                <div class="col-md-6">
+                                                    <div class="lc-right-tile">
+                                                        <div class="form-check form-switch m-0">
+                                                            <input type="checkbox" role="switch" class="form-check-input" name="IdMenu" value="@menu.IdMenu" id="@menu.IdMenu" @checkedMenu />
+                                                            <label for="@menu.IdMenu" class="form-check-label">
+                                                                <span class="d-flex align-items-center flex-wrap gap-1">
+                                                                    <span class="fw-medium @(menu.Visible ? "text-body" : "text-muted")">@libelleMenu</span>
+                                                                    @if (!menu.Visible)
+                                                                    {
+                                                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i>Masqué</span>
+                                                                    }
+                                                                    @if (menu.DefaultMenu)
+                                                                    {
+                                                                        <span class="badge lc-badge bg-success-subtle text-success">Par défaut</span>
+                                                                    }
+                                                                </span>
+                                                                <span class="d-block fs-12 text-muted mt-1"><span class="lc-code fs-11">@menu.Nom</span></span>
+                                                                @if (!string.IsNullOrWhiteSpace(menu.Commentaire))
+                                                                {
+                                                                    <span class="d-block fs-12 text-muted mt-1">@menu.Commentaire</span>
+                                                                }
+                                                            </label>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            premier = false;
+                        }
+                    </div>
+
+                    <div class="lc-callout lc-callout-danger mt-3 d-none" id="lcAucunDroit">
+                        <i class="iconoir-warning-circle"></i>
+                        <div>Un profil doit garder au moins un menu autorisé : sélectionnez au moins un menu avant d'enregistrer.</div>
+                    </div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <a href="/claim/" class="btn btn-light">Annuler</a>
+                    <button type="reset" class="btn btn-light"><i class="iconoir-undo me-1"></i>Rétablir</button>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer les droits</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card mb-0">
+                <div class="card-body">
+                    <div class="lc-aside">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Comment ça marche</h6>
+                        <ul>
+                            <li>Chaque menu activé donne au profil le droit d'ouvrir la page correspondante.</li>
+                            <li>L'enregistrement remplace l'ensemble des droits du profil par la sélection affichée.</li>
+                            <li>« Rétablir » revient aux droits enregistrés, sans quitter la page.</li>
+                            <li>Un menu « Masqué » n'apparaît pas dans la navigation mais son accès reste contrôlé par ce droit.</li>
+                        </ul>
+                    </div>
+                    <div class="lc-section-title mt-4"><i class="iconoir-view-grid"></i>Sections</div>
+                    <ul class="lc-meta">
+                        <li><span class="badge lc-badge bg-primary-subtle text-primary">Barre latérale</span><span class="fs-13 text-muted">menus de la section Principale</span></li>
+                        <li><span class="badge lc-badge bg-info-subtle text-info">Menu utilisateur</span><span class="fs-13 text-muted">section Profil, en haut à droite</span></li>
+                        <li><span class="badge lc-badge bg-secondary-subtle text-secondary">Routes protégées</span><span class="fs-13 text-muted">section Invisible, sans entrée de menu</span></li>
+                    </ul>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Les menus « Par défaut » sont accordés automatiquement à tous les profils internes, même s'ils ne sont pas cochés ici.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+}
+
+<script>
+    (function () {
+        var form = document.getElementById('lcFormDroits');
+        if (!form) { return; }
+
+        function cases(racine) { return Array.prototype.slice.call(racine.querySelectorAll('input[name="IdMenu"]')); }
+
+        function majCompteurs() {
+            var total = 0;
+            Array.prototype.forEach.call(form.querySelectorAll('[data-lc-groupe]'), function (groupe) {
+                var liste = cases(groupe);
+                var n = liste.filter(function (c) { return c.checked; }).length;
+                total += n;
+                var compteur = groupe.querySelector('[data-lc-compteur]');
+                if (compteur) {
+                    compteur.textContent = n + ' / ' + liste.length;
+                    compteur.className = 'badge lc-badge me-2 ' + (n === 0 ? 'bg-secondary-subtle text-secondary' : (n === liste.length ? 'bg-success-subtle text-success' : 'bg-primary-subtle text-primary'));
+                }
+                var bascule = groupe.querySelector('[data-lc-toggle-groupe]');
+                if (bascule) { bascule.textContent = (n === liste.length ? 'Tout décocher' : 'Tout cocher'); }
+            });
+            var totalEl = form.querySelector('[data-lc-total]');
+            if (totalEl) { totalEl.textContent = total; }
+            if (total > 0) { document.getElementById('lcAucunDroit').classList.add('d-none'); }
+            return total;
+        }
+
+        form.addEventListener('change', function (e) { if (e.target && e.target.name === 'IdMenu') { majCompteurs(); } });
+        form.addEventListener('reset', function () { setTimeout(majCompteurs, 0); });
+        form.addEventListener('submit', function (e) {
+            if (majCompteurs() === 0) {
+                e.preventDefault();
+                document.getElementById('lcAucunDroit').classList.remove('d-none');
+            }
+        });
+        form.addEventListener('click', function (e) {
+            var bouton = e.target.closest ? e.target.closest('[data-lc-action]') : null;
+            if (!bouton) { return; }
+            var action = bouton.getAttribute('data-lc-action');
+            if (action === 'groupe') {
+                var liste = cases(bouton.closest('[data-lc-groupe]'));
+                var toutes = liste.every(function (c) { return c.checked; });
+                liste.forEach(function (c) { c.checked = !toutes; });
+                majCompteurs();
+            } else if (action === 'tout' || action === 'rien') {
+                cases(form).forEach(function (c) { c.checked = (action === 'tout'); });
+                majCompteurs();
+            } else if ((action === 'deplier' || action === 'replier') && window.bootstrap && bootstrap.Collapse) {
+                Array.prototype.forEach.call(form.querySelectorAll('.accordion-collapse'), function (el) {
+                    var panneau = bootstrap.Collapse.getOrCreateInstance(el, { toggle: false });
+                    if (action === 'deplier') { panneau.show(); } else { panneau.hide(); }
+                });
+            }
+        });
+
+        majCompteurs();
+    })();
+</script>

@@ -1,0 +1,340 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ ArticleViewModel Page = (ArticleViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    Identity createBy = null;
+    Organe organeCreateur = null;
+    Categorie categorie = null;
+    string sousTitre = null;
+    string marqueModele = null;
+    string rattachementLibelle = null;
+    string rattachementParent = null;
+    string photoCreator = null;
+    string onclik = null;
+    long nbBiens = 0;
+    int quantiteAchetee = 0;
+
+    if (Page.Article != null)
+    {
+        categorie = Page.Article.GetCategorie();
+        nbBiens = Page.Article.GetQuantiteImmo();
+        marqueModele = string.Join(" · ", new[] { Page.Article.Marque, Page.Article.Modele }.Where(x => !string.IsNullOrWhiteSpace(x)));
+        sousTitre = string.Join(" · ", new[] { Page.Article.Code, categorie?.Designation, categorie?.Famille }.Where(x => !string.IsNullOrWhiteSpace(x)));
+
+        foreach (var achat in Page.Achats)
+        {
+            quantiteAchetee += achat.Quantite;
+        }
+
+        if (!string.IsNullOrEmpty(Page.Article.UserCreation))
+        {
+            createBy = IdentityController.GetUser(Page.Article.UserCreation);
+        }
+
+        if (createBy != null)
+        {
+            photoCreator = Utilities.GetPhotoAgentPath() + createBy.Photo;
+            organeCreateur = createBy.Organe;
+
+            if (organeCreateur != null && organeCreateur.Id != organeCreateur.IdStructure)
+            {
+                if (organeCreateur.IdOrganeParent == organeCreateur.IdStructure)
+                {
+                    rattachementLibelle = OrganeController.SelectType(organeCreateur.IdOrganeParent);
+                }
+                else
+                {
+                    rattachementParent = OrganeController.SelectNameById(organeCreateur.IdOrganeParent);
+                }
+            }
+        }
+
+        onclik = $"$(this).confirmUrl('Suppression', '/article/delete/{Page.Article.Id}', 'Êtes-vous sûr de vouloir supprimer l\\'article : <br/> <div class=\\'chip\\'> {Page.Article.Designation} </div> ?', 'Suppression de l\\'article <div class=\\'chip\\'> {Page.Article.Designation} </div> annul&eacute;e')";
+    }
+}
+
+@if (Page.Article == null)
+{
+    <div class="card">
+        <div class="card-body">
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Article introuvable</h6>
+                <p>Cet article n'existe pas ou a été supprimé du catalogue.</p>
+                <a href="/article/" class="btn btn-primary btn-sm"><i class="iconoir-arrow-left me-1"></i>Retour au catalogue</a>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="card">
+        <div class="lc-cover"></div>
+        <div class="card-body pt-0">
+            <div class="lc-profile">
+                <img src="~/Content/images/articles/@Page.Article.Photo" alt="@Page.Article.Designation" class="lc-profile-media" />
+                <div>
+                    <h3 class="lc-profile-title">
+                        @Page.Article.Designation
+                        @if (Page.Article.IsActive)
+                        {
+                            <span class="badge lc-badge bg-success-subtle text-success align-middle ms-1"><i class="iconoir-check"></i>Actif</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-secondary-subtle text-secondary align-middle ms-1"><i class="iconoir-xmark"></i>Inactif</span>
+                        }
+                    </h3>
+                    <p class="lc-profile-sub">@(string.IsNullOrEmpty(sousTitre) ? "Article n° " + Page.Article.Id : sousTitre)</p>
+                </div>
+                <div class="lc-profile-actions">
+                    <a href="/immo/article/@Page.Article.Id" class="btn btn-light"><i class="iconoir-list me-1"></i>Voir les biens</a>
+                    <a onclick="@Html.Raw(onclik)" role="button" class="btn btn-soft-danger" data-bs-toggle="tooltip" title="Supprimer l'article"><i class="iconoir-trash"></i></a>
+                    <a href="/article/modify/@Page.Article.Id" class="btn btn-primary"><i class="iconoir-edit-pencil me-1"></i>Modifier</a>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2 align-items-center">
+                <div class="col-lg-4">
+                    <ul class="lc-meta">
+                        <li><i class="iconoir-folder"></i><b>Catégorie :</b> @(categorie == null ? "Non classé" : categorie.Designation)</li>
+                        @if (!string.IsNullOrEmpty(categorie?.Famille))
+                        {
+                            <li><i class="iconoir-view-grid"></i><b>Famille :</b> @categorie.Famille</li>
+                        }
+                        <li><i class="iconoir-label"></i><b>Marque / modèle :</b> @(string.IsNullOrEmpty(marqueModele) ? "—" : marqueModele)</li>
+                        <li><i class="iconoir-calendar"></i><b>Créé le :</b> @Page.Article.DateCreation.ToString("dd/MM/yyyy")</li>
+                    </ul>
+                </div>
+                <div class="col-lg-8">
+                    <div class="row g-3">
+                        <div class="col-sm-6 col-xxl-3">
+                            <div class="lc-kpi">
+                                <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-dollar"></i></span>
+                                <div>
+                                    <p class="lc-kpi-label">Prix indicatif</p>
+                                    <p class="lc-kpi-value">@Utilities.FormatNumber(Page.Article.CoutUnitaire)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-xxl-3">
+                            <div class="lc-kpi">
+                                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-coins"></i></span>
+                                <div>
+                                    <p class="lc-kpi-label">Dernier prix d'achat</p>
+                                    @if (Page.DernierPrix.HasValue)
+                                    {
+                                        <p class="lc-kpi-value">@Utilities.FormatNumber(Page.DernierPrix.Value)<small>@Page.Devise</small></p>
+                                    }
+                                    else
+                                    {
+                                        <p class="lc-kpi-value text-muted">—<small>aucun achat</small></p>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-xxl-3">
+                            <div class="lc-kpi">
+                                <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-archive"></i></span>
+                                <div>
+                                    <p class="lc-kpi-label">Biens rattachés</p>
+                                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbBiens, 0)<small>au patrimoine</small></p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-xxl-3">
+                            <div class="lc-kpi">
+                                <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-delivery-truck"></i></span>
+                                <div>
+                                    <p class="lc-kpi-label">Quantité achetée</p>
+                                    <p class="lc-kpi-value">@Utilities.FormatNumber(quantiteAchetee, 0)<small>@Page.Achats.Count livraison(s)</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-4">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Photo</h4>
+                    <p class="lc-card-subtitle">@(Page.Article.IsPhotographed ? "Survolez l'image pour l'agrandir." : "Aucune photo enregistrée pour cet article.")</p>
+                </div>
+                <div class="card-body pt-0 text-center">
+                    @if (Page.Article.IsPhotographed)
+                    {
+                        <img src="~/Content/images/articles/@Page.Article.Photo" data-zoom-image="/Content/images/articles/@Page.Article.Photo" alt="@Page.Article.Code" class="img-fluid rounded border" style="max-height: 280px;" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: 11 })">
+                    }
+                    else
+                    {
+                        <img src="~/Content/images/articles/@Page.Article.Photo" alt="Non photographié" class="img-fluid rounded border" style="max-height: 280px;">
+                        <div class="mt-3">
+                            <a href="/article/modify/@Page.Article.Id" class="btn btn-sm btn-soft-primary"><i class="iconoir-camera me-1"></i>Ajouter une photo</a>
+                        </div>
+                    }
+                </div>
+            </div>
+
+            @if (createBy != null)
+            {
+                <div class="card">
+                    <div class="card-header">
+                        <h4 class="card-title">Créé par</h4>
+                        <p class="lc-card-subtitle">Auteur de la fiche article</p>
+                    </div>
+                    <div class="card-body pt-0">
+                        <div class="lc-entity mb-3">
+                            <img src="@Html.Raw(photoCreator)" alt="" class="lc-thumb lc-thumb-lg rounded-circle" />
+                            <div class="lc-entity-body">
+                                <span class="lc-name">@createBy.Nom @createBy.Postnom</span>
+                                <span class="lc-sub">@createBy.UserName</span>
+                            </div>
+                        </div>
+                        <ul class="lc-meta">
+                            @if (organeCreateur != null)
+                            {
+                                <li><i class="iconoir-building"></i>@organeCreateur.Nom</li>
+                                if (organeCreateur.Id != organeCreateur.IdStructure)
+                                {
+                                    if (!string.IsNullOrEmpty(rattachementLibelle))
+                                    {
+                                        <li><i class="iconoir-community"></i><span><b>@rattachementLibelle :</b> @organeCreateur.NomStructure</span></li>
+                                    }
+                                    else
+                                    {
+                                        if (!string.IsNullOrEmpty(rattachementParent))
+                                        {
+                                            <li><i class="iconoir-git-fork"></i>@rattachementParent</li>
+                                        }
+                                        <li><i class="iconoir-community"></i><b>@organeCreateur.NomStructure</b></li>
+                                    }
+                                }
+                            }
+                            <li><i class="iconoir-calendar"></i><span><b>Le</b> @Page.Article.DateCreation.ToString("dd/MM/yyyy à HH:mm")</span></li>
+                        </ul>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Caractéristiques</h4>
+                    <p class="lc-card-subtitle">Informations de référence communes à tous les biens de cet article.</p>
+                </div>
+                <div class="card-body pt-0">
+                    <dl class="lc-dl">
+                        <div><dt>Code Nav</dt><dd>@Page.Article.Code</dd></div>
+                        <div><dt>Désignation</dt><dd>@Page.Article.Designation</dd></div>
+                        <div><dt>Marque</dt><dd>@Page.Article.Marque</dd></div>
+                        <div><dt>Modèle</dt><dd>@Page.Article.Modele</dd></div>
+                        <div><dt>Catégorie</dt><dd>@(categorie?.Designation)</dd></div>
+                        <div><dt>Famille</dt><dd>@(categorie?.Famille)</dd></div>
+                        <div><dt>Prix indicatif</dt><dd>@Utilities.FormatNumber(Page.Article.CoutUnitaire)</dd></div>
+                        <div>
+                            <dt>Dernier prix d'achat</dt>
+                            @if (Page.DernierPrix.HasValue)
+                            {
+                                <dd class="text-primary">@Utilities.FormatNumber(Page.DernierPrix.Value) @Page.Devise</dd>
+                            }
+                            else
+                            {
+                                <dd></dd>
+                            }
+                        </div>
+                        <div><dt>Unité de mesure</dt><dd>@Page.Article.UniteMesure</dd></div>
+                        <div><dt>Poste budgétaire</dt><dd>@Page.Article.IdPosteBudget</dd></div>
+                        <div><dt>N° d'article</dt><dd>@Page.Article.Id</dd></div>
+                        <div><dt>Date de création</dt><dd>@Page.Article.DateCreation.ToString("dd/MM/yyyy")</dd></div>
+                    </dl>
+                </div>
+            </div>
+
+            <!-- Historique des achats : fournisseurs et prix constatés à la réception -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center g-2">
+                        <div class="col">
+                            <h4 class="card-title">Historique des achats</h4>
+                            <p class="lc-card-subtitle">Prix et fournisseurs constatés à chaque livraison de cet article.</p>
+                        </div>
+                        <div class="col-auto">
+                            <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-delivery-truck"></i>@Page.Achats.Count livraison(s)</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body pt-0">
+                    @if (Page.Achats.Count == 0)
+                    {
+                        <div class="lc-empty">
+                            <div class="lc-empty-icon"><i class="iconoir-cart"></i></div>
+                            <h6>Aucun achat enregistré</h6>
+                            <p>Les prix et fournisseurs apparaîtront ici après la réception d'une commande d'achat contenant cet article.</p>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table lc-table w-100">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>Réception</th>
+                                        <th>Commande</th>
+                                        <th>Fournisseur</th>
+                                        <th class="text-end">Quantité</th>
+                                        <th class="text-end">Prix unitaire</th>
+                                        <th>Reçu par</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var achat in Page.Achats)
+                                    {
+                                        <tr>
+                                            <td>
+                                                <span class="d-block text-body">@achat.DateReception.ToString("dd/MM/yyyy")</span>
+                                            </td>
+                                            <td><a href="/achat/commande/id/@achat.IdCommande" class="lc-code text-decoration-none">@achat.NumeroCommande</a></td>
+                                            <td>
+                                                <div class="lc-entity">
+                                                    <span class="lc-thumb lc-thumb-sm bg-info-subtle text-info"><i class="iconoir-delivery-truck"></i></span>
+                                                    <div class="lc-entity-body"><span class="lc-name">@achat.Fournisseur</span></div>
+                                                </div>
+                                            </td>
+                                            <td class="lc-num">@achat.Quantite</td>
+                                            <td class="lc-num">
+                                                <span class="fw-semibold">@Utilities.FormatNumber(achat.PrixUnitaire)</span> <small class="text-muted">@achat.Devise</small>
+                                                @if (achat.Taux != 1m)
+                                                {
+                                                    <span class="d-block fs-12 text-muted">≈ @Utilities.FormatNumber(achat.PrixReference) @Page.Devise</span>
+                                                }
+                                            </td>
+                                            <td>@achat.RecuPar</td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}

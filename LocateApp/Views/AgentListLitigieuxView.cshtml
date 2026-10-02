@@ -1,0 +1,181 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+@using System.Collections.Generic;
+
+@{ AgentListViewModel Page = (AgentListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = string.IsNullOrEmpty(Page.MenuData?.Libelle) ? "Responsables de biens litigieux" : Page.MenuData.Libelle;
+   string cheminPhotos = Utilities.GetPhotoAgentPath();
+   int nbAgents = Page.Agents == null ? 0 : Page.Agents.Count;
+
+   // Comptages lus une seule fois par agent, réutilisés pour les indicateurs et le tableau.
+   long[] nbreBiens = new long[nbAgents];
+   long[] nbreLitigieux = new long[nbAgents];
+   Organe[] organesAgent = new Organe[nbAgents];
+   Dictionary<string, Organe> organesLus = new Dictionary<string, Organe>();
+   long totalBiens = 0;
+   long totalLitigieux = 0;
+   int nbCritiques = 0;
+   for (int i = 0; i < nbAgents; i++)
+   {
+       var a = Page.Agents[i];
+       string mat = (a.Matricule ?? "").Trim();
+       string court = mat.Length > 6 ? mat.Substring(0, 6) : mat;
+       nbreBiens[i] = ImmoController.SelectNbreBienByResponsable(court);
+       nbreLitigieux[i] = ImmoController.SelectNbreBienLitigieuxByResponsable(court);
+       totalBiens += nbreBiens[i];
+       totalLitigieux += nbreLitigieux[i];
+       if (nbreBiens[i] > 0 && nbreLitigieux[i] * 2 >= nbreBiens[i]) { nbCritiques++; }
+       if (a.CodeOrgane != null)
+       {
+           Organe o;
+           if (!organesLus.TryGetValue(a.CodeOrgane, out o))
+           {
+               o = OrganeController.SelectById(a.CodeOrgane);
+               organesLus[a.CodeOrgane] = o;
+           }
+           organesAgent[i] = o;
+       }
+   }
+   int partLitigieuse = totalBiens == 0 ? 0 : (int)Math.Round(totalLitigieux * 100m / totalBiens);
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-group"></i></span>
+            <div>
+                <p class="lc-kpi-label">Responsables concernés</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAgents, 0)<small>agents</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-danger-subtle text-danger"><i class="iconoir-warning-triangle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens litigieux</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalLitigieux, 0)<small>mauvais état ou non retrouvés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-percentage"></i></span>
+            <div>
+                <p class="lc-kpi-label">Part litigieuse</p>
+                <p class="lc-kpi-value">@partLitigieuse %<small>sur @Utilities.FormatNumber(totalBiens, 0) biens</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-warning-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Situations critiques</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbCritiques, 0)<small>agents à 50 % ou plus</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Agents responsables d'au moins un bien en mauvais état ou non retrouvé. Survolez une photo pour l'agrandir, cliquez sur un agent pour voir ses biens litigieux.</p>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbAgents == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-check-circle"></i></div>
+                <h6>Aucun bien litigieux</h6>
+                <p>Aucun agent n'est responsable d'un bien en mauvais état ou non retrouvé.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 50px;">N°</th>
+                            <th>Agent</th>
+                            <th>Organe</th>
+                            <th style="width: 240px;">Biens litigieux</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < nbAgents; i++)
+                        {
+                            var agent = Page.Agents[i];
+                            int numero = i + 1;
+                            string matricule = (agent.Matricule ?? "").Trim();
+                            string matriculeCourt = matricule.Length > 6 ? matricule.Substring(0, 6) : matricule;
+                            string lienLitigieux = Page.Link + matriculeCourt;
+                            string lienTous = "/immo/responsable/bien/" + matriculeCourt + "/";
+                            string nomComplet = $"{agent.Nom?.Trim()} {agent.Postnom?.Trim()} {agent.Prenom?.Trim()}".Trim();
+                            string photoUser = cheminPhotos + agent.Photo;
+                            Organe organeAgent = organesAgent[i];
+                            long nbreBien = nbreBiens[i];
+                            long nbreBienLitigieux = nbreLitigieux[i];
+                            int pourcentage = nbreBien == 0 ? 0 : (int)Math.Round(nbreBienLitigieux * 100m / nbreBien);
+                            string couleur = pourcentage >= 50 ? "danger" : (pourcentage >= 20 ? "warning" : "info");
+
+                            <tr>
+                                <td class="text-muted">@numero</td>
+                                <td data-order="@nomComplet">
+                                    <div class="lc-entity">
+                                        <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@matriculeCourt)" class="lc-thumb avatar-zoom" loading="lazy" />
+                                        <div class="lc-entity-body">
+                                            <a href="@lienLitigieux" class="lc-name">@nomComplet</a>
+                                            <span class="lc-sub">@matriculeCourt<span class="mx-1">·</span>@agent.Genre</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (organeAgent != null)
+                                    {
+                                        <span class="d-block text-body text-truncate" style="max-width: 280px;" title="@organeAgent.Nom">@organeAgent.Nom</span>
+                                        <span class="d-block fs-12 text-muted mt-1"><span class="lc-code">@organeAgent.Id</span></span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td data-order="@nbreBienLitigieux">
+                                    <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                                        <span><span class="fw-semibold text-@couleur">@Utilities.FormatNumber(nbreBienLitigieux, 0)</span> <span class="text-muted fs-12">sur @Utilities.FormatNumber(nbreBien, 0)</span></span>
+                                        <span class="badge lc-badge bg-@couleur-subtle text-@couleur">@pourcentage %</span>
+                                    </div>
+                                    <div class="progress lc-progress">
+                                        <div class="progress-bar bg-@couleur" role="progressbar" style="width: @pourcentage%"></div>
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@lienLitigieux" class="lc-warning" title="Biens litigieux de cet agent" data-bs-toggle="tooltip"><i class="iconoir-warning-triangle"></i></a>
+                                        <a href="@lienTous" title="Tous les biens de cet agent" data-bs-toggle="tooltip"><i class="iconoir-box-iso"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

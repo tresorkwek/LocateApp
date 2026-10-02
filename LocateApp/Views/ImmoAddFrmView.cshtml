@@ -1,0 +1,175 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+
+
+@{
+    ImmoAddFrmViewModel Page = (ImmoAddFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    int inventaireEnCours = Page.InventaireEnCours;
+    Organe organeLocal = Page.Local?.GetOrgane();
+    string lienRetour = Page.Local == null ? "/immo/" : "/immo/local/" + Page.Local.Id;
+}
+
+<form class="lc-form" method="post" action="@Page.Link" enctype="multipart/form-data">
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Enregistrez un nouveau bien dans ce local : article, état constaté, responsable et photos.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-section-title"><i class="iconoir-box-iso"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="IdArticle">Article<span class="lc-req">*</span></label>
+                            <select name="IdArticle" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdArticle">
+                                <option value="" disabled selected>Choisissez un article</option>
+                                @foreach (var article in Page.Articles)
+                                {
+                                    <option value="@article.Id"> @article.DesignationToShow</option>
+                                }
+                            </select>
+                            <div class="form-text">Le bien hérite de la désignation, de la catégorie et du coût de l'article.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="CodeImmo">Code immo</label>
+                            <input id="CodeImmo" name="CodeImmo" type="text" class="form-control" placeholder="Code d'immobilisation">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="IdImmoParent">Bien principal</label>
+                            <select name="IdImmoParent" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdImmoParent">
+                                <option value="" selected>Aucun</option>
+                                @{
+                                    string codeImmoTshow, categorie, categorieToShow, famille, familleToShow;
+                                }
+                                @foreach (var immoCompose in Page.ImmoAutonome)
+                                {
+                                    categorie = immoCompose.GetArticle()?.GetCategorie()?.Designation;
+                                    famille = immoCompose.GetArticle()?.GetCategorie()?.Famille;
+
+                                    categorieToShow = !string.IsNullOrEmpty(categorie) ? $" /{categorie}" : "";
+                                    familleToShow = !string.IsNullOrEmpty(famille) ? $" /{famille}" : "";
+                                    codeImmoTshow = !string.IsNullOrEmpty(immoCompose.CodeImmo) ? $"({immoCompose.CodeImmo})" : "";
+
+                                    <option value="@immoCompose.Id">@immoCompose.Id @immoCompose.Designation @categorieToShow @familleToShow @codeImmoTshow</option>
+                                }
+                            </select>
+                            <div class="form-text">Renseignez-le si ce bien est un composant d'un autre bien du local (ex. écran d'un poste de travail).</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-clipboard-check"></i>État constaté</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-5">
+                            <label class="form-label d-block">État</label>
+                            <div class="d-flex flex-wrap gap-4 pt-1">
+                                <div class="form-check">
+                                    <input class="with-gap form-check-input" name="LastEtat" type="radio" value="B" id="LastEtat1" />
+                                    <label class="form-check-label" for="LastEtat1"><i class="iconoir-check-circle text-success me-1"></i>Bon</label>
+                                </div>
+                                <div class="form-check">
+                                    <input class="with-gap form-check-input" name="LastEtat" type="radio" value="M" id="LastEtat2" />
+                                    <label class="form-check-label" for="LastEtat2"><i class="iconoir-warning-triangle text-warning me-1"></i>Mauvais</label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label" for="IdLastObservation">Observation</label>
+                            <select name="IdLastObservation" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdLastObservation">
+                            </select>
+                            <div class="form-text">La liste des observations dépend de l'état choisi.</div>
+                        </div>
+                        @if (inventaireEnCours > 0)
+                        {
+                            <div class="col-12">
+                                <div class="form-check form-switch">
+                                    <input role="switch" type="checkbox" id="Inventaire" name="Inventaire" value="true" class="form-check-input" />
+                                    <label class="form-check-label" for="Inventaire">Faire office d'inventaire @inventaireEnCours</label>
+                                </div>
+                                <div class="form-text">Le bien sera compté comme vu lors de la campagne d'inventaire en cours.</div>
+                            </div>
+                        }
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-user"></i>Affectation</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-12">
+                            <label class="form-label" for="Responsable">Responsable</label>
+                            <select name="Responsable" class="js-states form-select" tabindex="-1" style="width: 100%" id="Responsable">
+                                <option value="" selected>Personne</option>
+                                @foreach (var occupant in Page.Occupants)
+                                {
+                                    <option value="@occupant.Matricule.Substring(0, 6)">@occupant.Nom @occupant.Postnom @occupant.Prenom (@occupant.Matricule.Substring(0, 6))</option>
+                                }
+                            </select>
+                            <div class="form-text">Agents de l'organe du local.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-camera"></i>Photos<span class="lc-section-hint">JPG ou PNG, avec le constat associé</span></div>
+                    <div id="photoSource">
+                        <div class="row g-2 mb-2">
+                            <div class="col-md-6">
+                                <input type="file" name="Photo" accept="image/*" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <input id="Constat" name="Constat" type="text" class="form-control" placeholder="Constat (ex. vue de face, plaque signalétique)">
+                            </div>
+                        </div>
+                    </div>
+                    <div id="photoDestination"></div>
+                    <button type="button" class="btn btn-sm btn-soft-primary" onclick="$(this).insertHTML('photoSource','photoDestination')"><i class="iconoir-plus me-1"></i>Ajouter une autre photo</button>
+
+                    <input type="hidden" name="IdLocal" id="IdLocal" value="@Page.Local.Id" />
+                    <input type="hidden" name="LastAnneeComptable" id="LastAnneeComptable" value="@inventaireEnCours" />
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="@lienRetour" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer le bien</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-section-title mt-0"><i class="iconoir-map-pin"></i>Local de destination</div>
+                    <div class="lc-entity mb-3">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-home-simple"></i></span>
+                        <div class="lc-entity-body">
+                            <span class="lc-name">@Page.Local.Designation</span>
+                            <span class="lc-sub"><span class="lc-code me-1">@Page.Local.Code</span>@(organeLocal?.Nom)</span>
+                        </div>
+                    </div>
+                    <div class="lc-aside">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bonnes pratiques</h6>
+                        <ul>
+                            <li>Choisissez l'article le plus précis : la catégorie et la valeur du bien en découlent.</li>
+                            <li>Indiquez l'état réellement constaté ; l'observation affine ce constat.</li>
+                            <li>Une photo par face utile (vue d'ensemble, plaque signalétique) facilite les inventaires suivants.</li>
+                        </ul>
+                    </div>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-qr-code"></i>
+                        <div>Le QR code s'affecte ensuite sur le terrain avec Locate Terrain, en scannant l'étiquette collée sur le bien.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

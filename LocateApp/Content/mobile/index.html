@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="fr" data-bs-theme="light">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#0b1f3a">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="author" content="RandareCx">
+    <title>Locate Terrain</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" href="/Content/images/locate-icon.png" type="image/png">
+    <link rel="apple-touch-icon" href="/Content/images/locate-icon.png">
+    <link href="/Content/approx/css/bootstrap.min.css" rel="stylesheet">
+    <link href="/Content/approx/css/icons.min.css" rel="stylesheet">
+    <link href="mobile.css" rel="stylesheet">
+</head>
+<body class="mode-demarrage">
+
+    <!-- Barre du haut -->
+    <header class="m-topbar" id="topbar">
+        <button type="button" class="m-icon-btn" id="btnRetour" aria-label="Retour" hidden><i class="iconoir-nav-arrow-left"></i></button>
+        <img src="/Content/images/locate-icon.png" alt="" class="m-logo" id="topLogo">
+        <div class="m-title" id="topTitle">Locate</div>
+        <button type="button" class="m-icon-btn" id="btnRafraichir" aria-label="Rafraîchir"><i class="iconoir-refresh"></i></button>
+        <button type="button" class="m-icon-btn" id="btnCompte" aria-label="Mon compte"><i class="iconoir-user-circle"></i></button>
+    </header>
+
+    <!-- Contenu (rempli par mobile.js) -->
+    <main class="m-page" id="page">
+        <div class="m-demarrage"><img src="/Content/images/locate-logo.png" alt="Locate"><div class="m-point-charge"><span></span><span></span><span></span></div></div>
+    </main>
+
+    <!-- Barre d'actions contextuelles (au-dessus de la navigation) -->
+    <div class="m-barre-actions" id="barreActions" hidden></div>
+
+    <!-- Navigation du bas -->
+    <nav class="m-tabbar" id="tabbar" aria-label="Navigation principale">
+        <a href="#/" data-onglet="accueil"><i class="iconoir-home-simple"></i><span>Accueil</span></a>
+        <a href="#/organes" data-onglet="organes"><i class="iconoir-city"></i><span>Organes</span></a>
+        <button type="button" class="m-tab-scan" id="tabScanner" data-onglet="rapide" aria-label="Scanner : inventaire rapide"><span class="rond"><i class="iconoir-scan-qr-code"></i></span><span>Scanner</span></button>
+        <a href="#/nonvu" data-onglet="nonvu"><i class="iconoir-eye-closed"></i><span>Non vu</span></a>
+        <a href="#/transit" data-onglet="transit"><i class="iconoir-delivery-truck"></i><span>Transit</span></a>
+    </nav>
+
+    <!-- Scanner plein écran (lecture unique) -->
+    <div class="m-scanner" id="scanner" hidden>
+        <div class="m-scanner-head">
+            <button type="button" class="m-rond-btn" id="scanFermer" aria-label="Fermer"><i class="iconoir-xmark"></i></button>
+            <div class="flex-grow-1 min-w-0">
+                <div class="m-scanner-titre" id="scanTitre">Scanner un QR code</div>
+                <div class="m-scanner-aide" id="scanAide">Placez le QR code dans le cadre.</div>
+            </div>
+            <button type="button" class="m-rond-btn" id="scanLampe" aria-label="Lampe" hidden><i class="iconoir-flash"></i></button>
+        </div>
+        <div class="m-scanner-video">
+            <video id="scanVideo" playsinline muted autoplay></video>
+            <div class="m-cadre"><i></i><i></i><i></i><i></i><b class="m-laser"></b></div>
+        </div>
+        <div class="m-scanner-pied">
+            <form class="m-saisie" id="scanFormManuel" autocomplete="off">
+                <i class="iconoir-input-field"></i>
+                <input type="text" id="scanSaisie" placeholder="Saisir ou lire le code (douchette)" inputmode="text" autocapitalize="none" spellcheck="false">
+                <button type="submit" aria-label="Valider"><i class="iconoir-arrow-right"></i></button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feuille du bas générique -->
+    <div class="offcanvas offcanvas-bottom m-sheet" tabindex="-1" id="sheet" aria-labelledby="sheetTitre">
+        <div class="m-sheet-poignee"></div>
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="sheetTitre">Titre</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Fermer"></button>
+        </div>
+        <div class="offcanvas-body" id="sheetCorps"></div>
+    </div>
+
+    <!-- Boîte de confirmation -->
+    <div class="modal fade m-modal" id="confirmModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-body">
+                    <h6 class="modal-title" id="confirmTitre">Confirmation</h6>
+                    <div id="confirmTexte"></div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="m-btn m-btn-clair" id="confirmNon">Non</button>
+                    <button type="button" class="m-btn m-btn-primaire" id="confirmOui">Oui</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notifications -->
+    <div class="m-toasts" id="toasts" aria-live="polite"></div>
+
+    <script src="/Content/approx/libs/bootstrap/js/bootstrap.bundle.min.js"></script>
+    <script src="mobile.js"></script>
+</body>
+</html>

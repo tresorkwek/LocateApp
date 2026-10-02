@@ -1,0 +1,86 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CategorieAddOrModifyFrmViewModel Page = (CategorieAddOrModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+@{
+    string checkedLocked = Page.Categorie.IsActive ? "checked" : "";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <a href="/categorie/" class="d-inline-flex align-items-center gap-1 text-muted mb-3"><i class="iconoir-arrow-left"></i>Retour aux catégories</a>
+
+        <form class="lc-form" method="post" action="/categorie/modify/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Modifier la catégorie" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Les articles déjà classés dans cette catégorie suivent automatiquement les changements.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-4 rounded border border-dashed bg-light-subtle">
+                        <div class="lc-entity flex-grow-1">
+                            <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-folder"></i></span>
+                            <div class="lc-entity-body">
+                                <span class="lc-name fs-15">@Page.Categorie.Designation</span>
+                                <span class="lc-sub">@(string.IsNullOrEmpty(Page.Categorie.Famille) ? "Sans famille" : "Famille " + Page.Categorie.Famille) · N° @Page.Categorie.Id</span>
+                            </div>
+                        </div>
+                        @if (Page.Categorie.IsActive)
+                        {
+                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivée</span>
+                        }
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Designation">Désignation<span class="lc-req">*</span></label>
+                            <input id="Designation" name="Designation" type="text" class="form-control" value="@Page.Categorie.Designation" placeholder="Ex. Mobilier de bureau">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="IdFamille">Famille<span class="lc-req">*</span></label>
+                            <select name="IdFamille" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdFamille">
+                                @{ string selected;}
+
+                                @foreach (var famille in Page.Familles)
+                                {
+                                    selected = famille.Id == Page.Categorie.IdFamille ? "selected" : "";
+
+                                    <option value="@famille.Id" @selected>@famille.Nom</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" role="switch" id="IsActive" name="IsActive" value="true" @checkedLocked class="form-check-input">
+                                <label class="form-check-label" for="IsActive">Catégorie active</label>
+                            </div>
+                            <div class="form-text">Une catégorie désactivée n'est plus proposée lors de la création d'un article.</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="Id" value="@Page.Categorie.Id" />
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/categorie/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer les modifications</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

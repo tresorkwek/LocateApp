@@ -1,0 +1,37 @@
+﻿@using System;
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.ViewModels;
+@using LocateApp.Models;
+
+@{ // Binding du ViewModel.
+    ViewModel PageLayout = (ViewModel)ViewBag.Page.Value;
+}
+<!DOCTYPE html>
+<html lang="fr" dir="ltr" data-bs-theme="light">
+<head>
+    <title>@PageLayout.Title</title>
+    <meta name="description" content="@PageLayout.Description" />
+    @Html.Partial("Views/Layout/_Head.cshtml")
+</head>
+<body>
+
+    <input type="hidden" name="AlerteTitle" id="AlerteTitle" value="@PageLayout.AlerteTitle" />
+    <input type="hidden" name="TypeAlert" id="TypeAlert" value="@PageLayout.TypeAlert" />
+    <input type="hidden" name="AlertColor" id="AlertColor" value="@PageLayout.AlertColor" />
+    <input type="hidden" name="Alerte" id="Alerte" value="@PageLayout.Alerte" />
+
+    <div class="container-xxl">
+        <div class="row min-vh-100 d-flex justify-content-center">
+            <div class="col-12 align-self-center py-4">
+
+                @RenderBody()
+
+            </div>
+        </div>
+    </div>
+
+    @Html.Partial("Views/Layout/_Scripts.cshtml")
+
+</body>
+</html>

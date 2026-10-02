@@ -1,0 +1,119 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+
+@{ ArticleAddFrmViewModel Page = (ArticleAddFrmViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<form class="lc-form" method="post" action="@Page.Link" enctype="multipart/form-data">
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Décrivez l'article une seule fois : tous les biens de ce type y seront rattachés.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-section-title"><i class="iconoir-box-iso"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="Designation">Désignation<span class="lc-req">*</span></label>
+                            <input id="Designation" name="Designation" type="text" class="form-control" placeholder="Ex. Fauteuil de bureau ergonomique" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Code">Code Nav</label>
+                            <input id="Code" name="Code" type="text" class="form-control" placeholder="Ex. AA0000175">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Marque">Marque</label>
+                            <input id="Marque" name="Marque" type="text" class="form-control" placeholder="Ex. HP, Samsung…">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Modele">Modèle</label>
+                            <input id="Modele" name="Modele" type="text" class="form-control" placeholder="Ex. ProDesk 600 G5">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-folder"></i>Classement</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdCategorie">Catégorie<span class="lc-req">*</span></label>
+                            <select name="IdCategorie" class="form-select" style="width: 100%" id="IdCategorie">
+                                <option value="" disabled selected>Choisissez une catégorie</option>
+                                @foreach (var categorie in Page.Categories)
+                                {
+                                    <option value="@categorie.Id">@categorie.Designation</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdPosteBudget">Poste budgétaire</label>
+                            <input id="IdPosteBudget" name="IdPosteBudget" type="text" class="form-control" placeholder="Ex. 2.4.1">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-coins"></i>Valeur</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="CoutUnitaire">Coût unitaire</label>
+                            <div class="lc-input-icon">
+                                <i class="iconoir-dollar"></i>
+                                <input id="CoutUnitaire" name="CoutUnitaire" type="text" inputmode="decimal" class="form-control" placeholder="0,00">
+                            </div>
+                            <div class="form-text">Valeur indicative ; le prix réel est fixé par les commandes d'achat.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="UniteMesure">Unité de mesure</label>
+                            <input id="UniteMesure" name="UniteMesure" type="text" class="form-control" placeholder="Ex. pièce, lot, mètre">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-camera"></i>Photos<span class="lc-section-hint">JPG ou PNG</span></div>
+                    <span id="photoSource">
+                        <div class="form-group mb-2">
+                            <input type="file" name="Photo" accept="image/*" class="form-control" />
+                        </div>
+                    </span>
+                    <span id="photoDestination"></span>
+                    <button type="button" class="btn btn-sm btn-soft-primary" onclick="$(this).insertHTML('photoSource','photoDestination')"><i class="iconoir-plus me-1"></i>Ajouter une autre photo</button>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/article/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer l'article</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-aside">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bonnes pratiques</h6>
+                        <ul>
+                            <li>Une désignation courte et générique : « Fauteuil de bureau » plutôt que « Fauteuil bleu du bureau 12 ».</li>
+                            <li>La marque et le modèle permettent de distinguer deux articles proches.</li>
+                            <li>Une photo nette facilite l'identification sur le terrain avec Locate Terrain.</li>
+                        </ul>
+                    </div>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Le fournisseur et le prix d'achat réels sont fixés par les commandes d'achat, pas par la fiche article.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

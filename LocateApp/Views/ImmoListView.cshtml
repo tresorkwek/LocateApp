@@ -1,0 +1,283 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ImmoListViewModel Page = (ImmoListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    string title = Page.Local != null ? Page.Local.Designation + " / " + Page.Local.GetOrgane()?.Nom
+                 : Page.Organe != null ? Page.Organe.Nom
+                 : Page.Title;
+    if (Page.Article != null) { title += " — " + Page.Article.Designation; }
+    string lienParArticle = Page.LienParArticle ?? (Page.Local == null ? null : "/article/local/" + Page.Local.Id);
+    string lienDetails = Page.LienDetails ?? (Page.Local == null ? null : "/immo/local/" + Page.Local.Id);
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    int anneeEnCours = Page.AnneEnCours;
+    bool parLocal = Page.Local != null;
+    int nbBiens = Page.Immos == null ? 0 : Page.Immos.Count;
+    int nbQrCode = 0, nbBon = 0, nbMauvais = 0, nbNonVu = 0, nbVusAnnee = 0;
+    if (Page.Immos != null)
+    {
+        foreach (var i in Page.Immos)
+        {
+            if (i.QrCode != null) { nbQrCode++; }
+            if (i.LastEtat == "B") { nbBon++; } else if (i.LastEtat == "M") { nbMauvais++; } else { nbNonVu++; }
+            if (anneeEnCours > 0 && i.LastAnneeComptable == anneeEnCours) { nbVusAnnee++; }
+        }
+    }
+    int pctVus = nbBiens == 0 ? 0 : (int)Math.Round(100.0 * nbVusAnnee / nbBiens);
+    string sousTitre = string.IsNullOrEmpty(Page.Description) ? "Biens inventoriés : état, dernier inventaire et localisation." : Page.Description;
+}
+
+<input type="hidden" id="NbreImmoTotal" name="NbreImmoTotal" value="@nbBiens" />
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbBiens, 0)<small>@Utilities.FormatNumber(nbQrCode, 0) avec QR code</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            @if (anneeEnCours > 0)
+            {
+                <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-clipboard-check"></i></span>
+                <div class="flex-grow-1">
+                    <p class="lc-kpi-label">Vus en @anneeEnCours</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbVusAnnee, 0)<small>@pctVus %</small></p>
+                    <div class="lc-progress mt-2"><div class="progress-bar bg-info" style="width: @pctVus%"></div></div>
+                </div>
+            }
+            else
+            {
+                <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-qr-code"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Identifiés</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbQrCode, 0)<small>avec QR code</small></p>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-check-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">En bon état</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbBon, 0)<small>dernier constat</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-warning-triangle"></i></span>
+            <div>
+                <p class="lc-kpi-label">À surveiller</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbMauvais + nbNonVu, 0)<small>@nbMauvais mauvais · @nbNonVu non vus</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@(Page.Local == null && Page.Organe == null ? libellePage : title)</h4>
+                <p class="lc-card-subtitle">@sousTitre</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                @if (lienParArticle != null && lienDetails != null)
+                {
+                    <div class="btn-group" role="group" aria-label="Mode d'affichage">
+                        <a href="@lienParArticle" class="btn btn-light" data-bs-toggle="tooltip" title="Vue par article">
+                            <i class="iconoir-view-grid"></i>
+                        </a>
+                        <a href="@lienDetails" class="btn btn-primary active" data-bs-toggle="tooltip" title="Vue détaillée des biens">
+                            <i class="iconoir-list"></i>
+                        </a>
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(Page.ActionLink))
+                {
+                    <a href="@Page.ActionLink" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouveau bien</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbBiens == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Aucun bien</h6>
+                <p>Aucun bien ne correspond à cette sélection.</p>
+                @if (!string.IsNullOrEmpty(Page.ActionLink))
+                {
+                    <a href="@Page.ActionLink" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouveau bien</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Bien</th>
+                            <th>Code</th>
+                            <th>Catégorie</th>
+                            <th>État</th>
+                            <th>Inventaire</th>
+                            @if (!parLocal)
+                            {
+                                <th>Localisation</th>
+                            }
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var immo in Page.Immos)
+                        {
+                            string link = Page.Link + immo.Id;
+                            Article articleImmo = immo.GetArticle();
+                            Categorie categorie = articleImmo?.GetCategorie();
+                            string designation = immo.Designation;
+                            string photo = immo.GetPhoto();
+                            bool photographie = photo != "defaultImmo.jpg";
+                            string observation = immo.ImmoExist ? immo.LastObservation : immo.Observation;
+                            string marqueModele = articleImmo == null ? null : string.Join(" · ", new[] { articleImmo.Marque, articleImmo.Modele }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                            string etatCouleur = immo.LastEtat == "B" ? "success" : (immo.LastEtat == "M" ? "warning" : "danger");
+                            string etatIcone = immo.LastEtat == "B" ? "iconoir-check-circle" : (immo.LastEtat == "M" ? "iconoir-warning-triangle" : "iconoir-eye-closed");
+                            bool vuAnnee = anneeEnCours > 0 && immo.LastAnneeComptable == anneeEnCours;
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (photographie)
+                                        {
+                                            <img src="~/Content/images/equipements/@photo" alt="" class="lc-thumb avatar-zoom" data-zoom-src="/Content/images/equipements/@photo" data-zoom-legende="@designation" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@designation</a>
+                                            <span class="lc-sub">
+                                                @if (immo.QrCode != null)
+                                                {
+                                                    <i class="iconoir-qr-code text-primary me-1" data-bs-toggle="tooltip" title="QR code affecté"></i>
+                                                }
+                                                @("N° " + immo.Id + (string.IsNullOrEmpty(marqueModele) ? "" : " · " + marqueModele))
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(immo.CodeImmo))
+                                    {
+                                        <span class="lc-code">@immo.CodeImmo</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(immo.CodeADM))
+                                    {
+                                        <span class="d-block fs-12 text-muted mt-1">ADM @immo.CodeADM</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (categorie != null)
+                                    {
+                                        <span class="d-block text-body">@categorie.Designation</span>
+                                        if (!string.IsNullOrEmpty(categorie.Famille))
+                                        {
+                                            <span class="d-block fs-12 text-muted">@categorie.Famille</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary">Non classé</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="badge lc-badge bg-@(etatCouleur)-subtle text-@(etatCouleur)"><i class="@etatIcone"></i>@immo.LastEtatString</span>
+                                    <span class="transparent-text">@immo.LastEtat</span>
+                                    @if (!string.IsNullOrEmpty(observation))
+                                    {
+                                        <span class="d-block fs-12 text-muted mt-1 text-truncate" style="max-width: 220px;" title="@observation">@observation</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (anneeEnCours > 0)
+                                    {
+                                        if (vuAnnee)
+                                        {
+                                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Vu en @anneeEnCours</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-clock"></i>Pas encore vu</span>
+                                            if (immo.LastAnneeComptable > 0)
+                                            {
+                                                <span class="d-block fs-12 text-muted mt-1">Dernier : @immo.LastAnneeComptable</span>
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="text-body">@(immo.LastAnneeComptable > 0 ? immo.LastAnneeComptable.ToString() : "—")</span>
+                                    }
+                                </td>
+                                @if (!parLocal)
+                                {
+                                    <td>
+                                        @if (immo.IdLocal != null)
+                                        {
+                                            Local localImmo = immo.GetLocal();
+                                            Organe organe = localImmo?.GetOrgane();
+                                            string structure = organe == null || organe.Id == organe.IdStructure ? "" : $" ({organe.NomStructure})";
+
+                                            if (localImmo != null)
+                                            {
+                                                <a href="/immo/local/@localImmo.Id" class="d-block text-body text-truncate" style="max-width: 240px;"><span class="lc-code me-1">@localImmo.Code</span>@localImmo.Designation</a>
+                                            }
+                                            if (organe != null)
+                                            {
+                                                <span class="d-block fs-12 text-muted text-truncate" style="max-width: 240px;">@(organe.Nom + structure)</span>
+                                            }
+                                        }
+                                        else
+                                        {
+                                            <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-map-pin"></i>Sans local</span>
+                                        }
+                                    </td>
+                                }
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Voir la fiche" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        <a href="/immo/modify/@immo.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

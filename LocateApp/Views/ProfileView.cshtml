@@ -1,0 +1,253 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ // Binding du ViewModel.
+    IdentityModifyFrmViewModel Page = (IdentityModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{
+    Layout = "Views/Layout/_Layout.cshtml";
+}
+
+@{
+    Identity utilisateur = Page.Identity;
+    string compte = utilisateur.UserName?.Trim();
+    string photoUser = Utilities.GetPhotoAgentPath() + utilisateur.Photo;
+    string nomComplet = $"{utilisateur.Nom?.Trim()} {utilisateur.Postnom?.Trim()} {utilisateur.Prenom?.Trim()}".Trim();
+    bool externe = utilisateur.IsExternalUser;
+    Profil profil = utilisateur.Profil;
+    string nomProfil = profil?.Nom;
+    string libelleProfil = profil != null && !string.IsNullOrEmpty(profil.Libelle) && profil.Libelle != profil.Nom ? profil.Libelle : null;
+    Organe organe = utilisateur.Organe;
+    string structure = organe == null || organe.Id == organe.IdStructure ? null : organe.NomStructure;
+    string nomInstitution = utilisateur.Institution?.Nom;
+    if (string.IsNullOrEmpty(nomInstitution)) { nomInstitution = Page.Institution; }
+    string email = utilisateur.Email?.Trim();
+    string telephone = utilisateur.Telephone?.Trim();
+    string adresse = utilisateur.Adresse?.Trim();
+    bool jamaisConnecte = utilisateur.LastConnexion.Year == 1;
+    int anneeInventaire = utilisateur.AnneeInventaireEnCours;
+
+    // Biens dont l'utilisateur est responsable : uniquement pour un agent du référentiel (le compte est son matricule).
+    string matricule = !externe && compte != null && compte.Length >= 6 ? compte.Substring(0, 6) : null;
+    long nbreBiens = matricule == null ? 0 : ImmoController.SelectNbreBienByResponsable(matricule);
+    long nbreBiensInventories = matricule == null || anneeInventaire <= 0 ? 0 : InventaireController.SelectQuantiteByResponsable(matricule);
+    bool voirMesBiens = matricule != null && Utilities.CheckClaimStatus(utilisateur, "GetImmoResponsableBienMatricule");
+    string lienMesBiens = "/immo/responsable/bien/" + matricule + "/";
+}
+
+<div class="card">
+    <div class="lc-cover"></div>
+    <div class="card-body pt-0">
+        <div class="lc-profile">
+            <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@compte)" class="lc-profile-media rounded-circle avatar-zoom" />
+            <div>
+                <h3 class="lc-profile-title">@nomComplet</h3>
+                <p class="lc-profile-sub">
+                    <span class="lc-code">@compte</span>
+                    @if (!string.IsNullOrEmpty(nomProfil))
+                    {
+                        <span class="mx-1">·</span>@nomProfil
+                    }
+                </p>
+            </div>
+            <div class="lc-profile-actions">
+                @if (voirMesBiens)
+                {
+                    <a href="@lienMesBiens" class="btn btn-primary"><i class="iconoir-box-iso me-1"></i>Mes biens</a>
+                }
+                <a href="/auth/logout" class="btn btn-light"><i class="iconoir-log-out me-1"></i>Se déconnecter</a>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2">
+            <div class="col-lg-4">
+                <div class="d-flex flex-wrap gap-1 mb-3">
+                    @if (utilisateur.IsLocked)
+                    {
+                        <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-lock"></i>Verrouillé</span>
+                    }
+                    else
+                    {
+                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Compte actif</span>
+                    }
+                    @if (externe)
+                    {
+                        <span class="badge lc-badge bg-info-subtle text-info">Utilisateur externe</span>
+                    }
+                    else
+                    {
+                        <span class="badge lc-badge bg-secondary-subtle text-secondary">Agent du référentiel</span>
+                    }
+                    @if (profil != null && profil.Root)
+                    {
+                        <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-key-command"></i>Accès complet</span>
+                    }
+                </div>
+                <ul class="lc-meta">
+                    <li><i class="iconoir-mail"></i>
+                        @if (!string.IsNullOrEmpty(email))
+                        {
+                            <a href="mailto:@email" class="text-body text-decoration-underline text-truncate">@email</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">E-mail non renseigné</span>
+                        }
+                    </li>
+                    <li><i class="iconoir-phone"></i>
+                        @if (!string.IsNullOrEmpty(telephone))
+                        {
+                            <span>@telephone</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Téléphone non renseigné</span>
+                        }
+                    </li>
+                    <li><i class="iconoir-building"></i>
+                        @if (organe != null)
+                        {
+                            <span>@organe.Nom</span>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Organe non renseigné</span>
+                        }
+                    </li>
+                    <li><i class="iconoir-community"></i><span>@nomInstitution</span></li>
+                </ul>
+            </div>
+            <div class="col-lg-8">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-shield-check"></i></span>
+                            <div class="text-truncate">
+                                <p class="lc-kpi-label">Profil</p>
+                                <p class="lc-kpi-value text-truncate">@(string.IsNullOrEmpty(nomProfil) ? "—" : nomProfil)</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-clock"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Dernière connexion</p>
+                                <p class="lc-kpi-value">@(jamaisConnecte ? "Jamais" : utilisateur.LastConnexion.ToString("dd/MM/yyyy"))<small>@(jamaisConnecte ? "" : utilisateur.LastConnexion.ToString("HH:mm"))</small></p>
+                            </div>
+                        </div>
+                    </div>
+                    @if (matricule != null)
+                    {
+                        <div class="col-sm-6">
+                            <div class="lc-kpi">
+                                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-box-iso"></i></span>
+                                <div>
+                                    <p class="lc-kpi-label">Biens sous ma responsabilité</p>
+                                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbreBiens, 0)<small>@(anneeInventaire > 0 ? Utilities.FormatNumber(nbreBiensInventories, 0) + " inventoriés en " + anneeInventaire : "biens")</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="col-sm-6">
+                            <div class="lc-kpi">
+                                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-clipboard-check"></i></span>
+                                <div>
+                                    <p class="lc-kpi-label">Inventaire en cours</p>
+                                    <p class="lc-kpi-value">@(anneeInventaire > 0 ? anneeInventaire.ToString() : "—")<small>@(anneeInventaire > 0 ? "campagne ouverte" : "aucune campagne ouverte")</small></p>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    <div class="col-sm-6">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-calendar"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Membre depuis</p>
+                                <p class="lc-kpi-value">@utilisateur.DateCreation.ToString("MMMM yyyy")<small>le @utilisateur.DateCreation.ToString("dd/MM/yyyy")</small></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-6">
+        <div class="card h-100 mb-0">
+            <div class="card-header">
+                <h4 class="card-title">Informations personnelles</h4>
+                <p class="lc-card-subtitle">@(externe ? "Saisies à la création de votre compte." : "Issues du référentiel des agents.")</p>
+            </div>
+            <div class="card-body">
+                <dl class="lc-dl">
+                    <div><dt>Nom</dt><dd>@(utilisateur.Nom?.Trim())</dd></div>
+                    <div><dt>Postnom</dt><dd>@(utilisateur.Postnom?.Trim())</dd></div>
+                    <div><dt>Prénom</dt><dd>@(utilisateur.Prenom?.Trim())</dd></div>
+                    <div><dt>Sexe</dt><dd>@(utilisateur.Sexe == "M" ? "Masculin" : (utilisateur.Sexe == "F" ? "Féminin" : ""))</dd></div>
+                    <div><dt>Téléphone</dt><dd>@telephone</dd></div>
+                    <div><dt>E-mail</dt><dd>@email</dd></div>
+                    <div style="grid-column: 1 / -1;"><dt>Adresse</dt><dd>@adresse</dd></div>
+                </dl>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-6">
+        <div class="card h-100 mb-0">
+            <div class="card-header">
+                <h4 class="card-title">Compte et accès</h4>
+                <p class="lc-card-subtitle">Votre identifiant, votre rôle et votre périmètre dans Locate.</p>
+            </div>
+            <div class="card-body">
+                <dl class="lc-dl">
+                    <div><dt>Compte</dt><dd><span class="lc-code">@compte</span></dd></div>
+                    <div><dt>Type de compte</dt><dd>@(externe ? "Utilisateur externe" : "Agent du référentiel")</dd></div>
+                    <div>
+                        <dt>Rôle (profil)</dt>
+                        <dd>
+                            @nomProfil
+                            @if (libelleProfil != null)
+                            {
+                                <span class="d-block fs-12 text-muted fw-normal">@libelleProfil</span>
+                            }
+                        </dd>
+                    </div>
+                    <div><dt>Statut</dt><dd>@(utilisateur.IsLocked ? "Verrouillé" : "Actif")</dd></div>
+                    <div>
+                        <dt>Organe d'appartenance</dt>
+                        <dd>
+                            @if (organe != null)
+                            {
+                                @organe.Nom
+                                <span class="d-block fs-12 text-muted fw-normal mt-1"><span class="lc-code">@organe.Id</span>@(structure == null ? "" : " · " + structure)</span>
+                            }
+                            else
+                            {
+                                <span class="text-muted fw-normal">—</span>
+                            }
+                        </dd>
+                    </div>
+                    <div><dt>Organe d'inventaire</dt><dd>@nomInstitution</dd></div>
+                    <div><dt>Créé le</dt><dd>@utilisateur.DateCreation.ToString("dd MMMM yyyy à HH:mm")</dd></div>
+                    <div><dt>Dernière connexion</dt><dd>@(jamaisConnecte ? "Jamais" : utilisateur.LastConnexion.ToString("dd MMMM yyyy à HH:mm"))</dd></div>
+                </dl>
+                <div class="lc-callout mt-4">
+                    <i class="iconoir-info-circle"></i>
+                    <div>@(externe ? "Pour corriger une information ou changer de profil, adressez-vous à l'administrateur de Locate." : "Votre identité provient du référentiel des agents. Pour changer de profil ou d'organe, adressez-vous à l'administrateur de Locate.")</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

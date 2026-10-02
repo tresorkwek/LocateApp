@@ -1,0 +1,106 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ AgentListViewModel Page = (AgentListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div>
+    <input type="hidden" id="NbrePatientTotal" name="NbrePatientTotal" value="@Page.Agents.Count" />
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">@libellePage</h4>
+                    <p>@Page.Description</p><br>
+                    <table id="example" class="table table-hover align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th>Matricule</th>
+                                <th>Identité</th>
+                                <th>Direction</th>
+                                <th>Pris en charge</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th>Matricule</th>
+                                <th>Identité</th>
+                                <th>Direction</th>
+                                <th>Pris en charge</th>
+                            </tr>
+                        </tfoot>
+                        <tbody>
+
+                            @{string link; }
+
+                            @foreach (var agent in Page.Agents)
+                            {
+                                link = Page.Link + agent.Matricule.Substring(0, 6);
+                                <tr>
+                                    <td valign="top"><a href="@Html.Raw(link)"> @agent.Matricule </a> </td>
+                                    <td>
+                                        @{string naissance = (agent.Sexe == 1) ? "Né" : "Née";}
+
+                                        <div>
+                                            <div>
+                                                <div class="float-start">
+                                                    <div class="float-start">
+                                                        <img src="~/Content/images/photos/@agent.Photo" data-zoom-image="/Content/images/photos/@agent.Photo" alt="" class="rounded-circle mailbox-profile-image shadow-sm" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: -11 })">
+                                                    </div>
+                                                    <div class="float-start">
+                                                        <span class="fw-semibold">
+                                                            <table class="table table-hover align-middle w-100">
+                                                                <tr>
+                                                                    <td>
+                                                                        Nom : @Html.Raw(ForString.ShowCorrectionBetween(agent.Nom, agent.NomAfficheable)) <br />
+                                                                        Postnom : @Html.Raw(ForString.ShowCorrectionBetween(agent.Postnom, agent.PostnomAfficheable)) <br />
+                                                                        Prénom : @Html.Raw(ForString.ShowCorrectionBetween(agent.Prenom, agent.PrenomAfficheable))<br />
+                                                                        Sexe : @Html.Raw(ForString.ShowCorrectionBetween(agent.Genre, agent.GenreAfficheable))
+                                                                    </td>
+                                                                    <td valign="top">
+
+                                                                        @if (!string.IsNullOrEmpty(agent.MoviaCommentaire))
+                                                                        {
+                                                                            <div class="form-group mb-3 col-12">
+                                                                                <label class="form-label" for="Commentaire">Commentaire</label>
+                                                                                <textarea id="Commentaire" name="Commentaire" class="form-control" readonly>
+
+                                                                                                                @Html.Raw(agent.MoviaCommentaire)
+
+                                                                                                                </textarea>
+                                                                            </div>
+                                                                         }
+
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <span class="text-muted small">
+                                                                @naissance le @agent.DateNaissance (@agent.EtatCivil : @agent.TypeString)
+                                                            </span>
+
+                                                        </span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@agent.Direction </td>
+                                    <td>@agent.PrisEnCharge </td>
+                                </tr>
+}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

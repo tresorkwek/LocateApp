@@ -1,0 +1,238 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ InventaireListViewModel Page = (InventaireListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Inventaire> inventaires = Page.Inventaires ?? new List<Inventaire>();
+   int anneeEnCours = Page.AnneeEnCours;
+
+   // Résultats par campagne (vus / non vus / état constaté), calculés une seule fois.
+   var resultats = new Dictionary<int, long[]>();
+   foreach (var inv in inventaires)
+   {
+       long vus = InventaireController.SelectQuantite(inv.Annee);
+       long nonVus = InventaireController.SelectQuantiteNonVu(inv.Annee);
+       long bon = InventaireController.SelectQuantiteByEtat("B", inv.Annee);
+       long mauvais = InventaireController.SelectQuantiteByEtat("M", inv.Annee);
+       resultats[inv.Annee] = new long[] { vus, nonVus, bon, mauvais };
+   }
+
+   // Campagne mise en avant : l'année en cours, sinon la plus récente.
+   Inventaire reference = inventaires.FirstOrDefault(x => x.Annee == anneeEnCours) ?? inventaires.OrderByDescending(x => x.Annee).FirstOrDefault();
+   long[] resRef = reference == null ? new long[] { 0, 0, 0, 0 } : resultats[reference.Annee];
+   bool refEnCours = reference != null && reference.DateCloture.Year == 1 && reference.Annee == anneeEnCours;
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@if (reference != null)
+{
+    <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+        <span class="fs-13 text-muted">Chiffres de l'inventaire</span>
+        <span class="fw-semibold">@reference.Annee</span>
+        @if (refEnCours)
+        {
+            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-play"></i>En cours</span>
+        }
+        else
+        {
+            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-lock"></i>Clôturé</span>
+        }
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-eye"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Biens vus</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(resRef[0], 0)<small>constatés sur place</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Non vus</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(resRef[1], 0)<small>introuvables</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-thumbs-up"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Bon état</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(resRef[2], 0)<small>biens</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-thumbs-down"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Mauvais état</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(resRef[3], 0)<small>biens</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Bilan de chaque campagne : biens vus, non vus et état constaté lors du recensement.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/inventaire/" class="btn btn-light"><i class="iconoir-calendar me-1"></i>Campagnes</a>
+                @if (anneeEnCours == 0)
+                {
+                    <a href="/inventaire/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Lancer un inventaire</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (inventaires.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-stats-report"></i></div>
+                <h6>Aucun résultat d'inventaire</h6>
+                <p>Les résultats apparaîtront dès qu'une campagne d'inventaire aura été lancée.</p>
+                @if (anneeEnCours == 0)
+                {
+                    <a href="/inventaire/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Lancer un inventaire</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100" data-order='[[0, "desc"]]'>
+                    <thead class="table-light">
+                        <tr>
+                            <th>Campagne</th>
+                            <th class="text-end">Vus</th>
+                            <th class="text-end">Non vus</th>
+                            <th>État des biens</th>
+                            <th>Taux de présence</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var inventaire in inventaires)
+                        {
+                            string link = Page.Link + inventaire.Annee;
+                            Identity creatorIdentity = inventaire.GetIdentity(inventaire.UserCreation);
+                            string nomComplet = creatorIdentity == null ? inventaire.UserCreation : $"{creatorIdentity.Nom} {creatorIdentity.Postnom}".Trim();
+                            bool cloture = inventaire.DateCloture.Year != 0001;
+                            bool enCours = !cloture && inventaire.Annee == anneeEnCours;
+                            long[] res = resultats[inventaire.Annee];
+                            long traites = res[0] + res[1];
+                            int tauxPresence = traites > 0 ? (int)Math.Round(res[0] * 100.0 / traites) : 0;
+                            string onclik = $"$(this).confirmUrl('Clôture', '/inventaire/cloturer/{inventaire.Annee}', 'Êtes-vous sûr de vouloir clôturer l\\'inventaire de l\\'année : <br/> <div class=\\'chip\\'> {inventaire.Annee} </div> ?', 'Clôture de l\\'inventaire de l\\'année <div class=\\'chip\\'> {inventaire.Annee} </div> annulée')";
+
+                            <tr>
+                                <td data-order="@inventaire.Annee">
+                                    <div class="lc-entity">
+                                        @if (enCours)
+                                        {
+                                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-clipboard-check"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb"><i class="iconoir-clipboard-check"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <div class="d-flex align-items-center gap-2">
+                                                <a href="@Html.Raw(link)" class="lc-name">Inventaire @inventaire.Annee</a>
+                                                @if (enCours)
+                                                {
+                                                    <span class="badge lc-badge bg-success-subtle text-success">En cours</span>
+                                                }
+                                                else if (cloture)
+                                                {
+                                                    <span class="badge lc-badge bg-secondary-subtle text-secondary">Clôturé</span>
+                                                }
+                                            </div>
+                                            <span class="lc-sub">
+                                                Lancé le @inventaire.DateCreation.ToString("dd MMMM yyyy")
+                                                @if (!string.IsNullOrEmpty(nomComplet))
+                                                {
+                                                    <text>par @nomComplet</text>
+                                                }
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="lc-num" data-order="@res[0]">
+                                    <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-eye"></i>@Utilities.FormatNumber(res[0], 0)</span>
+                                </td>
+                                <td class="lc-num" data-order="@res[1]">
+                                    @if (res[1] > 0)
+                                    {
+                                        <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i>@Utilities.FormatNumber(res[1], 0)</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i>0</span>
+                                    }
+                                </td>
+                                <td data-order="@res[3]">
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="badge lc-badge bg-info-subtle text-info" title="Biens en bon état" data-bs-toggle="tooltip"><i class="iconoir-thumbs-up"></i>Bon · @Utilities.FormatNumber(res[2], 0)</span>
+                                        @if (res[3] > 0)
+                                        {
+                                            <span class="badge lc-badge bg-warning-subtle text-warning" title="Biens en mauvais état" data-bs-toggle="tooltip"><i class="iconoir-thumbs-down"></i>Mauvais · @Utilities.FormatNumber(res[3], 0)</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge lc-badge bg-secondary-subtle text-secondary" title="Biens en mauvais état" data-bs-toggle="tooltip"><i class="iconoir-thumbs-down"></i>Mauvais · 0</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td data-order="@tauxPresence" style="min-width: 170px;">
+                                    @if (traites > 0)
+                                    {
+                                        <div class="d-flex justify-content-between fs-12 mb-1">
+                                            <span class="text-muted">@Utilities.FormatNumber(traites, 0) biens inventoriés</span>
+                                            <span class="fw-semibold">@(tauxPresence) %</span>
+                                        </div>
+                                        <div class="lc-progress">
+                                            <div class="progress-bar bg-success" role="progressbar" style="width: @(tauxPresence)%" aria-valuenow="@tauxPresence" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted fs-13">Aucun bien inventorié</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Voir le détail" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        @if (!cloture)
+                                        {
+                                            <a onclick="@Html.Raw(onclik)" class="lc-warning" role="button" title="Clôturer l'inventaire" data-bs-toggle="tooltip"><i class="iconoir-lock"></i></a>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

@@ -1,0 +1,166 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CommandeViewModel Page = (CommandeViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    Identity creatorIdentity;
+    EtiquetteFormat etiquetteFormat;
+
+    // Commandes dont les étiquettes restent à générer, et leur format (lu une seule fois).
+    List<Commande> enAttente = (Page.Commandes ?? new List<Commande>()).Where(c => !c.IsValidate()).ToList();
+    var formats = new Dictionary<Guid, EtiquetteFormat>();
+    long nbPages = 0;
+    long nbEtiquettes = 0;
+    foreach (var c in enAttente)
+    {
+        EtiquetteFormat f = c.GetFormatEtiquette();
+        formats[c.Id] = f;
+        nbPages += c.NbrePage;
+        if (f != null) { nbEtiquettes += (long)c.NbrePage * f.Ligne * f.Colone; }
+    }
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-md-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-clock"></i></span>
+            <div>
+                <p class="lc-kpi-label">Commandes en attente</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(enAttente.Count, 0)<small>à générer</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-multiple-pages-empty"></i></span>
+            <div>
+                <p class="lc-kpi-label">Pages</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbPages, 0)<small>planches commandées</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-qr-code"></i></span>
+            <div>
+                <p class="lc-kpi-label">Étiquettes QR</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbEtiquettes, 0)<small>à générer</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Commandes d'étiquettes dont les QR codes n'ont pas encore été générés.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/etiquette/genereted/" class="btn btn-light"><i class="iconoir-qr-code me-1"></i>Étiquettes générées</a>
+                <a href="/commande/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvelle commande</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (enAttente.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-qr-code"></i></div>
+                <h6>Aucune commande en attente</h6>
+                <p>Toutes les commandes ont été générées. Les étiquettes prêtes sont dans la liste des étiquettes générées.</p>
+                <a href="/commande/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouvelle commande</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Commande</th>
+                            <th>Demandée par</th>
+                            <th>Format</th>
+                            <th class="text-end">Pages</th>
+                            <th class="text-end">Étiquettes</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var commande in enAttente)
+                        {
+                            string link = Page.Link + commande.Id;
+                            creatorIdentity = commande.GetIdentity(commande.CreatedBy);
+                            etiquetteFormat = formats[commande.Id];
+                            string userPhoto = creatorIdentity == null ? null : Utilities.GetPhotoAgentPath() + creatorIdentity.Photo;
+                            string nomComplet = creatorIdentity == null ? commande.CreatedBy : $"{creatorIdentity.Nom} {creatorIdentity.Postnom}".Trim();
+                            string telephone = creatorIdentity?.Telephone?.Trim();
+                            string sousTitreCreateur = string.Join(" · ", new[] { creatorIdentity?.UserName, string.IsNullOrEmpty(telephone) ? null : "Tél. " + telephone }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                            long etiquettesCommande = etiquetteFormat == null ? 0 : (long)commande.NbrePage * etiquetteFormat.Ligne * etiquetteFormat.Colone;
+
+                            <tr>
+                                <td data-order="@commande.NumeroCommande">
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb bg-warning-subtle text-warning"><i class="iconoir-qr-code"></i></span>
+                                        <div class="lc-entity-body">
+                                            <span class="lc-name">CMD-@commande.NumeroCommande</span>
+                                            <span class="lc-sub">Créée le @commande.DateCreation.ToString("dd MMMM yyyy à HH:mm")</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (!string.IsNullOrEmpty(userPhoto))
+                                        {
+                                            <img src="@userPhoto" alt="" class="lc-thumb lc-thumb-sm rounded-circle" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb lc-thumb-sm rounded-circle"><i class="iconoir-user"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <span class="lc-name">@nomComplet</span>
+                                            @if (!string.IsNullOrEmpty(sousTitreCreateur))
+                                            {
+                                                <span class="lc-sub">@sousTitreCreateur</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (etiquetteFormat != null)
+                                    {
+                                        <span class="d-block text-body">@etiquetteFormat.Nom</span>
+                                        <span class="d-block fs-12 text-muted">@etiquetteFormat.Ligne × @etiquetteFormat.Colone · @etiquetteFormat.Largeur × @etiquetteFormat.Hauteur mm · @etiquetteFormat.Papier</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-warning-triangle"></i>Format introuvable</span>
+                                    }
+                                </td>
+                                <td class="lc-num" data-order="@commande.NbrePage"><span class="lc-count">@commande.NbrePage</span></td>
+                                <td class="lc-num" data-order="@etiquettesCommande">@Utilities.FormatNumber(etiquettesCommande, 0)</td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" class="lc-success" title="Générer les étiquettes" data-bs-toggle="tooltip"><i class="iconoir-qr-code"></i></a>
+                                        <a href="/commande/modify/@commande.Id" title="Modifier la commande" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

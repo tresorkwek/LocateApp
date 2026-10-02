@@ -1,0 +1,50 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ViewModel Page = (ViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/fournisseur/add/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-shop"></i></span>
+                        <div>
+                            <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Nouveau fournisseur" : Page.Title)</h4>
+                            <p class="lc-card-subtitle">Le fournisseur pourra ensuite être choisi dans les commandes d'achat.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-shop"></i>Identification</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" placeholder="Ex. Bureautique Services SARL">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Adresse">Adresse</label>
+                            <textarea id="Adresse" name="Adresse" class="form-control" rows="3" placeholder="N°, avenue, quartier, commune, ville"></textarea>
+                            <div class="form-text">Adresse postale ou physique du fournisseur.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/fournisseur/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer le fournisseur</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

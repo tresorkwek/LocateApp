@@ -1,0 +1,76 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ FournisseurModifyFrmViewModel Page = (FournisseurModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+@{
+    string adresse = Page.Fournisseur.Adresse?.Trim();
+    string checkedLocked = Page.Fournisseur.IsActive ? "checked=\"checked\"" : "";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/fournisseur/modify/">
+            <input type="hidden" name="Id" value="@Page.Fournisseur.Id" />
+
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Modifier le fournisseur" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Les commandes déjà passées conservent leurs informations.</p>
+                </div>
+                <div class="card-body">
+                    <div class="lc-entity bg-body-tertiary rounded-3 p-3 mb-3">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-shop"></i></span>
+                        <div class="lc-entity-body">
+                            <span class="lc-name fw-semibold">@Page.Fournisseur.Nom</span>
+                            <span class="lc-sub">Fournisseur n° @Page.Fournisseur.Id</span>
+                        </div>
+                        <div class="ms-auto">
+                            @if (Page.Fournisseur.IsActive)
+                            {
+                                <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Actif</span>
+                            }
+                            else
+                            {
+                                <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivé</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-shop"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" value="@Page.Fournisseur.Nom" placeholder="Ex. Bureautique Services SARL">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Adresse">Adresse</label>
+                            <textarea id="Adresse" name="Adresse" class="form-control" rows="3" placeholder="N°, avenue, quartier, commune, ville">@adresse</textarea>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-settings"></i>Disponibilité</div>
+                    <div class="form-check form-switch">
+                        <input type="checkbox" id="IsActive" name="IsActive" value="true" @Html.Raw(checkedLocked) class="form-check-input" role="switch">
+                        <label class="form-check-label" for="IsActive">Fournisseur actif</label>
+                    </div>
+                    <div class="form-text">Un fournisseur désactivé n'est plus proposé dans les nouvelles commandes ; son historique reste consultable.</div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/fournisseur/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

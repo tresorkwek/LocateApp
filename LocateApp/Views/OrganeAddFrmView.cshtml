@@ -1,0 +1,146 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+
+
+@{ OrganeAddFrmViewModel Page = (OrganeAddFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    string checkEntite = Page.OrganeParent == null ? "checked readonly" : "";
+    string idOrganeParent = Page.OrganeParent != null ? Page.OrganeParent.Id : null;
+}
+
+<form class="lc-form" method="post" action="@Page.Link" enctype="multipart/form-data">
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Nouvel organe" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Un organe est un nœud de l'organigramme : direction, service, bureau… Les locaux et les utilisateurs y sont rattachés.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-section-title"><i class="iconoir-building"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" placeholder="Ex. Direction des ressources humaines" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Id">Code organe<span class="lc-req">*</span></label>
+                            <input id="Id" name="Id" type="text" class="form-control" placeholder="Identifiant unique" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Sigle">Sigle</label>
+                            <input id="Sigle" name="Sigle" type="text" class="form-control" placeholder="Ex. DRH">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="IndCoresp">Indice de correspondance</label>
+                            <input id="IndCoresp" name="IndCoresp" type="text" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Classement</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="IdTypeOrgane">Type d'organe</label>
+                            <select name="IdTypeOrgane" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdTypeOrgane">
+                                <option value="" disabled selected>Choisissez un type d'organe</option>
+                                @foreach (var organeType in Page.OrganeTypes)
+                                {
+                                    <option value="@organeType.Id">@organeType.Nom</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="OrdreInterne">Ordre interne</label>
+                            <input id="OrdreInterne" name="OrdreInterne" type="text" inputmode="numeric" value="@Page.OrdreInterne" class="form-control" />
+                            <div class="form-text">Position parmi les organes de la structure.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-settings"></i>Caractéristiques</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Entite" name="Entite" value="true" @checkEntite class="form-check-input" />
+                                <label class="form-check-label" for="Entite">Entité (structure)</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Interne" name="Interne" value="true" checked class="form-check-input" />
+                                <label class="form-check-label" for="Interne">Organe interne</label>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Fictif" name="Fictif" value="true" class="form-check-input" />
+                                <label class="form-check-label" for="Fictif">Organe fictif</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-map-pin"></i>Adresse</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label visually-hidden" for="Adresse">Adresse</label>
+                            <textarea id="Adresse" name="Adresse" class="form-control" rows="3" placeholder="Adresse postale ou localisation de l'organe"></textarea>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="IdOrganeParent" value="@idOrganeParent" />
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/organe/config/organigramme/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer l'organe</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-git-fork"></i>Position dans l'organigramme</div>
+                    @if (Page.OrganeParent != null)
+                    {
+                        <div class="lc-entity mb-3">
+                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-building"></i></span>
+                            <div class="lc-entity-body">
+                                <span class="lc-sub">Sous-organe de</span>
+                                <span class="lc-name">@Page.OrganeParent.Nom</span>
+                                <span class="lc-code">@Page.OrganeParent.Id</span>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="lc-callout mb-3">
+                            <i class="iconoir-info-circle"></i>
+                            <div>Organe racine : il est créé au premier niveau de l'organigramme, comme entité.</div>
+                        </div>
+                    }
+                    <div class="lc-aside h-auto">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bon à savoir</h6>
+                        <ul>
+                            <li>Le code organe identifie l'organe partout dans l'application : choisissez-le avec soin.</li>
+                            <li>Une entité est une structure : les sous-organes qui ne sont pas eux-mêmes des entités lui sont rattachés.</li>
+                            <li>L'ordre peut être ajusté ensuite par glisser-déposer dans la configuration de l'organigramme.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,223 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ AchatReceptionFormViewModel Page = (AchatReceptionFormViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    CommandeAchat c = Page.Commande;
+    var lignesRestantes = Page.Lignes.Where(l => l.QuantiteRestante > 0).ToList();
+}
+
+<form class="lc-form" method="post" action="/achat/reception/add/" id="formReception">
+    <input type="hidden" name="IdCommande" value="@c.Id" />
+    <input type="hidden" name="LignesJson" id="LignesJson" value="[]" />
+
+    <div class="row g-3">
+        <div class="col-xl-8">
+
+            <!-- Informations de livraison -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center g-2">
+                        <div class="col">
+                            <h4 class="card-title">Livraison de la commande @c.Numero</h4>
+                            <p class="lc-card-subtitle">@c.Fournisseur · commandée le @c.DateCommande.ToString("dd/MM/yyyy") · @c.QuantiteRestante unité(s) restant à livrer</p>
+                        </div>
+                        <div class="col-auto">
+                            <a href="/achat/commande/id/@c.Id" class="btn btn-sm btn-light"><i class="iconoir-eye me-1"></i>Voir la commande</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-delivery-truck"></i>Informations de livraison</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="DateReception">Date de réception<span class="lc-req">*</span></label>
+                            <input type="date" class="form-control" id="DateReception" name="DateReception" value="@DateTime.Today.ToString("yyyy-MM-dd")" required />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="IdLocal">Local de réception<span class="lc-req">*</span></label>
+                            <select name="IdLocal" id="IdLocal" class="js-states form-select" style="width: 100%" required>
+                                <option value="">Choisissez le local où les biens sont réceptionnés</option>
+                                @foreach (var local in Page.Locaux)
+                                {
+                                    <option value="@local.Id">(@local.Code) @local.Designation</option>
+                                }
+                            </select>
+                            <div class="form-text">Chaque unité reçue devient un bien rattaché à ce local. Il pourra être affecté ailleurs ensuite.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Bordereau">Bordereau / bon de livraison</label>
+                            <input type="text" class="form-control" id="Bordereau" name="Bordereau" maxlength="50" placeholder="Référence du document fournisseur" />
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="Commentaire">Commentaire</label>
+                            <textarea class="form-control" id="Commentaire" name="Commentaire" rows="1" maxlength="500" placeholder="État des colis, réserves, remarques…"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Quantités reçues -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="row align-items-center g-2">
+                        <div class="col">
+                            <h4 class="card-title">Quantités reçues</h4>
+                            <p class="lc-card-subtitle">Saisissez ce qui est effectivement livré. Une livraison partielle laisse la commande ouverte pour le reste.</p>
+                        </div>
+                        <div class="col-auto">
+                            <div class="btn-group btn-group-sm">
+                                <button type="button" class="btn btn-soft-primary" id="btnTout"><i class="iconoir-check me-1"></i>Tout recevoir</button>
+                                <button type="button" class="btn btn-light" id="btnRien"><i class="iconoir-undo me-1"></i>Remettre à zéro</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="table-responsive">
+                        <table class="table lc-table mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Article</th>
+                                    <th class="text-end">Commandé</th>
+                                    <th class="text-end">Déjà reçu</th>
+                                    <th class="text-end">Restant</th>
+                                    <th class="text-end" style="width: 140px;">Reçu maintenant</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var ligne in Page.Lignes)
+                                {
+                                    <tr class="@(ligne.QuantiteRestante == 0 ? "text-muted" : "")">
+                                        <td>
+                                            <div class="lc-entity">
+                                                <span class="lc-thumb @(ligne.QuantiteRestante == 0 ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary")"><i class="@(ligne.QuantiteRestante == 0 ? "iconoir-check" : "iconoir-box-iso")"></i></span>
+                                                <div class="lc-entity-body">
+                                                    <span class="lc-name">@ligne.ArticleComplet</span>
+                                                    <span class="lc-sub">@ligne.ArticleCode · @Utilities.FormatNumber(ligne.PrixUnitaire) @c.Devise l'unité</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="lc-num">@ligne.Quantite</td>
+                                        <td class="lc-num text-success">@ligne.QuantiteRecue</td>
+                                        <td class="lc-num fw-semibold">@ligne.QuantiteRestante</td>
+                                        <td class="text-end">
+                                            @if (ligne.QuantiteRestante > 0)
+                                            {
+                                                <input type="number" class="form-control form-control-sm text-end recu" data-ligne="@ligne.Id" data-max="@ligne.QuantiteRestante" min="0" max="@ligne.QuantiteRestante" step="1" value="@ligne.QuantiteRestante" />
+                                            }
+                                            else
+                                            {
+                                                <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Complet</span>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Récapitulatif et validation -->
+        <div class="col-xl-4">
+            <div class="card position-sticky" style="top: 88px;">
+                <div class="card-header">
+                    <h4 class="card-title">Récapitulatif</h4>
+                    <p class="lc-card-subtitle">Commande @c.Numero · @c.QuantiteRecue / @c.QuantiteCommandee déjà reçue(s)</p>
+                </div>
+                <div class="card-body pt-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <h4 class="mb-0">Unités reçues :</h4>
+                        <h4 class="mb-0 text-primary" id="totalRecu">0</h4>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center mt-2">
+                        <p class="text-body fw-semibold mb-0">Reste après cette livraison :</p>
+                        <p class="text-body-emphasis fw-semibold mb-0" id="totalRestant">@c.QuantiteRestante</p>
+                    </div>
+                    <p class="fs-13 text-muted mt-2 mb-0" id="resumeStatut"></p>
+
+                    <div class="lc-callout lc-callout-warning mt-3">
+                        <i class="iconoir-warning-triangle"></i>
+                        <div>La validation crée immédiatement un bien par unité reçue, dans le local choisi. Elle ne peut pas être annulée.</div>
+                    </div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <div class="d-grid gap-2 w-100">
+                        <button type="submit" class="btn btn-success"><i class="iconoir-check me-1"></i>Valider la réception et créer les biens</button>
+                        <a href="/achat/commande/id/@c.Id" class="btn btn-link text-muted">Annuler</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var inputs = Array.prototype.slice.call(document.querySelectorAll('input.recu'));
+        var restantTotal = @c.QuantiteRestante;
+
+        function recalculer() {
+            var total = 0;
+            var lignes = [];
+            inputs.forEach(function (input) {
+                var max = parseInt(input.getAttribute('data-max'), 10);
+                var v = parseInt(input.value, 10) || 0;
+                if (v < 0) { v = 0; }
+                if (v > max) { v = max; }
+                input.value = v;
+                total += v;
+                if (v > 0) { lignes.push({ IdLigneCommande: parseInt(input.getAttribute('data-ligne'), 10), Quantite: v }); }
+            });
+            document.getElementById('totalRecu').textContent = total;
+            document.getElementById('totalRestant').textContent = restantTotal - total;
+            document.getElementById('resumeStatut').textContent = total === 0 ? '' : (restantTotal - total === 0 ? 'La commande passera au statut « Livrée ».' : 'La commande restera ouverte : livraison partielle.');
+            document.getElementById('LignesJson').value = JSON.stringify(lignes);
+            return total;
+        }
+
+        inputs.forEach(function (input) { input.addEventListener('input', recalculer); input.addEventListener('change', recalculer); });
+        document.getElementById('btnTout').addEventListener('click', function () { inputs.forEach(function (i) { i.value = i.getAttribute('data-max'); }); recalculer(); });
+        document.getElementById('btnRien').addEventListener('click', function () { inputs.forEach(function (i) { i.value = 0; }); recalculer(); });
+
+        var formulaire = document.getElementById('formReception');
+        formulaire.addEventListener('submit', function (e) {
+            var total = recalculer();
+            if (!document.getElementById('IdLocal').value) { e.preventDefault(); LocateToast('Le local de réception est obligatoire.', 3000, 'danger'); return; }
+            if (total === 0) { e.preventDefault(); LocateToast('Indiquez au moins une quantité reçue.', 3000, 'danger'); return; }
+            if (formulaire.dataset.confirme === '1') { return; }
+            e.preventDefault();
+            var local = document.getElementById('IdLocal');
+            var nomLocal = local.options ? (local.options[local.selectedIndex] || {}).text || '' : '';
+            swal({
+                title: 'Valider la réception ?',
+                text: '<b>' + total + '</b> bien(s) seront créés' + (nomLocal ? ' dans le local <b>' + $('<div>').text(nomLocal.trim()).html() + '</b>' : '') + '.<br>Cette opération ne peut pas être annulée.',
+                html: true,
+                type: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#22c55e',
+                confirmButtonText: 'Oui, valider la réception',
+                cancelButtonText: 'Non, revenir',
+                closeOnConfirm: false,
+                showLoaderOnConfirm: true
+            }, function (ok) {
+                if (!ok) { return; }
+                formulaire.dataset.confirme = '1';
+                formulaire.submit();
+            });
+        });
+
+        recalculer();
+    });
+</script>

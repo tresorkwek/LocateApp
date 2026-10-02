@@ -1,0 +1,273 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Utilities;
+
+@{ IdentityModifyFrmViewModel Page = (IdentityModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    Identity utilisateur = Page.Identity;
+    string compte = utilisateur.UserName?.Trim();
+    string photoUser = Utilities.GetPhotoAgentPath() + utilisateur.Photo;
+    string nomComplet = $"{utilisateur.Nom?.Trim()} {utilisateur.Postnom?.Trim()} {utilisateur.Prenom?.Trim()}".Trim();
+    bool externe = utilisateur.IsExternalUser;
+    // Les informations d'identité d'un agent interne viennent du référentiel des agents : elles ne sont pas modifiables ici.
+    string lectureSeule = externe ? "" : "readonly";
+    string classeLecture = externe ? "" : "bg-body-tertiary";
+    string checkedMasculin = utilisateur.Sexe == "M" ? "checked" : "";
+    string checkedFeminin = utilisateur.Sexe == "F" ? "checked" : "";
+    string checkedLocked = utilisateur.IsLocked ? "checked" : "";
+    string checkedExterne = externe ? "checked" : "";
+    Organe organe = utilisateur.Organe;
+    string nomProfil = utilisateur.Profil?.Nom;
+    string nomInstitution = utilisateur.Institution?.Nom;
+}
+
+@helper OptionsOrganes(IEnumerable<Organe> organes, string codeOrgane, int niveau)
+{
+    foreach (var organe in organes)
+    {
+        string retrait = new string('\u00A0', niveau * 4); // insécables : Select2 réduirait des espaces ordinaires
+        string structure = organe.Id == organe.IdStructure ? "" : $" ({organe.NomStructure})";
+        if (codeOrgane == organe.Id)
+        {
+            <option value="@organe.Id" selected>@(retrait + organe.Nom + structure)</option>
+        }
+        else
+        {
+            <option value="@organe.Id">@(retrait + organe.Nom + structure)</option>
+        }
+        if (organe.Organes != null && organe.Organes.Count > 0)
+        {
+            @OptionsOrganes(organe.Organes, codeOrgane, niveau + 1)
+        }
+    }
+}
+
+<form class="lc-form" method="post" action="/utilisateur/modify/" enctype="multipart/form-data">
+    <input type="hidden" id="UserName" name="UserName" value="@compte" />
+
+    <div class="row g-3">
+
+        <!-- Formulaire -->
+        <div class="col-xl-8 order-2 order-xl-1">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">
+                        @if (externe)
+                        {
+                            <text>Utilisateur externe : son identité, ses coordonnées et sa photo se gèrent ici.</text>
+                        }
+                        else
+                        {
+                            <text>Identité issue du référentiel des agents : seuls le contact, l'affectation, le profil et l'adresse sont modifiables.</text>
+                        }
+                    </p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-section-title">
+                        <i class="iconoir-user"></i>Identité
+                        @if (!externe)
+                        {
+                            <span class="lc-section-hint"><i class="iconoir-lock me-1"></i>référentiel des agents</span>
+                        }
+                    </div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="Nom">Nom</label>
+                            <input @lectureSeule id="Nom" name="Nom" type="text" value="@(utilisateur.Nom?.Trim())" class="form-control @classeLecture">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Postnom">Postnom</label>
+                            <input @lectureSeule id="Postnom" name="Postnom" type="text" value="@(utilisateur.Postnom?.Trim())" class="form-control @classeLecture">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Prenom">Prénom</label>
+                            <input @lectureSeule id="Prenom" name="Prenom" type="text" value="@(utilisateur.Prenom?.Trim())" class="form-control @classeLecture">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label d-block">Sexe</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" name="Sexe" value="M" type="radio" id="SexeM" @checkedMasculin @Html.Raw(externe ? "" : "onclick=\"return false;\"") />
+                                <label class="form-check-label" for="SexeM">Masculin</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" name="Sexe" value="F" type="radio" id="SexeF" @checkedFeminin @Html.Raw(externe ? "" : "onclick=\"return false;\"") />
+                                <label class="form-check-label" for="SexeF">Féminin</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-phone"></i>Coordonnées</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Telephone">Téléphone</label>
+                            <div class="lc-input-icon">
+                                <i class="iconoir-phone"></i>
+                                <input id="Telephone" name="Telephone" class="masked form-control" type="text" value="@(utilisateur.Telephone?.Trim())" data-inputmask="'mask': '(+999) 99-9999999'">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Email">E-mail</label>
+                            <div class="lc-input-icon">
+                                <i class="iconoir-mail"></i>
+                                <input id="Email" name="Email" type="email" value="@(utilisateur.Email?.Trim())" class="form-control" placeholder="prenom.nom@exemple.org">
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Adresse">Adresse</label>
+                            <textarea id="Adresse" name="Adresse" rows="2" class="form-control" placeholder="Adresse postale ou de bureau">@(utilisateur.Adresse?.Trim())</textarea>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-building"></i>Affectation et droits</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="CodeOrgane">Organe d'appartenance</label>
+                            <select name="CodeOrgane" class="form-select" style="width: 100%" id="CodeOrgane">
+                                <option value="" disabled @(string.IsNullOrEmpty(utilisateur.CodeOrgane) ? "selected" : "")>Choisissez l'organe</option>
+                                @OptionsOrganes(Page.Organigramme, utilisateur.CodeOrgane, 0)
+                            </select>
+                        </div>
+                        <div class="col-md-5">
+                            <label class="form-label" for="IdProfil">Profil</label>
+                            <select name="IdProfil" class="form-select" style="width: 100%" id="IdProfil">
+                                @foreach (var profil in Page.Profil)
+                                {
+                                    if (utilisateur.IdProfil == profil.IdProfil)
+                                    {
+                                        <option value="@profil.IdProfil" selected>@profil.Nom</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@profil.IdProfil">@profil.Nom</option>
+                                    }
+                                }
+                            </select>
+                            <div class="form-text">Détermine les menus et les actions autorisés.</div>
+                        </div>
+                        <div class="col-md-7">
+                            <label class="form-label" for="IdInstitution">Organe d'inventaire</label>
+                            <select name="IdInstitution" class="form-select" style="width: 100%" id="IdInstitution">
+                                <option value="" @(utilisateur.IdInstitution == null ? "selected" : "")>@Page.Institution</option>
+                                @foreach (var entite in Page.Entites)
+                                {
+                                    if (utilisateur.IdInstitution == entite.Id)
+                                    {
+                                        <option value="@entite.Id" selected>@(entite.Nom?.Trim())</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@entite.Id">@(entite.Nom?.Trim())</option>
+                                    }
+                                }
+                            </select>
+                            <div class="form-text">Périmètre des biens que l'utilisateur inventorie.</div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start">Compte <span class="lc-code">@compte</span></span>
+                    <a href="/utilisateur/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fiche de l'utilisateur -->
+        <div class="col-xl-4 order-1 order-xl-2">
+            <div class="card">
+                <div class="lc-cover"></div>
+                <div class="card-body pt-0">
+                    <div class="lc-profile">
+                        <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@compte)" class="lc-profile-media rounded-circle avatar-zoom" />
+                        <div>
+                            <h3 class="lc-profile-title">@nomComplet</h3>
+                            <p class="lc-profile-sub">@compte</p>
+                        </div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-1 mt-3">
+                        @if (utilisateur.IsLocked)
+                        {
+                            <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-lock"></i>Verrouillé</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Actif</span>
+                        }
+                        @if (externe)
+                        {
+                            <span class="badge lc-badge bg-info-subtle text-info">Externe</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-secondary-subtle text-secondary">Interne</span>
+                        }
+                        @if (!string.IsNullOrEmpty(nomProfil))
+                        {
+                            <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-shield-check"></i>@nomProfil</span>
+                        }
+                    </div>
+
+                    <div class="lc-divider-dashed"></div>
+
+                    <ul class="lc-meta">
+                        @if (organe != null)
+                        {
+                            <li><i class="iconoir-building"></i><span><b>Organe :</b> @organe.Nom <span class="lc-code ms-1">@organe.Id</span></span></li>
+                        }
+                        <li><i class="iconoir-community"></i><span><b>Inventaire :</b> @(string.IsNullOrEmpty(nomInstitution) ? "—" : nomInstitution)</span></li>
+                        <li><i class="iconoir-calendar"></i><span><b>Créé le :</b> @utilisateur.DateCreation.ToString("dd MMMM yyyy à HH:mm")</span></li>
+                        <li><i class="iconoir-clock"></i><span><b>Dernière connexion :</b> @(utilisateur.LastConnexion.Year != 1 ? utilisateur.LastConnexion.ToString("dd MMMM yyyy à HH:mm") : "jamais")</span></li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="card-title">Compte</h4>
+                    <p class="lc-card-subtitle">Accès à l'application.</p>
+                </div>
+                <div class="card-body">
+                    <div class="form-check form-switch mb-3">
+                        <input role="switch" type="checkbox" id="IsLocked" name="IsLocked" value="true" @checkedLocked class="form-check-input" />
+                        <label class="form-check-label fw-medium" for="IsLocked">Compte verrouillé</label>
+                        <div class="form-text">Un compte verrouillé ne peut plus se connecter.</div>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input role="switch" type="checkbox" id="IsExternalUser" name="IsExternalUser" value="true" @checkedExterne class="form-check-input" />
+                        <label class="form-check-label fw-medium" for="IsExternalUser">Utilisateur externe</label>
+                        <div class="form-text">Un utilisateur externe n'est pas un agent du référentiel : son identité et sa photo se gèrent ici.</div>
+                    </div>
+                </div>
+            </div>
+
+            @if (externe)
+            {
+                <div class="card mb-0">
+                    <div class="card-header">
+                        <h4 class="card-title">Photo</h4>
+                        <p class="lc-card-subtitle">La photo actuelle est conservée si aucun fichier n'est choisi.</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="lc-dropzone">
+                            <i class="iconoir-camera"></i>
+                            <label class="form-label" for="Photo">Remplacer la photo</label>
+                            <input type="file" name="Photo" id="Photo" class="form-control" accept="image/*" />
+                            <div class="form-text">Fichier image JPG ou PNG.</div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+</form>

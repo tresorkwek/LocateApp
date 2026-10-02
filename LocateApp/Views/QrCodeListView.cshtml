@@ -1,0 +1,184 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CommandeViewModel Page = (CommandeViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    // Seules les commandes validées sont listées ; les quantités sont lues une seule fois par commande.
+    var commandesValidees = new System.Collections.Generic.List<Commande>();
+    var disponibles = new System.Collections.Generic.Dictionary<Guid, long>();
+    var totaux = new System.Collections.Generic.Dictionary<Guid, long>();
+    long totalDisponibles = 0;
+    long totalEtiquettes = 0;
+    if (Page.Commandes != null)
+    {
+        foreach (var c in Page.Commandes)
+        {
+            if (!c.IsValidate()) { continue; }
+            commandesValidees.Add(c);
+            long nd = c.GetNbreEtiquetteNotUsed();
+            long nt = c.GetNbreEtiquette();
+            disponibles[c.Id] = nd;
+            totaux[c.Id] = nt;
+            totalDisponibles += nd;
+            totalEtiquettes += nt;
+        }
+    }
+    int pctUtilisees = totalEtiquettes == 0 ? 0 : (int)Math.Round(100.0 * (totalEtiquettes - totalDisponibles) / totalEtiquettes);
+    string sousTitre = string.IsNullOrEmpty(Page.Description) ? "Commandes d'étiquettes QR code imprimées et étiquettes encore disponibles pour identifier des biens." : Page.Description;
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-printer"></i></span>
+            <div>
+                <p class="lc-kpi-label">Commandes imprimées</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(commandesValidees.Count, 0)<small>lots d'étiquettes</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-qr-code"></i></span>
+            <div>
+                <p class="lc-kpi-label">Étiquettes disponibles</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalDisponibles, 0)<small>à coller sur des biens</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-12 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-scan-qr-code"></i></span>
+            <div class="flex-grow-1">
+                <p class="lc-kpi-label">Étiquettes utilisées</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalEtiquettes - totalDisponibles, 0)<small>sur @Utilities.FormatNumber(totalEtiquettes, 0) · @pctUtilisees %</small></p>
+                <div class="lc-progress mt-2"><div class="progress-bar bg-info" style="width: @pctUtilisees%"></div></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">@sousTitre</p>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (commandesValidees.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-qr-code"></i></div>
+                <h6>Aucune commande imprimée</h6>
+                <p>Les commandes d'étiquettes apparaissent ici une fois validées et imprimées.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Commande</th>
+                            <th>Imprimée par</th>
+                            <th>Format</th>
+                            <th>Date d'impression</th>
+                            <th class="text-end">Disponibles</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            string link;
+                            string newLink;
+                            Identity creatorIdentity;
+                            EtiquetteFormat etiquetteFormat;
+                            string userPhoto;
+                        }
+
+                        @foreach (var commande in commandesValidees)
+                        {
+                            link = Page.Link + commande.Id;
+                            newLink = "/etiquette/download/" + commande.Id;
+                            creatorIdentity = commande.GetIdentity(commande.PrintBy);
+                            etiquetteFormat = commande.GetFormatEtiquette();
+                            userPhoto = creatorIdentity == null ? null : Utilities.GetPhotoAgentPath() + creatorIdentity.Photo;
+                            long nbDisponibles = disponibles[commande.Id];
+                            long nbTotal = totaux[commande.Id];
+                            int pctRestant = nbTotal == 0 ? 0 : (int)Math.Round(100.0 * nbDisponibles / nbTotal);
+                            string telephone = creatorIdentity?.Telephone?.Trim();
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-qr-code"></i></span>
+                                        <div class="lc-entity-body">
+                                            <a href="@link" target="_blank" rel="noopener" class="lc-name">CMD-@commande.NumeroCommande</a>
+                                            <span class="lc-sub">@commande.NbrePage @(commande.NbrePage > 1 ? "pages" : "page")</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (creatorIdentity != null)
+                                    {
+                                        <div class="lc-entity">
+                                            <img src="@userPhoto" data-zoom-src="@userPhoto" alt="" class="lc-thumb rounded-circle avatar-zoom" loading="lazy" />
+                                            <div class="lc-entity-body">
+                                                <span class="lc-name">@creatorIdentity.Nom @creatorIdentity.Postnom</span>
+                                                <span class="lc-sub">@(creatorIdentity.UserName + (string.IsNullOrEmpty(telephone) ? "" : " · " + telephone))</span>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">@commande.PrintBy</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (etiquetteFormat != null)
+                                    {
+                                        <span class="d-block text-body">@etiquetteFormat.Nom <span class="text-muted">(@etiquetteFormat.Largeur × @etiquetteFormat.Hauteur)</span></span>
+                                        <span class="d-block fs-12 text-muted">@etiquetteFormat.Ligne lignes × @etiquetteFormat.Colone colonnes · @etiquetteFormat.Papier</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td data-order="@commande.DatePrint.ToString("yyyyMMddHHmm")">
+                                    <span class="d-block text-body">@commande.DatePrint.ToString("dd/MM/yyyy")</span>
+                                    <span class="d-block fs-12 text-muted">à @commande.DatePrint.ToString("HH:mm")</span>
+                                </td>
+                                <td class="lc-num" data-order="@nbDisponibles">
+                                    <span class="fw-semibold">@Utilities.FormatNumber(nbDisponibles, 0)</span><span class="text-muted"> / @Utilities.FormatNumber(nbTotal, 0)</span>
+                                    <div class="lc-progress mt-1 ms-auto" style="width: 90px;" data-bs-toggle="tooltip" title="@pctRestant % encore disponibles"><div class="progress-bar bg-success" style="width: @pctRestant%"></div></div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@link" target="_blank" rel="noopener" title="Voir les étiquettes" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        <a href="@newLink" title="Télécharger la liste (CSV)" data-bs-toggle="tooltip"><i class="iconoir-download"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

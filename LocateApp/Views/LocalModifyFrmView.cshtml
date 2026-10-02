@@ -1,0 +1,211 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using System.Collections.Generic;
+
+
+@{ LocalAddOrModifyFrmViewModel Page = (LocalAddOrModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+@{
+    string code = Page.Local.Code;
+    string designation = Page.Local.Designation;
+    string checkedSpace = Page.Local.IsSpace ? "checked" : "";
+    string checkedIsActive = Page.Local.IsActive ? "checked" : "";
+    string lienRetour = string.IsNullOrEmpty(Page.Local.CodeOrgane) ? "/local/" : "/local/organe/" + Page.Local.CodeOrgane;
+}
+
+<form class="lc-form" method="post" action="/local/modify/">
+    <div class="row g-3 justify-content-center">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Modifier le local" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Mettez à jour l'identification du local, son organe de rattachement et son état.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        @if (Page.Local.QrCode != null)
+                        {
+                            <img src="/Content/images/QRCode.png" alt="QR code affecté" class="lc-thumb lc-thumb-lg p-1 bg-body border" />
+                        }
+                        else
+                        {
+                            <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-home-simple"></i></span>
+                        }
+                        <div class="lc-entity-body">
+                            <span class="lc-name">@designation</span>
+                            <span class="lc-sub">
+                                @if (!string.IsNullOrEmpty(code))
+                                {
+                                    <span class="lc-code me-1">@code</span>
+                                }
+                                N° @Page.Local.Id
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-home-simple"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="Code">Code</label>
+                            <input id="Code" name="Code" type="text" class="form-control" value="@code" placeholder="Ex. B12">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="Designation">Désignation<span class="lc-req">*</span></label>
+                            <input id="Designation" name="Designation" type="text" class="form-control" value="@designation" placeholder="Ex. Bureau du directeur" required>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-building"></i>Rattachement</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="CodeOrgane">Organe</label>
+                            <select name="CodeOrgane" class="js-states form-select" tabindex="-1" style="width: 100%" id="CodeOrgane">
+
+                                @if (Page.Local.CodeOrgane == null)
+                                {
+                                    <option value="" disabled selected>Choisissez l'organe</option>
+                                }
+
+                                @{ string nomOrgageStructure; }
+
+                                @foreach (var organe in Page.Organigramme)
+                                {
+                                    int spaceCharNum = 0;
+                                    nomOrgageStructure = organe.Id == organe.IdStructure ? "" : $"   ({organe.NomStructure})";
+
+                                    if (Page.Local.CodeOrgane == organe.Id)
+                                    {
+                                        <option value="@organe.Id" selected>@organe.Nom @nomOrgageStructure</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@organe.Id">@organe.Nom @nomOrgageStructure</option>
+                                    }
+
+                                    if (organe.Organes.Count > 0)
+                                    {
+                                        @Html.Raw(GetChildrenOrganes(organe.Organes, Page.Local, Page, spaceCharNum + 1).ToString());
+                                    }
+                                }
+
+                            </select>
+                            <div class="form-text">Le local apparaîtra dans la liste des locaux du nouvel organe.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Classement et état</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdTypeLocal">Type de local</label>
+                            <select name="IdTypeLocal" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdTypeLocal">
+                                @{
+                                    string selected = "";
+                                }
+                                @foreach (var localType in Page.LocalTypes)
+                                {
+                                    selected = localType.Id == Page.Local.IdTypeLocal ? "selected" : "";
+
+                                    <option value="@localType.Id" @selected>@localType.Nom</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6 d-flex flex-column justify-content-end gap-2">
+                            <div class="form-check form-switch mb-0">
+                                <input role="switch" type="checkbox" id="IsSpace" name="IsSpace" value="true" @checkedSpace class="form-check-input" />
+                                <label class="form-check-label" for="IsSpace">C'est un espace</label>
+                            </div>
+                            <div class="form-check form-switch mb-0">
+                                <input role="switch" type="checkbox" id="IsActive" name="IsActive" value="true" @checkedIsActive class="form-check-input" />
+                                <label class="form-check-label" for="IsActive">Local toujours utilisé</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="id" id="id" value="@Page.Local.Id" />
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="@lienRetour" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <dl class="lc-dl mb-3">
+                        <div>
+                            <dt>QR code</dt>
+                            <dd>
+                                @if (Page.Local.QrCode != null)
+                                {
+                                    <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Affecté</span>
+                                }
+                                else
+                                {
+                                    <span class="badge lc-badge bg-warning-subtle text-warning">sans QR</span>
+                                }
+                            </dd>
+                        </div>
+                        <div>
+                            <dt>Créé le</dt>
+                            <dd>@(Page.Local.DateCreation == DateTime.MinValue ? "" : Page.Local.DateCreation.ToString("dd/MM/yyyy"))</dd>
+                        </div>
+                        <div>
+                            <dt>Créé par</dt>
+                            <dd>@Page.Local.UserCreation</dd>
+                        </div>
+                    </dl>
+                    <div class="lc-aside h-auto">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bon à savoir</h6>
+                        <ul>
+                            <li>Décochez « Local toujours utilisé » pour signaler un local désaffecté.</li>
+                            <li>Le QR code se détache depuis la liste des locaux de l'organe.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@helper GetChildrenOrganes(IEnumerable<Organe> organes, Local localImmo, LocalAddOrModifyFrmViewModel Page, int spaceCharNum)
+{
+    string str = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+    string strs = "";
+    string nomOrgageStructure;
+
+    for (var i = 0; i < spaceCharNum; i++)
+    {
+        strs = string.Format("{0}{1}", strs, str);
+    }
+
+    foreach (var organe in organes)
+    {
+        nomOrgageStructure = organe.Id == organe.IdStructure ? "" : $"   ({organe.NomStructure})";
+
+        if (localImmo?.CodeOrgane == organe.Id)
+        {
+            <option value="@organe.Id" selected>@Html.Raw(strs) @organe.Nom @nomOrgageStructure</option>
+        }
+        else
+        {
+            <option value="@organe.Id">@Html.Raw(strs) @organe.Nom @nomOrgageStructure</option>
+        }
+
+        if (organe.Organes.Count > 0)
+        {
+            @Html.Raw(GetChildrenOrganes(organe.Organes, localImmo, Page, spaceCharNum + 1).ToString());
+        }
+    }
+}

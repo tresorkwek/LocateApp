@@ -1,0 +1,170 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ ArticleListViewModel Page = (ArticleListViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+    string lienBase = string.IsNullOrEmpty(Page.Link) ? "/article/id/" : Page.Link;
+    int nbArticles = Page.Articles == null ? 0 : Page.Articles.Count;
+    int nbPhotographies = 0;
+    int nbAvecFournisseur = 0;
+    if (Page.Articles != null)
+    {
+        foreach (var a in Page.Articles)
+        {
+            if (a.IsPhotographed) { nbPhotographies++; }
+            if (a.IdFournisseur != null) { nbAvecFournisseur++; }
+        }
+    }
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<input type="hidden" id="NbreImmoTotal" name="NbreImmoTotal" value="@nbArticles" />
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Articles</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbArticles, 0)<small>au catalogue</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-camera"></i></span>
+            <div>
+                <p class="lc-kpi-label">Photographiés</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbPhotographies, 0)<small>avec photo</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-media-image-xmark"></i></span>
+            <div>
+                <p class="lc-kpi-label">Sans photo</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbArticles - nbPhotographies, 0)<small>à photographier</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-delivery-truck"></i></span>
+            <div>
+                <p class="lc-kpi-label">Avec fournisseur</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAvecFournisseur, 0)<small>référencés</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Catalogue des articles : chaque bien inventorié est rattaché à un article.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/article/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvel article</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbArticles == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Aucun article</h6>
+                <p>Créez le premier article du catalogue pour commencer à enregistrer des biens.</p>
+                <a href="/article/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouvel article</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Article</th>
+                            <th>Catégorie</th>
+                            <th>Code</th>
+                            <th class="text-end">Coût unitaire</th>
+                            <th>Fournisseur</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var article in Page.Articles)
+                        {
+                            Categorie categorie = article.GetCategorie();
+                            string link = lienBase + article.Id;
+                            string sousTitre = string.Join(" · ", new[] { article.Marque, article.Modele }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                            string fournisseur = article.IdFournisseur != null ? article.GetFournisseur()?.Nom : null;
+                            string famille = categorie?.Famille;
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <img src="~/Content/images/articles/@article.Photo" alt="" class="lc-thumb" loading="lazy" />
+                                        <div class="lc-entity-body">
+                                            <a href="@link" class="lc-name">@article.Designation</a>
+                                            <span class="lc-sub">@(string.IsNullOrEmpty(sousTitre) ? "Marque et modèle non renseignés" : sousTitre)</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (categorie != null)
+                                    {
+                                        <span class="d-block text-body">@categorie.Designation</span>
+                                        if (!string.IsNullOrEmpty(famille))
+                                        {
+                                            <span class="d-block fs-12 text-muted">@famille</span>
+                                        }
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary">Non classé</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(article.Code))
+                                    {
+                                        <span class="lc-code">@article.Code</span>
+                                    }
+                                    <span class="d-block fs-12 text-muted mt-1">N° @article.Id</span>
+                                </td>
+                                <td class="lc-num">@Utilities.FormatNumber(article.CoutUnitaire)</td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(fournisseur))
+                                    {
+                                        <span class="text-body">@fournisseur</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@link" title="Voir la fiche" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        <a href="/article/modify/@article.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

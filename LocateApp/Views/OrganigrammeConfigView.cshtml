@@ -1,0 +1,235 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ OrganigrammeViewModel Page = (OrganigrammeViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    int nbOrganes = 0;
+    bool vide = Page.Organigramme == null || Page.Organigramme.Count == 0;
+    bool courante = Page.EstVersionCourante;
+    string libelleVersion = Page.Versions?.FirstOrDefault(v => v.Id == Page.VersionAffichee)?.LibelleAffiche ?? ("Version " + Page.VersionAffichee);
+}
+
+<style>
+    /* Poignées élargies : bouton +/- à gauche, actions à droite, nom qui passe à la ligne */
+    #nestable-organigramme.dd { max-width: 100%; }
+    #nestable-organigramme .dd-item { position: relative; }
+    #nestable-organigramme .dd-handle { min-height: 40px; padding: 8px 150px 8px 40px; white-space: normal; line-height: 1.5; }
+    #nestable-organigramme .dd-item > button + .dd-handle { margin-left: 0; }
+    #nestable-organigramme .dd-item > button { position: absolute; left: 8px; top: 7px; margin: 0; z-index: 2; }
+    #nestable-organigramme .organi-actions { position: absolute; top: 8px; right: 10px; z-index: 3; display: flex; gap: 2px; }
+    #nestable-organigramme .organi-actions .btn { padding: .15rem .45rem; font-size: 1rem; line-height: 1.2; }
+    #nestable-organigramme .organi-hide { display: none !important; }
+    #nestable-organigramme.dd-searching .dd-list { display: block !important; }
+    #nestable-organigramme .dd-placeholder { background: rgba(49, 103, 243, .08); border: 1px dashed var(--locate-accent); }
+</style>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col-lg">
+                        <h4 class="card-title">Organigramme : @libelleVersion
+                            @if (courante)
+                            {
+                                <span class="badge bg-success-subtle text-success ms-1">courante</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary ms-1">archivée</span>
+                            }
+                        </h4>
+                        <p class="text-muted mb-0 small">
+                            Dépliez avec les boutons + / −, glissez un organe par sa poignée pour le déplacer ou le réordonner puis enregistrez.
+                            Les icônes à droite permettent d'ajouter un sous-organe, de modifier ou de supprimer.
+                        </p>
+                    </div>
+                    <div class="col-lg-auto d-flex flex-wrap gap-2 align-items-center">
+                        <div class="dropdown">
+                            <button type="button" class="btn btn-sm btn-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" title="Changer de version affichée">
+                                <i class="iconoir-git-branch me-1"></i>@libelleVersion
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <li><h6 class="dropdown-header">Version affichée</h6></li>
+                                @foreach (var version in Page.Versions)
+                                {
+                                    string classeItem = version.Id == Page.VersionAffichee ? "dropdown-item active" : "dropdown-item";
+                                    <li>
+                                        <a class="@classeItem d-flex align-items-center justify-content-between gap-3" href="/organe/organigramme/version/@version.Id">
+                                            <span>@version.LibelleAffiche</span>
+                                            <span class="small">
+                                                <span class="badge bg-secondary-subtle text-secondary">@version.NbOrgane</span>
+                                                @if (version.Defaut)
+                                                {
+                                                    <span class="badge bg-success-subtle text-success ms-1">courante</span>
+                                                }
+                                            </span>
+                                        </a>
+                                    </li>
+                                }
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item" href="/organe/version/"><i class="iconoir-settings me-1"></i>Gérer les versions</a></li>
+                            </ul>
+                        </div>
+                        <a href="/organe/add/" class="btn btn-sm btn-light"><i class="iconoir-plus me-1"></i>Organe racine</a>
+                        <button type="button" id="btnEnregistrerOrdre" class="btn btn-sm btn-success" disabled><i class="iconoir-floppy-disk me-1"></i>Enregistrer l'ordre</button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+
+                @if (vide)
+                {
+                    <div class="alert alert-warning mb-0"><i class="iconoir-warning-triangle me-1"></i>Aucun organe dans cette version. Créez un organe racine ou copiez une version existante depuis la gestion des versions.</div>
+                }
+                else
+                {
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="iconoir-search"></i></span>
+                            <input type="text" id="rechercheOrgane" class="form-control" placeholder="Rechercher un organe (nom, code, sigle)..." autocomplete="off" />
+                            <button type="button" class="btn btn-light" id="effacerRecherche" title="Effacer"><i class="iconoir-xmark"></i></button>
+                            <button type="button" class="btn btn-light" id="toutDeplier" title="Tout déplier"><i class="iconoir-expand"></i></button>
+                            <button type="button" class="btn btn-light" id="toutReplier" title="Tout replier"><i class="iconoir-collapse"></i></button>
+                        </div>
+                        <small id="infoRecherche" class="text-muted"></small>
+                    </div>
+
+                    <div class="dd" id="nestable-organigramme">
+                        <ol class="dd-list">
+                            @foreach (var organe in Page.Organigramme)
+                            {
+                                @NoeudOrgane(organe)
+                            }
+                        </ol>
+                    </div>
+                }
+
+                @helper NoeudOrgane(Organe organe)
+                {
+                    string sigle = organe.Sigle == null ? string.Empty : organe.Sigle.Trim();
+                    bool structure = organe.Entite || organe.Id == organe.IdStructure;
+                    string confirmSuppression = "$(this).confirmUrl('Suppression', '/organe/delete/" + organe.Id + "', 'Supprimer l\\'organe <b>" + organe.Nom.Replace("'", "\\'") + "</b> ?<br/>Impossible s\\'il a des sous-organes, des locaux ou des utilisateurs.')";
+
+                    <li class="dd-item" data-id="@organe.Id">
+                        <div class="dd-handle @(organe.Actif ? "" : "text-muted")">
+                            <small class="text-muted me-1">@organe.Id</small>
+                            <span class="@(structure ? "fw-semibold" : "")">@organe.Nom</span>
+                            @if (!string.IsNullOrWhiteSpace(sigle))
+                            {
+                                <span class="badge bg-primary-subtle text-primary ms-1">@sigle</span>
+                            }
+                            @if (structure)
+                            {
+                                <span class="badge bg-info-subtle text-info ms-1">structure</span>
+                            }
+                            @if (!organe.Actif)
+                            {
+                                <span class="badge bg-secondary-subtle text-secondary ms-1">inactif</span>
+                            }
+                        </div>
+                        <span class="organi-actions dd-nodrag">
+                            <a href="/local/organe/@organe.Id" class="btn btn-light text-muted" data-bs-toggle="tooltip" title="Locaux de cet organe"><i class="iconoir-building"></i></a>
+                            <a href="/organe/add/@organe.Id" class="btn btn-light text-success" data-bs-toggle="tooltip" title="Ajouter un sous-organe"><i class="iconoir-plus-circle"></i></a>
+                            <a href="/organe/modify/@organe.Id" class="btn btn-light text-primary" data-bs-toggle="tooltip" title="Modifier"><i class="iconoir-edit-pencil"></i></a>
+                            <a href="javascript:void(0)" onclick="@Html.Raw(confirmSuppression)" class="btn btn-light text-danger" data-bs-toggle="tooltip" title="Supprimer"><i class="iconoir-trash"></i></a>
+                        </span>
+                        @if (organe.Organes != null && organe.Organes.Count > 0)
+                        {
+                            <ol class="dd-list">
+                                @foreach (var enfant in organe.Organes)
+                                {
+                                    @NoeudOrgane(enfant)
+                                }
+                            </ol>
+                        }
+                    </li>
+                }
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // jQuery et le plugin nestable sont chargés après le contenu : on attend DOMContentLoaded.
+    document.addEventListener('DOMContentLoaded', function () {
+
+        var container = document.getElementById('nestable-organigramme');
+        if (!container || !window.jQuery || !jQuery.fn.nestable) { return; }
+
+        var $dd = jQuery(container);
+        $dd.nestable({ group: 1, maxDepth: 20 });
+        var btnSave = document.getElementById('btnEnregistrerOrdre');
+
+        $dd.on('change', function () { btnSave.disabled = false; });
+
+        document.getElementById('toutDeplier').addEventListener('click', function () { $dd.nestable('expandAll'); });
+        document.getElementById('toutReplier').addEventListener('click', function () { $dd.nestable('collapseAll'); });
+
+        btnSave.addEventListener('click', function () {
+            var plat = [];
+            (function parcourir(items, parent) {
+                (items || []).forEach(function (it, i) {
+                    plat.push({ Id: String(it.id), Parent: parent, Ordre: i + 1 });
+                    if (it.children && it.children.length) { parcourir(it.children, String(it.id)); }
+                });
+            })($dd.nestable('serialize'), null);
+
+            btnSave.disabled = true;
+            jQuery.ajax({
+                url: '/organe/organigramme/reorder', method: 'POST', contentType: 'application/json',
+                data: JSON.stringify({ Items: plat })
+            }).done(function (r) {
+                if (r && r.success) { LocateToast('Nouvel ordre de l\'organigramme enregistré.', 4000, 'success'); }
+                else { btnSave.disabled = false; LocateToast('Aucune ligne mise à jour.', 4000, 'danger'); }
+            }).fail(function () {
+                btnSave.disabled = false; LocateToast('L\'enregistrement a échoué.', 4000, 'danger');
+            });
+        });
+
+        // Recherche : masque les organes non concordants en gardant le chemin hiérarchique et la descendance du résultat.
+        var input = document.getElementById('rechercheOrgane');
+        var info = document.getElementById('infoRecherche');
+        var diacritiques = new RegExp('[\\u0300-\\u036f]', 'g');
+        function norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(diacritiques, ''); }
+
+        function filtrer() {
+            var q = norm(input.value.trim());
+            var items = container.querySelectorAll('li.dd-item');
+            if (!q) {
+                container.classList.remove('dd-searching');
+                items.forEach(function (li) { li.classList.remove('organi-hide'); });
+                info.textContent = '';
+                return;
+            }
+            container.classList.add('dd-searching');
+            items.forEach(function (li) { li.classList.add('organi-hide'); });
+            var nb = 0;
+            items.forEach(function (li) {
+                var handle = li.querySelector(':scope > .dd-handle');
+                if (!handle || norm(handle.textContent).indexOf(q) === -1) { return; }
+                nb++;
+                var el = li;
+                while (el && el !== container) {
+                    if (el.classList && el.classList.contains('dd-item')) { el.classList.remove('organi-hide'); }
+                    el = el.parentElement;
+                }
+                li.querySelectorAll('li.dd-item').forEach(function (d) { d.classList.remove('organi-hide'); });
+            });
+            info.textContent = nb === 0 ? 'Aucun organe ne correspond.' : nb + ' organe(s) trouvé(s).';
+        }
+
+        input.addEventListener('input', filtrer);
+        document.getElementById('effacerRecherche').addEventListener('click', function () { input.value = ''; filtrer(); input.focus(); });
+    });
+</script>

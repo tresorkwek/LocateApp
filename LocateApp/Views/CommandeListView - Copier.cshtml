@@ -1,0 +1,138 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CommandeViewModel Page = (CommandeViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div>
+
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">@libellePage</h4>
+                    <p>@Page.Description</p><br>
+                    <table id="example" class="table table-hover align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th width="5%">N°</th>
+                                <th width="60%">Commande</th>
+                                <th>Date</th>
+                                <th width="10%" class="text-center">Opérations</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th>N°</th>
+                                <th>Commande</th>
+                                <th>Date</th>
+                                <th class="text-center">Opérations</th>
+                            </tr>
+                        </tfoot>
+                        <tbody>
+
+                            @{
+                                string link;
+                                string action;
+                                int compteur = 0;
+                                Identity creatorIdentity;  //CreatedBy
+                                FormatEtiquette formatEtiquette;
+                                string photoUser;
+                             }
+
+                            @foreach (var commande in Page.Commandes)
+                            {
+                                compteur++;
+                                link = Page.Link + commande.Id;
+                                creatorIdentity = commande.GetIdentity(commande.CreatedBy);
+                                formatEtiquette = commande.GetFormatEtiquette();
+                                photoUser = Utilities.GetPhotoAgentPath() + creatorIdentity.Photo;
+
+                                if (!commande.IsValidate()) 
+                                { 
+                                
+                                    <tr>
+                                    <td valign="top">                                       
+                                        <a class="btn btn-light text-primary fa-mouse-pointer">CMD-@commande.NumeroCommande </a> 
+                                    </td>                                  
+
+                                    <td>
+                                        <div>
+                                            <div>
+                                                <div class="float-start">
+                                                    <div class="float-start">
+                                                        <img src="@photoUser" data-zoom-image="@photoUser" alt="" class="rounded-circle mailbox-profile-image shadow-sm" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: -11 })">
+                                                    </div>
+                                                    <div class="float-start">
+                                                        <span class="fw-semibold">
+
+                                                            <span class="text-muted small">                                                               
+                                                                @{ string nomComplet = $"({creatorIdentity.UserName}) {creatorIdentity.Nom} {creatorIdentity.Postnom}";  }
+                                                                <span> @nomComplet </span>                                                                                                                                                                                             
+                                                            </span>
+
+                                                            <table class="table table-hover align-middle w-100">
+                                                                <tr>
+                                                                    <td>
+                                                                        @commande.NbrePage Pages de @formatEtiquette.Ligne Linges et @formatEtiquette.Colone Colonnes @formatEtiquette.Nom format ( @formatEtiquette.Largeur x @formatEtiquette.Hauteur ) sur @formatEtiquette.Papier
+                                                                    </td>
+                                                                    
+                                                                </tr>
+                                                            </table>
+                                                            <span class="text-muted small">                                                                 
+
+                                                                @if (!string.IsNullOrEmpty(creatorIdentity.Telephone?.Trim()))
+                                                                {
+                                                                    string telephone = creatorIdentity.Telephone?.Trim();
+                                                                    <span>, Téléphone: @telephone</span>
+                                                                }                                                           
+                                                                                                                                
+                                                            </span>
+
+                                                        </span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        @commande.DateCreation.ToString("dd MMMM yyyy à HH:mm")
+                                    </td>                                    
+
+                                    <td>
+                                        <a href="@Html.Raw(link)" class="btn btn-light text-primary" data-bs-placement="top" data-bs-toggle="tooltip" title="Modifier">
+                                            <i class="iconoir-edit-pencil"></i>
+                                        </a>                                    
+                                    </td>
+                                    
+                                </tr>
+
+                                }
+                                
+                             }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="fab-action">
+
+            <a href="/commande/add/" class="btn btn-success" data-bs-placement="left" data-bs-toggle="tooltip" title="Passer une commande">
+                <i class="iconoir-plus"></i>
+            </a>
+
+        </div>
+
+
+    </div>
+</div>

@@ -1,0 +1,306 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ InventaireListViewModel Page = (InventaireListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Inventaire> inventaires = Page.Inventaires ?? new List<Inventaire>();
+   int anneeEnCours = Page.AnneeEnCours;
+   int nbCampagnes = inventaires.Count;
+   int nbCloturees = inventaires.Count(x => x.DateCloture.Year != 1);
+
+   // Campagne en cours : une seule campagne ouverte à la fois (une par année).
+   Inventaire courant = null;
+   if (anneeEnCours > 0)
+   {
+       courant = inventaires.FirstOrDefault(x => x.Annee == anneeEnCours) ?? InventaireController.SelectEntete(anneeEnCours).FirstOrDefault();
+   }
+
+   long parc = 0;
+   long vusCourant = 0;
+   long nonVusCourant = 0;
+   long traitesCourant = 0;
+   int pctCourant = 0;
+   if (courant != null)
+   {
+       parc = ImmoController.SelectQuantite();
+       vusCourant = InventaireController.SelectQuantite(courant.Annee);
+       nonVusCourant = InventaireController.SelectQuantiteNonVu(courant.Annee);
+       traitesCourant = vusCourant + nonVusCourant;
+       pctCourant = parc > 0 ? (int)Math.Min(100, Math.Round(traitesCourant * 100.0 / parc)) : 0;
+   }
+   long restantsCourant = Math.Max(0, parc - traitesCourant);
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@if (courant != null)
+{
+    Identity lanceurCourant = courant.GetIdentity(courant.UserCreation);
+    string nomLanceurCourant = lanceurCourant == null ? courant.UserCreation : $"{lanceurCourant.Nom} {lanceurCourant.Postnom}".Trim();
+    string onclikCourant = $"$(this).confirmUrl('Clôture', '/inventaire/cloturer/{courant.Annee}', 'Êtes-vous sûr de vouloir clôturer l\\'inventaire de l\\'année : <br/> <div class=\\'chip\\'> {courant.Annee} </div> ?', 'Clôture de l\\'inventaire de l\\'année <div class=\\'chip\\'> {courant.Annee} </div> annulée')";
+
+    <div class="card">
+        <div class="card-body">
+            <div class="d-flex flex-wrap align-items-center gap-3">
+                <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-clipboard-check"></i></span>
+                <div class="flex-grow-1">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                        <h5 class="mb-0 fw-semibold">Inventaire @courant.Annee</h5>
+                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-play"></i>En cours</span>
+                        @if (!courant.Actif)
+                        {
+                            <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-warning-triangle"></i>Inactif</span>
+                        }
+                    </div>
+                    <p class="text-muted fs-13 mb-0 mt-1">
+                        Lancé le @courant.DateCreation.ToString("dd MMMM yyyy à HH:mm")
+                        @if (!string.IsNullOrEmpty(nomLanceurCourant))
+                        {
+                            <text> par <span class="text-body fw-medium">@nomLanceurCourant</span></text>
+                        }
+                    </p>
+                </div>
+                <div class="lc-toolbar">
+                    <a href="/inventaire/resultat/@courant.Annee" class="btn btn-light"><i class="iconoir-stats-report me-1"></i>Résultats</a>
+                    @if (string.IsNullOrEmpty(courant.UserCloture))
+                    {
+                        <a onclick="@Html.Raw(onclikCourant)" class="btn btn-soft-danger" role="button"><i class="iconoir-lock me-1"></i>Clôturer</a>
+                    }
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-end mb-2">
+                    <span class="fs-13 fw-semibold text-body">Avancement de la campagne</span>
+                    <span class="fs-13 text-muted"><span class="fw-bold text-body fs-15">@(pctCourant) %</span> du parc inventorié</span>
+                </div>
+                <div class="lc-progress" style="height: 8px;">
+                    <div class="progress-bar bg-primary" role="progressbar" style="width: @(pctCourant)%" aria-valuenow="@pctCourant" aria-valuemin="0" aria-valuemax="100"></div>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-6 col-lg-3">
+                    <div class="lc-kpi">
+                        <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-eye"></i></span>
+                        <div>
+                            <p class="lc-kpi-label">Biens vus</p>
+                            <p class="lc-kpi-value">@Utilities.FormatNumber(vusCourant, 0)<small>constatés</small></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="lc-kpi">
+                        <span class="lc-kpi-icon bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i></span>
+                        <div>
+                            <p class="lc-kpi-label">Non vus</p>
+                            <p class="lc-kpi-value">@Utilities.FormatNumber(nonVusCourant, 0)<small>déclarés</small></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="lc-kpi">
+                        <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-clock"></i></span>
+                        <div>
+                            <p class="lc-kpi-label">Restants</p>
+                            <p class="lc-kpi-value">@Utilities.FormatNumber(restantsCourant, 0)<small>à inventorier</small></p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-6 col-lg-3">
+                    <div class="lc-kpi">
+                        <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+                        <div>
+                            <p class="lc-kpi-label">Parc</p>
+                            <p class="lc-kpi-value">@Utilities.FormatNumber(parc, 0)<small>biens</small></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+else
+{
+    <div class="lc-callout mb-3">
+        <i class="iconoir-info-circle"></i>
+        <div class="flex-grow-1">
+            <strong>Aucune campagne d'inventaire en cours.</strong>
+            Lancez la campagne de l'année pour permettre le recensement des biens sur le terrain.
+        </div>
+        <a href="/inventaire/add/" class="btn btn-primary btn-sm text-nowrap"><i class="iconoir-plus me-1"></i>Lancer un inventaire</a>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Une campagne par année : @nbCampagnes au total, dont @nbCloturees @(nbCloturees > 1 ? "clôturées" : "clôturée").</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/inventaire/resultat/" class="btn btn-light"><i class="iconoir-stats-report me-1"></i>Résultats</a>
+                @if (anneeEnCours == 0)
+                {
+                    <a href="/inventaire/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Lancer un inventaire</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbCampagnes == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-clipboard-check"></i></div>
+                <h6>Aucune campagne d'inventaire</h6>
+                <p>Les campagnes lancées apparaîtront ici, de la plus récente à la plus ancienne.</p>
+                @if (anneeEnCours == 0)
+                {
+                    <a href="/inventaire/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Lancer un inventaire</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100" data-order='[[0, "desc"]]'>
+                    <thead class="table-light">
+                        <tr>
+                            <th>Campagne</th>
+                            <th>Lancée par</th>
+                            <th>Avancement</th>
+                            <th>Statut</th>
+                            <th>Clôture</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var inventaire in inventaires)
+                        {
+                            Identity creatorIdentity = inventaire.GetIdentity(inventaire.UserCreation);
+                            string photoUser = creatorIdentity == null ? null : Utilities.GetPhotoAgentPath() + creatorIdentity.Photo;
+                            string nomComplet = creatorIdentity == null ? inventaire.UserCreation : $"{creatorIdentity.Nom} {creatorIdentity.Postnom}".Trim();
+                            string telephone = creatorIdentity?.Telephone?.Trim();
+                            string sousTitreCreateur = string.Join(" · ", new[] { creatorIdentity?.UserName, string.IsNullOrEmpty(telephone) ? null : "Tél. " + telephone }.Where(x => !string.IsNullOrWhiteSpace(x)));
+                            bool cloture = inventaire.DateCloture.Year != 0001;
+                            bool enCours = !cloture && inventaire.Annee == anneeEnCours;
+                            string onclik = $"$(this).confirmUrl('Clôture', '/inventaire/cloturer/{inventaire.Annee}', 'Êtes-vous sûr de vouloir clôturer l\\'inventaire de l\\'année : <br/> <div class=\\'chip\\'> {inventaire.Annee} </div> ?', 'Clôture de l\\'inventaire de l\\'année <div class=\\'chip\\'> {inventaire.Annee} </div> annulée')";
+
+                            <tr>
+                                <td data-order="@inventaire.Annee">
+                                    <div class="lc-entity">
+                                        @if (enCours)
+                                        {
+                                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-calendar"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb"><i class="iconoir-calendar"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <a href="/inventaire/resultat/@inventaire.Annee" class="lc-name">Inventaire @inventaire.Annee</a>
+                                            <span class="lc-sub">Lancé le @inventaire.DateCreation.ToString("dd MMMM yyyy à HH:mm")</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (!string.IsNullOrEmpty(photoUser))
+                                        {
+                                            <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet" class="lc-thumb lc-thumb-sm rounded-circle avatar-zoom" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb lc-thumb-sm rounded-circle"><i class="iconoir-user"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <span class="lc-name">@nomComplet</span>
+                                            @if (!string.IsNullOrEmpty(sousTitreCreateur))
+                                            {
+                                                <span class="lc-sub">@sousTitreCreateur</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-order="@(enCours ? pctCourant : 101)" style="min-width: 180px;">
+                                    @if (enCours)
+                                    {
+                                        <div class="d-flex justify-content-between fs-12 mb-1">
+                                            <span class="text-muted">@Utilities.FormatNumber(traitesCourant, 0) / @Utilities.FormatNumber(parc, 0) biens</span>
+                                            <span class="fw-semibold">@(pctCourant) %</span>
+                                        </div>
+                                        <div class="lc-progress">
+                                            <div class="progress-bar bg-primary" role="progressbar" style="width: @(pctCourant)%" aria-valuenow="@pctCourant" aria-valuemin="0" aria-valuemax="100"></div>
+                                        </div>
+                                    }
+                                    else if (cloture)
+                                    {
+                                        <span class="text-muted fs-13"><i class="iconoir-check-circle text-success me-1"></i>Campagne terminée</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (cloture)
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-lock"></i>Clôturé</span>
+                                    }
+                                    else if (enCours)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-play"></i>En cours</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-clock"></i>Ouvert</span>
+                                    }
+                                    @if (!cloture && !inventaire.Actif)
+                                    {
+                                        <span class="badge lc-badge bg-warning-subtle text-warning ms-1"><i class="iconoir-warning-triangle"></i>Inactif</span>
+                                    }
+                                </td>
+                                <td data-order="@(cloture ? inventaire.DateCloture.ToString("yyyyMMddHHmm") : "")">
+                                    @if (cloture)
+                                    {
+                                        <span class="d-block text-body">@inventaire.DateCloture.ToString("dd MMMM yyyy")</span>
+                                        <span class="d-block fs-12 text-muted">
+                                            à @inventaire.DateCloture.ToString("HH:mm")
+                                            @if (!string.IsNullOrEmpty(inventaire.UserCloture))
+                                            {
+                                                <text>· par @inventaire.UserCloture</text>
+                                            }
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/inventaire/resultat/@inventaire.Annee" title="Voir les résultats" data-bs-toggle="tooltip"><i class="iconoir-stats-report"></i></a>
+                                        @if (string.IsNullOrEmpty(inventaire.UserCloture))
+                                        {
+                                            <a onclick="@Html.Raw(onclik)" class="lc-warning" role="button" title="Clôturer l'inventaire" data-bs-toggle="tooltip"><i class="iconoir-lock"></i></a>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

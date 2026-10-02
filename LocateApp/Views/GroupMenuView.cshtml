@@ -1,0 +1,211 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ GroupMenuViewModel Page = (GroupMenuViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+
+    List<GroupMenu> groupes = Page.GroupMenus ?? new List<GroupMenu>();
+
+    // AllMenu et Section interrogent la base à chaque lecture : on les lit une seule fois par groupe.
+    Dictionary<int, int> menusParGroupe = new Dictionary<int, int>();
+    Dictionary<int, string> sections = new Dictionary<int, string>();
+    int nbMenus = 0;
+    foreach (var g in groupes)
+    {
+        List<Menu> m = g.AllMenu;
+        int n = m == null ? 0 : m.Count;
+        menusParGroupe[g.IdGroupMenu] = n;
+        sections[g.IdGroupMenu] = g.Section;
+        nbMenus += n;
+    }
+    int nbVisibles = groupes.Count(x => x.Visible);
+
+    // Page.Link vaut "menu/groupmenu/" (sans barre initiale) : on rend le lien absolu pour qu'il fonctionne depuis /groupmenu/.
+    string lienBase = "/" + (Page.Link ?? "menu/groupmenu/").TrimStart('/');
+
+    Func<string, string> libelleSection = s => s == "Principale" ? "Barre latérale" : (s == "Profil" ? "Menu utilisateur" : (s == "Invisible" ? "Routes protégées" : s));
+    Func<string, string> couleurSection = s => s == "Principale" ? "primary" : (s == "Profil" ? "info" : "secondary");
+   }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<style>
+    .lc-thumb .material-icons { font-size: 1.25rem; }
+</style>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-view-grid"></i></span>
+            <div>
+                <p class="lc-kpi-label">Groupes de menus</p>
+                <p class="lc-kpi-value">@groupes.Count<small>définis</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-eye"></i></span>
+            <div>
+                <p class="lc-kpi-label">Visibles</p>
+                <p class="lc-kpi-value">@nbVisibles<small>dans la navigation</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i></span>
+            <div>
+                <p class="lc-kpi-label">Masqués</p>
+                <p class="lc-kpi-value">@(groupes.Count - nbVisibles)<small>hors navigation</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-list"></i></span>
+            <div>
+                <p class="lc-kpi-label">Menus</p>
+                <p class="lc-kpi-value">@nbMenus<small>répartis dans les groupes</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Les groupes structurent la navigation ; leur section indique où leurs menus apparaissent.</p>
+                <div class="d-flex flex-wrap gap-2 mt-2">
+                    <span class="badge lc-badge bg-primary-subtle text-primary"><i class="iconoir-sidebar-collapse"></i>Barre latérale</span>
+                    <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-user-circle"></i>Menu utilisateur</span>
+                    <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-lock"></i>Routes protégées (sans entrée de menu)</span>
+                </div>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/menu/" class="btn btn-light"><i class="iconoir-list me-1"></i>Tous les menus</a>
+                <a href="/menu/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouveau menu</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (groupes.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-view-grid"></i></div>
+                <h6>Aucun groupe de menus</h6>
+                <p>Les groupes de menus sont définis en base de données.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Groupe</th>
+                            <th>Section</th>
+                            <th>URL</th>
+                            <th class="text-end">Menus</th>
+                            <th>Accordé par défaut</th>
+                            <th>Visibilité</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{ string onclik; }
+                        @foreach (var groupMenu in Page.GroupMenus)
+                        {
+                            string link = lienBase + groupMenu.IdGroupMenu;
+                            int nb = menusParGroupe.ContainsKey(groupMenu.IdGroupMenu) ? menusParGroupe[groupMenu.IdGroupMenu] : 0;
+                            string section = sections.ContainsKey(groupMenu.IdGroupMenu) ? sections[groupMenu.IdGroupMenu] : groupMenu.Section;
+                            string libelleGroupe = string.IsNullOrWhiteSpace(groupMenu.Libelle) ? groupMenu.Nom : groupMenu.Libelle;
+                            // Libellé protégé pour la chaîne JavaScript du message de confirmation.
+                            string libelleJs = (libelleGroupe ?? "").Replace("\\", "").Replace("'", "\\'").Replace("\"", "&quot;");
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb bg-@(couleurSection(section))-subtle text-@(couleurSection(section))"><i class="material-icons">@groupMenu.Icone</i></span>
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@libelleGroupe</a>
+                                            <span class="lc-sub">@groupMenu.Nom</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge lc-badge bg-@(couleurSection(section))-subtle text-@(couleurSection(section))">@libelleSection(section)</span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(groupMenu.Url))
+                                    {
+                                        <span class="lc-code">@groupMenu.Url</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="lc-num" data-order="@nb">
+                                    <a href="@Html.Raw(link)" class="lc-count text-decoration-none" title="Voir les menus du groupe" data-bs-toggle="tooltip">@nb</a>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @if (groupMenu.DefaultInternalUser)
+                                        {
+                                            <span class="badge lc-badge bg-success-subtle text-success" title="Groupe par défaut de tous les agents" data-bs-toggle="tooltip"><i class="iconoir-user"></i>Agents</span>
+                                        }
+                                        @if (groupMenu.DefaultExternalUser)
+                                        {
+                                            <span class="badge lc-badge bg-info-subtle text-info" title="Groupe par défaut de tous les utilisateurs externes" data-bs-toggle="tooltip"><i class="iconoir-globe"></i>Externes</span>
+                                        }
+                                        @if (!groupMenu.DefaultInternalUser && !groupMenu.DefaultExternalUser)
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (groupMenu.Visible)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-eye"></i>Visible</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i>Masqué</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Voir les menus" data-bs-toggle="tooltip"><i class="iconoir-list"></i></a>
+                                        @if (groupMenu.Visible)
+                                        {
+                                            onclik = $"$(this).confirmUrl('Masquer le groupe', '/groupmenu/invisibility/{groupMenu.IdGroupMenu}', 'Êtes-vous sûr de vouloir masquer le groupe de menus <b>{libelleJs}</b> ? Ses menus n\\'apparaîtront plus dans la navigation.', 'Le groupe <b>{libelleJs}</b> reste visible.')";
+
+                                            <a href="javascript:void(0)" onclick="@Html.Raw(onclik)" class="lc-warning" title="Masquer le groupe" data-bs-toggle="tooltip"><i class="iconoir-eye-closed"></i></a>
+                                        }
+                                        else
+                                        {
+                                            onclik = $"$(this).confirmUrl('Afficher le groupe', '/groupmenu/visibility/{groupMenu.IdGroupMenu}', 'Êtes-vous sûr de vouloir rendre visible le groupe de menus <b>{libelleJs}</b> ?', 'Le groupe <b>{libelleJs}</b> reste masqué.')";
+
+                                            <a href="javascript:void(0)" onclick="@Html.Raw(onclik)" class="lc-success" title="Afficher le groupe" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

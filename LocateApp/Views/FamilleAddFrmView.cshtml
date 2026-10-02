@@ -1,0 +1,69 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ViewModel Page = (ViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <a href="/famille/" class="d-inline-flex align-items-center gap-1 text-muted mb-3"><i class="iconoir-arrow-left"></i>Retour aux familles</a>
+
+        <form class="lc-form" method="post" action="/famille/add/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <div class="lc-entity">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-view-grid"></i></span>
+                        <div class="lc-entity-body">
+                            <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Nouvelle famille" : Page.Title)</h4>
+                            <p class="lc-card-subtitle">La famille est le niveau de classement le plus large : elle regroupe plusieurs catégories d'articles.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Désignation<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" placeholder="Ex. Matériel informatique">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Couleur">Code couleur</label>
+                            <div class="input-group">
+                                <input type="color" id="CouleurPicker" class="form-control form-control-color flex-grow-0" value="#3167f3" title="Choisir une couleur" aria-label="Choisir une couleur">
+                                <input id="Couleur" name="Couleur" type="text" class="form-control" placeholder="Ex. #3167F3">
+                            </div>
+                            <div class="form-text">Couleur utilisée pour représenter la famille dans les graphiques du tableau de bord.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/famille/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer la famille</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var picker = document.getElementById('CouleurPicker');
+        var champ = document.getElementById('Couleur');
+        if (!picker || !champ) { return; }
+        function versPicker() {
+            var v = champ.value.trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(v)) { picker.value = v; }
+        }
+        picker.addEventListener('input', function () { champ.value = picker.value.toUpperCase(); });
+        champ.addEventListener('input', versPicker);
+        versPicker();
+    })();
+</script>

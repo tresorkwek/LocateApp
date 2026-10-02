@@ -1,0 +1,168 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ EtiquetteViewModel Page = (EtiquetteViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+
+   // Format d'impression : celui de la commande ; à défaut (étiquettes non utilisées), celui de la première étiquette.
+   EtiquetteFormat formatEtiquette = Page.Commande != null ? Page.Commande.GetFormatEtiquette() : Page.Etiquettes.FirstOrDefault()?.GetFormatEtiquette();
+   int nbEtiquettes = Page.Etiquettes.Count;
+   int parPage = formatEtiquette == null ? 0 : formatEtiquette.Ligne * formatEtiquette.Colone;
+   int nbPages = parPage > 0 ? (int)Math.Ceiling(nbEtiquettes / (double)parPage) : 0;
+   string retourUrl = "/etiquette/genereted/";
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@* Styles d'écran uniquement : chaque planche est présentée comme une feuille. Aucun effet à l'impression. *@
+<style>
+    @@media screen {
+        .lc-planches > span {
+            display: block;
+            width: max-content;
+            max-width: 100%;
+            overflow-x: auto;
+            margin: 0 auto 1.25rem;
+            padding: .75rem;
+            background: #fff;
+            border-radius: .625rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, .06), 0 6px 18px rgba(15, 23, 42, .08);
+        }
+    }
+</style>
+
+<div class="card d-print-none invisibleForPrint">
+    <div class="card-body">
+        <div class="d-flex flex-wrap align-items-center gap-3">
+            <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-qr-code"></i></span>
+            <div class="flex-grow-1">
+                <div class="d-flex flex-wrap align-items-center gap-2">
+                    <h5 class="mb-0 fw-semibold">Planche d'étiquettes QR</h5>
+                    @if (Page.Commande != null)
+                    {
+                        <span class="lc-code">CMD-@Page.Commande.NumeroCommande</span>
+                    }
+                    else
+                    {
+                        <span class="badge lc-badge bg-info-subtle text-info">Étiquettes non utilisées</span>
+                    }
+                </div>
+                <p class="text-muted fs-13 mb-0 mt-1">
+                    @nbEtiquettes @(nbEtiquettes > 1 ? "étiquettes" : "étiquette")
+                    @if (formatEtiquette != null)
+                    {
+                        <text>· @nbPages @(nbPages > 1 ? "pages" : "page") · format @formatEtiquette.Nom (@formatEtiquette.Ligne × @formatEtiquette.Colone, @formatEtiquette.Largeur × @formatEtiquette.Hauteur mm) sur @formatEtiquette.Papier</text>
+                    }
+                </p>
+            </div>
+            <div class="lc-toolbar">
+                <a href="@retourUrl" class="btn btn-light"><i class="iconoir-arrow-left me-1"></i>Retour</a>
+                <button type="button" class="btn btn-primary" onclick="window.print()"><i class="iconoir-printer me-1"></i>Imprimer</button>
+            </div>
+        </div>
+        <div class="lc-callout mt-3">
+            <i class="iconoir-info-circle"></i>
+            <div>Imprimez à l'échelle réelle (100 %, sans « ajuster à la page ») pour conserver les dimensions des étiquettes. Chaque planche correspond à une page imprimée.</div>
+        </div>
+    </div>
+</div>
+
+<div class="lc-planches" style="margin:0px;padding:0px">
+
+                @{
+                    int compteurEtiquette = 0;
+                    int compteurLigne = 0;
+                 }
+
+                @{
+                    string span = "<span style=\"page-break-after:always; \">";
+                    string row = "<div class=\"row\" style=\"margin: 0px; padding: 3px\">";
+                    string contener = "<div class=\"col s12\" style=\"margin: 0px; padding: 0px\">";
+                    string table = "<table style=\"border-style:dashed; border-width:1px; border-color:black; margin: 0px; padding: 0px;\">";
+
+                    string trDebut = "<tr style=\"margin:0px;padding:0px\">";
+                    string trFin = "</tr>";
+                    string tableFin = "</table>";
+                    string divFin = "</div>";
+                    string spanFin = "</span>";
+
+
+                    string largeur;
+                    string hauteur;
+                 }
+
+
+                @foreach (var etiquette in Page.Etiquettes)
+                {
+                        compteurEtiquette++;
+
+                        if (compteurEtiquette == 1)
+                        {
+                            @Html.Raw(span+row + contener+table+trDebut)
+
+                        }
+
+                        largeur = formatEtiquette.Largeur+"mm";
+                        hauteur = formatEtiquette.Hauteur+"mm";
+
+                            <td style="border-style:dashed;border-width:1px;border-color:black;margin:0px;padding:0px;align-content:center">
+                                <img src="@ImageCreator.GetQrCode(etiquette.QrCode.ToString())" style="width: @largeur; height: @hauteur" />
+                            </td>
+
+                        if (compteurEtiquette % formatEtiquette.Colone == 0)
+                        {
+
+                            @Html.Raw(trFin)
+
+                            compteurLigne++;
+
+                            if(compteurLigne % formatEtiquette.Ligne == 0)
+                            {
+
+                                @Html.Raw(tableFin+ divFin+ divFin+ spanFin)
+
+                                if(compteurEtiquette < Page.Etiquettes.Count)
+                                {
+
+                                    @Html.Raw(span+row + contener+table+trDebut)
+
+                                }
+
+                            }
+                            else
+                            {
+                                @Html.Raw(trDebut)
+                            }
+
+                        }
+
+
+
+                 }
+
+
+
+
+    @*@{ string printUrl = $"/billetenvoi/{Page.Identity.IdInstitution}/select/{Page.BilletEnvoi.Id}";
+
+        string backUrl = $"/billetenvoi/{Page.Identity.IdInstitution}/print/{Page.BilletEnvoi.Id}";
+
+
+        string nomPatientToPrint = Page.BilletEnvoi.Patient.NomAfficheable.Trim() + " " + Page.BilletEnvoi.Patient.PostnomAfficheable.Trim() + " " + Page.BilletEnvoi.Patient.PrenomAfficheable.Trim();
+        string imageBoxToPrint = $"<img src =\\'/Content/images/photos/{Page.BilletEnvoi.Patient.Photo}\\' width=\\'130px\\'  class=\\'circle mailbox-profile\\'>";
+        string onclikToPrint = $"$(this).printAndCconfirmUrl('{printUrl}', 'Impression <br/> {imageBoxToPrint}', '{backUrl}', 'Avez-vous pu imprimer correctement le billet d\\'envoi N°{Page.BilletEnvoi.NumBilletEnvoi} de <div class=\\'chip\\'> {nomPatientToPrint.Replace("'", @"\'")} </div> pour {Page.BilletEnvoi.Hopital.Denomination} ?', 'Echec de l\\'impression du billet d\\'envoi N°{Page.BilletEnvoi.NumBilletEnvoi} de <div class=\\'chip\\'> {nomPatientToPrint.Replace("'", @"\'")} </div> pour {Page.BilletEnvoi.Hopital.Denomination}')"; }
+
+    <div class="fab-action invisibleForPrint">
+        <a class="btn btn-danger" onclick="@Html.Raw(onclikToPrint)">
+            <i class="iconoir-printer"></i>
+        </a>
+    </div>*@
+
+</div>
+

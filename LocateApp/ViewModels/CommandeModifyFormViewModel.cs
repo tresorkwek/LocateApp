@@ -1,0 +1,22 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Web;
+using LocateApp.Models;
+using LocateApp.Controllers;
+
+namespace LocateApp.ViewModels
+{
+    public class CommandeModifyFormViewModel : ViewModel
+    {
+        public Commande Commande { get; set; }
+        public List<EtiquetteFormat> FormatEtiquettes { get; set; }
+        public string Link { get; set; }
+
+        public CommandeModifyFormViewModel(string userName = null, MessageAlerte messageAlerte = null) : base(userName, messageAlerte)
+        {
+            Link = "/immo/id/";
+            FormatEtiquettes = EtiquetteFormatController.Select(null,true);
+        }
+    }
+}

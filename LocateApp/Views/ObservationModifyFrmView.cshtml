@@ -1,0 +1,90 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ObservationModifyFrmViewModel Page = (ObservationModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<form class="lc-form" method="post" action="/observation/modify/">
+    <div class="row g-3 justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Modifiez le libellé ou l'état associé à cette observation.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        @if (Page.Observations.Etat == "B")
+                        {
+                            <span class="lc-thumb lc-thumb-lg bg-success-subtle text-success"><i class="iconoir-notes"></i></span>
+                        }
+                        else if (Page.Observations.Etat == "M")
+                        {
+                            <span class="lc-thumb lc-thumb-lg bg-warning-subtle text-warning"><i class="iconoir-notes"></i></span>
+                        }
+                        else
+                        {
+                            <span class="lc-thumb lc-thumb-lg bg-danger-subtle text-danger"><i class="iconoir-notes"></i></span>
+                        }
+                        <div class="lc-entity-body flex-grow-1">
+                            <span class="lc-name fs-15">@Page.Observations.Observation</span>
+                            <span class="lc-sub">Réf. @Page.Observations.Id</span>
+                        </div>
+                        @if (Page.Observations.Etat == "B")
+                        {
+                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-thumbs-up"></i>Bon état</span>
+                        }
+                        else if (Page.Observations.Etat == "M")
+                        {
+                            <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-thumbs-down"></i>Mauvais état</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i>Non vu</span>
+                        }
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-notes"></i>Observation</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Libelle">Libellé<span class="lc-req">*</span></label>
+                            <input id="Libelle" name="Observation" type="text" value="@Page.Observations.Observation" class="form-control" placeholder="Ex. Écran fissuré, Fonctionne correctement…">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-clipboard-check"></i>État associé</div>
+                    <div class="row g-2">
+                        @{ string checkEtat = Page.Observations.Etat == "B" ? "checked" : "";}
+                        <div class="col-sm-6">
+                            <input class="btn-check" name="Etat" type="radio" value="B" id="Etat1" autocomplete="off" @checkEtat/>
+                            <label class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2" for="Etat1"><i class="iconoir-thumbs-up fs-18"></i>Bon état</label>
+                        </div>
+                        @{ checkEtat = Page.Observations.Etat == "M" ? "checked" : "";}
+                        <div class="col-sm-6">
+                            <input class="btn-check" name="Etat" type="radio" value="M" id="Etat2" autocomplete="off" @checkEtat/>
+                            <label class="btn btn-outline-warning w-100 py-2 d-flex align-items-center justify-content-center gap-2" for="Etat2"><i class="iconoir-thumbs-down fs-18"></i>Mauvais état</label>
+                        </div>
+                    </div>
+                    <div class="form-text">Indique si l'observation correspond à un bien en bon ou en mauvais état.</div>
+
+                    <input type="hidden" name="Id" value="@Page.Observations.Id" />
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/observation/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

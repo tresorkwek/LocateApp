@@ -1,0 +1,55 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ViewModel Page = (ViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<form class="lc-form" method="post" action="/observation/add/">
+    <div class="row g-3 justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Un libellé court que les agents choisiront pour qualifier un bien lors de l'inventaire.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-section-title"><i class="iconoir-notes"></i>Observation</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Libelle">Libellé<span class="lc-req">*</span></label>
+                            <input id="Libelle" name="Observation" type="text" class="form-control" placeholder="Ex. Écran fissuré, Fonctionne correctement…">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-clipboard-check"></i>État associé</div>
+                    <div class="row g-2">
+                        <div class="col-sm-6">
+                            <input class="btn-check" name="Etat" type="radio" value="B" id="Etat1" autocomplete="off" />
+                            <label class="btn btn-outline-success w-100 py-2 d-flex align-items-center justify-content-center gap-2" for="Etat1"><i class="iconoir-thumbs-up fs-18"></i>Bon état</label>
+                        </div>
+                        <div class="col-sm-6">
+                            <input class="btn-check" name="Etat" type="radio" value="M" id="Etat2" autocomplete="off" />
+                            <label class="btn btn-outline-warning w-100 py-2 d-flex align-items-center justify-content-center gap-2" for="Etat2"><i class="iconoir-thumbs-down fs-18"></i>Mauvais état</label>
+                        </div>
+                    </div>
+                    <div class="form-text">Indique si l'observation correspond à un bien en bon ou en mauvais état.</div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/observation/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer l'observation</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,172 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ OrganigrammeViewModel Page = (OrganigrammeViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    bool vide = Page.Organigramme == null || Page.Organigramme.Count == 0;
+    Func<List<Organe>, int> compter = null;
+    compter = liste => { int n = 0; if (liste != null) { foreach (var o in liste) { n += 1 + compter(o.Organes); } } return n; };
+    int nbOrganes = compter(Page.Organigramme);
+}
+
+<style>
+    /* Arbre des organes : nom à gauche, repères alignés à droite (même esprit que la configuration de l'organigramme) */
+    #nestable .dd-handle { display: flex; align-items: center; gap: .5rem; min-height: 42px; padding: 8px 12px; font-weight: 400; line-height: 1.4; }
+    #nestable .dd-item > button { margin-top: 14px; }
+    #nestable .lc-tree-icon { font-size: 1.05rem; color: var(--bs-secondary-color); flex-shrink: 0; }
+    #nestable .lc-tree-name { font-weight: 500; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    #nestable .lc-tree-stats { margin-left: auto; display: flex; align-items: center; gap: .35rem; flex-shrink: 0; }
+    #nestable .badge { float: none; margin: 0; }
+    #nestable .lc-tree-hide { display: none !important; }
+    #nestable.dd-searching .dd-list { display: block !important; }
+    @@media (max-width: 575.98px) {
+        #nestable .lc-tree-opt, #nestable .lc-code { display: none !important; }
+    }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage <span class="lc-count ms-1" title="Organes affichés">@nbOrganes</span></h4>
+                <p class="lc-card-subtitle">Structure hiérarchique des organes. Les boutons + / − déplient ou replient une branche.</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="card-body pt-0 nestable-container">
+
+        @if (vide)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-tree"></i></div>
+                <h6>Aucun organe</h6>
+                <p>L'organigramme est vide : aucun organe à afficher.</p>
+            </div>
+        }
+        else
+        {
+            <div class="row g-2 align-items-center mb-3">
+                <div class="col-md">
+                    <div class="lc-input-icon">
+                        <i class="iconoir-search"></i>
+                        <input type="text" id="rechercheOrgane" class="form-control" placeholder="Rechercher un organe (nom, code ou sigle)…" autocomplete="off" />
+                    </div>
+                </div>
+                <div class="col-md-auto lc-toolbar">
+                    <span id="infoRecherche" class="fs-12 text-muted me-1"></span>
+                    <button type="button" class="btn btn-light" id="toutDeplier" title="Tout déplier" data-bs-toggle="tooltip"><i class="iconoir-expand"></i></button>
+                    <button type="button" class="btn btn-light" id="toutReplier" title="Tout replier" data-bs-toggle="tooltip"><i class="iconoir-collapse"></i></button>
+                </div>
+            </div>
+
+            <div class="dd" id="nestable">
+                <ol class="dd-list">
+                    @foreach (var organe in Page.Organigramme)
+                    {
+                        @NoeudOrgane(organe)
+                    }
+                </ol>
+            </div>
+        }
+
+    </div>
+</div>
+
+@helper NoeudOrgane(Organe organe)
+{
+    string sigle = organe.Sigle == null ? string.Empty : organe.Sigle.Trim();
+    bool structure = organe.Entite || organe.Id == organe.IdStructure;
+    int nbreLocaux = organe.NbreLocaux;
+
+    <li class="dd-item" data-id="@organe.Id">
+        <div class="dd-handle @(organe.Actif ? "" : "text-muted")">
+            <i class="lc-tree-icon @(structure ? "iconoir-building" : "iconoir-folder")"></i>
+            <span class="lc-tree-name" title="@organe.Nom">@organe.Nom</span>
+            <span class="lc-code">@organe.Id</span>
+            @if (!string.IsNullOrWhiteSpace(sigle))
+            {
+                <span class="badge lc-badge bg-primary-subtle text-primary lc-tree-opt">@sigle</span>
+            }
+            <span class="lc-tree-stats">
+                @if (structure)
+                {
+                    <span class="badge lc-badge bg-info-subtle text-info lc-tree-opt">Structure</span>
+                }
+                @if (!organe.Actif)
+                {
+                    <span class="badge lc-badge bg-secondary-subtle text-secondary">Inactif</span>
+                }
+                @if (nbreLocaux > 0)
+                {
+                    <span class="badge lc-badge bg-secondary-subtle text-secondary" title="Locaux rattachés"><i class="iconoir-home-simple"></i>@nbreLocaux</span>
+                }
+            </span>
+        </div>
+
+        @if (organe.Organes != null && organe.Organes.Count > 0)
+        {
+            <ol class="dd-list">
+                @foreach (var enfant in organe.Organes)
+                {
+                    @NoeudOrgane(enfant)
+                }
+            </ol>
+        }
+    </li>
+}
+
+<script>
+    // jQuery et le plugin nestable sont chargés après le contenu : on attend DOMContentLoaded.
+    document.addEventListener('DOMContentLoaded', function () {
+
+        var container = document.getElementById('nestable');
+        var input = document.getElementById('rechercheOrgane');
+        if (!container || !input) { return; }
+
+        document.getElementById('toutDeplier').addEventListener('click', function () { if (window.jQuery && jQuery.fn.nestable) { jQuery(container).nestable('expandAll'); } });
+        document.getElementById('toutReplier').addEventListener('click', function () { if (window.jQuery && jQuery.fn.nestable) { jQuery(container).nestable('collapseAll'); } });
+
+        // Recherche : masque les organes non concordants en gardant le chemin hiérarchique et la descendance du résultat.
+        var info = document.getElementById('infoRecherche');
+        var diacritiques = new RegExp('[\\u0300-\\u036f]', 'g');
+        function norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(diacritiques, ''); }
+
+        input.addEventListener('input', function () {
+            var q = norm(input.value.trim());
+            var items = container.querySelectorAll('li.dd-item');
+            if (!q) {
+                container.classList.remove('dd-searching');
+                items.forEach(function (li) { li.classList.remove('lc-tree-hide'); });
+                info.textContent = '';
+                return;
+            }
+            container.classList.add('dd-searching');
+            items.forEach(function (li) { li.classList.add('lc-tree-hide'); });
+            var nb = 0;
+            items.forEach(function (li) {
+                var handle = li.querySelector(':scope > .dd-handle');
+                if (!handle || norm(handle.textContent).indexOf(q) === -1) { return; }
+                nb++;
+                var el = li;
+                while (el && el !== container) {
+                    if (el.classList && el.classList.contains('dd-item')) { el.classList.remove('lc-tree-hide'); }
+                    el = el.parentElement;
+                }
+                li.querySelectorAll('li.dd-item').forEach(function (d) { d.classList.remove('lc-tree-hide'); });
+            });
+            info.textContent = nb === 0 ? 'Aucun organe ne correspond.' : nb + ' organe(s) trouvé(s).';
+        });
+    });
+</script>

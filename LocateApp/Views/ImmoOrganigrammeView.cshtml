@@ -1,0 +1,183 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using LocateApp.Controllers;
+
+
+@{ OrganigrammeViewModel Page = (OrganigrammeViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    int anneeEnCours = Page.AnneEnCours;
+    bool vide = Page.Organigramme == null || Page.Organigramme.Count == 0;
+    string sousTitre = string.IsNullOrEmpty(Page.Description) ? "Cliquez sur un organe pour afficher ses biens." : Page.Description;
+}
+
+<style>
+    .immo-tree .dd-handle { height: auto; font-weight: 400; }
+    .immo-tree .immo-node { display: flex; align-items: center; gap: .5rem; min-width: 0; }
+    .immo-tree .immo-node-nom { font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .immo-tree .immo-node-stats { margin-left: auto; display: inline-flex; align-items: center; gap: .5rem; flex-shrink: 0; }
+    .immo-tree .immo-node .lc-progress { width: 64px; }
+    .immo-tree .immo-hide { display: none !important; }
+    .immo-tree.dd-searching .dd-list { display: block !important; }
+    @@media (max-width: 575.98px) { .immo-tree .immo-node .lc-progress { display: none; } }
+</style>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col-lg">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">@sousTitre</p>
+            </div>
+            @if (!vide)
+            {
+                <div class="col-lg-auto lc-card-actions">
+                    <div class="lc-input-icon">
+                        <i class="iconoir-search"></i>
+                        <input type="search" id="rechercheOrgane" class="form-control" placeholder="Rechercher un organe" autocomplete="off" aria-label="Rechercher un organe" />
+                    </div>
+                    <div class="btn-group" role="group" aria-label="Déplier ou replier l'arbre">
+                        <button type="button" class="btn btn-light" id="toutDeplier" data-bs-toggle="tooltip" title="Tout déplier"><i class="iconoir-expand"></i></button>
+                        <button type="button" class="btn btn-light" id="toutReplier" data-bs-toggle="tooltip" title="Tout replier"><i class="iconoir-collapse"></i></button>
+                    </div>
+                </div>
+            }
+        </div>
+    </div>
+    <div class="card-body pt-0 nestable-container">
+
+        <input type="hidden" name="link" id="link" value="@Page.Link" />
+
+        @if (vide)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-tree"></i></div>
+                <h6>Aucun organe</h6>
+                <p>L'organigramme de cette institution est vide.</p>
+            </div>
+        }
+        else
+        {
+            <div class="d-flex flex-wrap align-items-center gap-3 fs-12 text-muted mb-2">
+                @if (anneeEnCours > 0)
+                {
+                    <span><i class="iconoir-info-circle me-1"></i>Compteur de chaque organe : biens inventoriés en @anneeEnCours / biens de l'organe.</span>
+                }
+                else
+                {
+                    <span><i class="iconoir-info-circle me-1"></i>Compteur de chaque organe : nombre de biens de l'organe.</span>
+                }
+                <span id="infoRecherche"></span>
+            </div>
+
+            <div class="dd immo-tree" id="nestable">
+                <ol class="dd-list">
+                    @foreach (var organe in Page.Organigramme)
+                    {
+                        @NoeudOrgane(organe, anneeEnCours)
+                    }
+                </ol>
+            </div>
+        }
+
+    </div>
+</div>
+
+@helper NoeudOrgane(Organe organe, int anneeEnCours)
+{
+    string idOrgane = "Item" + organe.Id;
+    bool aDesLocaux = organe.NbreLocaux > 0;
+    long quantiteImmoInventorie = aDesLocaux && anneeEnCours > 0 ? InventaireController.SelectQuantiteByOrgance(organe.Id, anneeEnCours) : 0;
+    int pct = organe.NbreBien == 0 ? 0 : (int)Math.Round(100.0 * quantiteImmoInventorie / organe.NbreBien);
+    bool structure = organe.Entite || organe.Id == organe.IdStructure;
+    string sigle = organe.Sigle == null ? "" : organe.Sigle.Trim();
+
+    <li class="dd-item" data-id="@idOrgane">
+        <div class="dd-handle" id="@organe.Id" style="cursor:pointer">
+            <span class="dd-toclick immo-node">
+                <i class="@(structure ? "iconoir-city" : "iconoir-building") text-muted fs-16"></i>
+                <span class="immo-node-nom">@organe.Nom</span>
+                @if (!string.IsNullOrEmpty(sigle) && sigle != organe.Nom)
+                {
+                    <span class="lc-code fs-11 d-none d-md-inline">@sigle</span>
+                }
+                @if (aDesLocaux)
+                {
+                    <span class="immo-node-stats">
+                        @if (anneeEnCours > 0)
+                        {
+                            <span class="lc-progress d-none d-sm-block"><span class="progress-bar bg-success d-block h-100" style="width: @pct%"></span></span>
+                            <span class="lc-count" title="Biens inventoriés en @anneeEnCours / biens de l'organe">@Utilities.FormatNumber(quantiteImmoInventorie, 0) / @Utilities.FormatNumber(organe.NbreBien, 0)</span>
+                        }
+                        else
+                        {
+                            <span class="lc-count" title="Biens de l'organe">@Utilities.FormatNumber(organe.NbreBien, 0)</span>
+                        }
+                    </span>
+                }
+            </span>
+        </div>
+
+        @if (organe.Organes != null && organe.Organes.Count >= 1)
+        {
+            <ol class="dd-list">
+                @foreach (var enfant in organe.Organes)
+                {
+                    @NoeudOrgane(enfant, anneeEnCours)
+                }
+            </ol>
+        }
+    </li>
+}
+
+<script>
+    // jQuery et nestable sont chargés après le contenu de la page : on attend DOMContentLoaded.
+    document.addEventListener('DOMContentLoaded', function () {
+        var arbre = document.getElementById('nestable');
+        var saisie = document.getElementById('rechercheOrgane');
+        if (!arbre || !saisie) { return; }
+
+        document.getElementById('toutDeplier').addEventListener('click', function () { if (window.jQuery && jQuery.fn.nestable) { jQuery(arbre).nestable('expandAll'); } });
+        document.getElementById('toutReplier').addEventListener('click', function () { if (window.jQuery && jQuery.fn.nestable) { jQuery(arbre).nestable('collapseAll'); } });
+
+        // Recherche : garde les organes trouvés, leur chemin hiérarchique et leur descendance.
+        var info = document.getElementById('infoRecherche');
+        var diacritiques = new RegExp('[\\u0300-\\u036f]', 'g');
+        function norm(s) { return (s || '').toLowerCase().normalize('NFD').replace(diacritiques, ''); }
+
+        saisie.addEventListener('input', function () {
+            var q = norm(saisie.value.trim());
+            var items = arbre.querySelectorAll('li.dd-item');
+            if (!q) {
+                arbre.classList.remove('dd-searching');
+                items.forEach(function (li) { li.classList.remove('immo-hide'); });
+                info.textContent = '';
+                return;
+            }
+            arbre.classList.add('dd-searching');
+            items.forEach(function (li) { li.classList.add('immo-hide'); });
+            var nb = 0;
+            items.forEach(function (li) {
+                var nom = li.querySelector(':scope > .dd-handle .immo-node-nom');
+                if (!nom || norm(nom.textContent).indexOf(q) === -1) { return; }
+                nb++;
+                var el = li;
+                while (el && el !== arbre) {
+                    if (el.classList && el.classList.contains('dd-item')) { el.classList.remove('immo-hide'); }
+                    el = el.parentElement;
+                }
+                li.querySelectorAll('li.dd-item').forEach(function (d) { d.classList.remove('immo-hide'); });
+            });
+            info.textContent = nb === 0 ? 'Aucun organe ne correspond.' : nb + ' organe(s) trouvé(s).';
+        });
+    });
+</script>

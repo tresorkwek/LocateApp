@@ -1,0 +1,49 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ViewModel Page = (ViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/organe/type/add/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Nouveau type d'organe" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Le type permet de classer les organes de l'organigramme : direction, service, bureau…</p>
+                </div>
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Type d'organe</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" placeholder="Ex. Direction" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Sigle">Sigle</label>
+                            <input id="Sigle" name="Sigle" type="text" class="form-control" placeholder="Ex. DIR">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Ordre">Ordre</label>
+                            <input id="Ordre" name="Ordre" type="text" inputmode="numeric" class="form-control" placeholder="Ex. 1">
+                            <div class="form-text">Rang d'affichage du type dans les listes.</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/organe/type/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer le type</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

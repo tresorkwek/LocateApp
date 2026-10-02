@@ -1,0 +1,215 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+
+
+@{ MenuViewModel Page = (MenuViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Menu> menus = Page.Menus ?? new List<Menu>();
+
+   // Référentiels lus une seule fois (au lieu de trois requêtes par ligne).
+   Dictionary<int, GroupMenu> groupes = new Dictionary<int, GroupMenu>();
+   Dictionary<int, string> sections = new Dictionary<int, string>();
+   foreach (var g in GroupMenuController.GetAllGroupMenu() ?? new List<GroupMenu>())
+   {
+       groupes[g.IdGroupMenu] = g;
+       sections[g.IdGroupMenu] = g.Section;
+   }
+   Dictionary<int, string> modules = new Dictionary<int, string>();
+   foreach (var m in ModuleController.GetModules() ?? new List<LocateApp.Models.Module>()) { modules[m.IdModule] = m.Nom; }
+   Dictionary<int, string> actions = new Dictionary<int, string>();
+   foreach (var a in ActionController.GetAction() ?? new List<Actions>()) { actions[a.IdAction] = a.Nom; }
+
+   int nbMenus = menus.Count;
+   int nbVisibles = menus.Count(x => x.Visible);
+   int nbDefaut = menus.Count(x => x.DefaultMenu);
+   List<int> idGroupes = menus.Select(x => x.IdGroupMenu).Distinct().ToList();
+   GroupMenu groupeFiltre = idGroupes.Count == 1 && groupes.ContainsKey(idGroupes[0]) ? groupes[idGroupes[0]] : null;
+
+   Func<string, string> libelleSection = s => s == "Principale" ? "Barre latérale" : (s == "Profil" ? "Menu utilisateur" : (s == "Invisible" ? "Route protégée" : s));
+   Func<string, string> couleurSection = s => s == "Principale" ? "primary" : (s == "Profil" ? "info" : "secondary");
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<style>
+    .lc-thumb .material-icons { font-size: 1.25rem; }
+</style>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-list"></i></span>
+            <div>
+                <p class="lc-kpi-label">Menus</p>
+                <p class="lc-kpi-value">@nbMenus<small>@(groupeFiltre != null ? "dans ce groupe" : "au total")</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-eye"></i></span>
+            <div>
+                <p class="lc-kpi-label">Visibles</p>
+                <p class="lc-kpi-value">@nbVisibles<small>dans la navigation</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i></span>
+            <div>
+                <p class="lc-kpi-label">Masqués</p>
+                <p class="lc-kpi-value">@(nbMenus - nbVisibles)<small>routes sans entrée</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-user-badge-check"></i></span>
+            <div>
+                <p class="lc-kpi-label">Par défaut</p>
+                <p class="lc-kpi-value">@nbDefaut<small>accordés aux agents</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Chaque menu correspond à une page protégée par un droit ; son nom technique sert de clé d'autorisation.</p>
+                @if (groupeFiltre != null)
+                {
+                    <div class="d-flex flex-wrap align-items-center gap-2 mt-2">
+                        <span class="badge lc-badge bg-primary-subtle text-primary"><i class="material-icons">@groupeFiltre.Icone</i>Groupe : @(string.IsNullOrWhiteSpace(groupeFiltre.Libelle) ? groupeFiltre.Nom : groupeFiltre.Libelle)</span>
+                        <a href="/menu/" class="fs-12 text-decoration-none"><i class="iconoir-xmark me-1"></i>Voir tous les menus</a>
+                    </div>
+                }
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/groupmenu/" class="btn btn-light"><i class="iconoir-view-grid me-1"></i>Groupes de menus</a>
+                <a href="/menu/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouveau menu</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbMenus == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-list"></i></div>
+                <h6>Aucun menu</h6>
+                <p>Ajoutez un menu pour déclarer une nouvelle page et pouvoir l'attribuer aux profils.</p>
+                <a href="/menu/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouveau menu</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Menu</th>
+                            <th>Nom technique</th>
+                            <th>Groupe</th>
+                            <th>URL</th>
+                            <th>Module / action</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var menu in Page.Menus)
+                        {
+                            string link = Page.Link + menu.IdMenu;
+                            GroupMenu groupe = groupes.ContainsKey(menu.IdGroupMenu) ? groupes[menu.IdGroupMenu] : null;
+                            string section = sections.ContainsKey(menu.IdGroupMenu) ? sections[menu.IdGroupMenu] : null;
+                            string nomGroupe = groupe != null ? (string.IsNullOrWhiteSpace(groupe.Libelle) ? groupe.Nom : groupe.Libelle) : menu.GroupMenu;
+                            string nomModule = modules.ContainsKey(menu.IdModule) ? modules[menu.IdModule] : menu.Module;
+                            string nomAction = actions.ContainsKey(menu.IdAction) ? actions[menu.IdAction] : menu.Action;
+                            string libelleMenu = string.IsNullOrWhiteSpace(menu.Libelle) ? menu.Nom : menu.Libelle;
+                            string sousTitre = !string.IsNullOrWhiteSpace(menu.Commentaire) ? menu.Commentaire : (!string.IsNullOrWhiteSpace(menu.Titre) ? menu.Titre : "Sans description");
+                            string icone = !string.IsNullOrWhiteSpace(menu.Icone) ? menu.Icone : (groupe != null ? groupe.Icone : null);
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb bg-@(menu.Visible ? "primary" : "secondary")-subtle text-@(menu.Visible ? "primary" : "secondary")">
+                                            @if (!string.IsNullOrWhiteSpace(icone))
+                                            {
+                                                <i class="material-icons">@icone</i>
+                                            }
+                                            else
+                                            {
+                                                <i class="iconoir-link"></i>
+                                            }
+                                        </span>
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@libelleMenu</a>
+                                            <span class="lc-sub" title="@sousTitre">@sousTitre</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="lc-code">@menu.Nom</span></td>
+                                <td data-order="@nomGroupe @(menu.Ordre.ToString("D4"))">
+                                    <a href="/menu/groupmenu/@menu.IdGroupMenu" class="d-block text-body fw-medium text-decoration-none">@nomGroupe</a>
+                                    <span class="d-block fs-12 text-muted">
+                                        @if (!string.IsNullOrEmpty(section))
+                                        {
+                                            <span class="text-@(couleurSection(section))">@libelleSection(section)</span><text> · </text>
+                                        }
+                                        position @menu.Ordre
+                                    </span>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(menu.Url))
+                                    {
+                                        <span class="lc-code">@menu.Url</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="d-block text-body">@nomModule</span>
+                                    <span class="d-block fs-12 text-muted">@nomAction</span>
+                                </td>
+                                <td>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        @if (menu.Visible)
+                                        {
+                                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-eye"></i>Visible</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i>Masqué</span>
+                                        }
+                                        @if (menu.DefaultMenu)
+                                        {
+                                            <span class="badge lc-badge bg-info-subtle text-info" title="Accordé automatiquement à tous les profils internes" data-bs-toggle="tooltip"><i class="iconoir-check"></i>Par défaut</span>
+                                        }
+                                    </div>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

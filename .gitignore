@@ -1,0 +1,44 @@
+# ---------------------------------------------------------------- Visual Studio / .NET
+.vs/
+*.user
+*.suo
+*.userprefs
+*.rsuser
+[Bb]in/
+[Oo]bj/
+packages/
+*.nupkg
+TestResults/
+*.log
+LocateApp - Raccourci.lnk
+.claude/
+
+# ---------------------------------------------------------------- Projets hors solution
+tempMVC/
+
+# ---------------------------------------------------------------- Configuration avec secrets (voir Web.config.exemple)
+LocateApp/Web.config
+
+# ---------------------------------------------------------------- Données de l'application (déposées par les utilisateurs)
+LocateApp/Logs/
+# Photos des agents : données personnelles
+LocateApp/Content/images/photos/*
+!LocateApp/Content/images/photos/photoVideHomme.png
+!LocateApp/Content/images/photos/photoVideFemme.png
+# Photos des articles et des biens (on garde les images par défaut et les crédits)
+LocateApp/Content/images/articles/*
+!LocateApp/Content/images/articles/defaultarticle.jpg
+!LocateApp/Content/images/articles/CREDITS.md
+LocateApp/Content/images/equipements/*
+!LocateApp/Content/images/equipements/defaultImmo.jpg
+# Pièces jointes déposées (achats, etc.)
+LocateApp/Content/documents/
+LocateApp/App_Data/
+
+# ---------------------------------------------------------------- Android (MAUI)
+*.apk
+*.aab
+*.keystore
+
+# ---------------------------------------------------------------- Démo du thème Approx non utilisée (contient le jeton Mapbox de l'auteur du thème)
+LocateApp/Content/approx/js/pages/leaflet-map.init.js

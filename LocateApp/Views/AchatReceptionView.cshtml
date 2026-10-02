@@ -1,0 +1,196 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ AchatReceptionViewModel Page = (AchatReceptionViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    Reception r = Page.Reception;
+    CommandeAchat c = Page.Commande;
+
+    Func<int, string> iconeStatut = s => s == StatutCommande.Brouillon ? "iconoir-page-edit"
+        : s == StatutCommande.Soumise ? "iconoir-clock"
+        : s == StatutCommande.Validee ? "iconoir-check"
+        : s == StatutCommande.PartiellementLivree ? "iconoir-delivery-truck"
+        : s == StatutCommande.Livree ? "iconoir-check-circle"
+        : s == StatutCommande.Cloturee ? "iconoir-lock"
+        : s == StatutCommande.Rejetee ? "iconoir-xmark-circle"
+        : "iconoir-info-circle";
+    Func<int, string> classeStatut = s => s == StatutCommande.Cloturee ? "bg-dark-subtle text-body" : StatutCommande.Badge(s);
+}
+
+<div class="card">
+    <div class="lc-cover"></div>
+    <div class="card-body pt-0">
+        <div class="lc-profile">
+            <span class="lc-profile-media"><i class="iconoir-delivery-truck"></i></span>
+            <div>
+                <h3 class="lc-profile-title">Livraison du @r.DateReception.ToString("dd/MM/yyyy")</h3>
+                <p class="lc-profile-sub">Commande @r.NumeroCommande · @r.Fournisseur</p>
+            </div>
+            <div class="lc-profile-actions">
+                <a href="/immo/local/@r.IdLocal" class="btn btn-light"><i class="iconoir-building me-1"></i>Voir le local</a>
+                <a href="/achat/commande/id/@r.IdCommande" class="btn btn-primary"><i class="iconoir-cart me-1"></i>Voir la commande</a>
+            </div>
+        </div>
+
+        <div class="row g-3 mt-2 align-items-center">
+            <div class="col-lg-5">
+                <ul class="lc-meta">
+                    <li><i class="iconoir-cart"></i><b>Commande :</b> <a href="/achat/commande/id/@r.IdCommande" class="fw-medium">@r.NumeroCommande</a></li>
+                    <li><i class="iconoir-shop"></i><b>Fournisseur :</b> @r.Fournisseur</li>
+                    <li><i class="iconoir-building"></i><b>Local :</b> <span class="lc-code">@r.LocalCode</span> @r.LocalDesignation</li>
+                    <li><i class="iconoir-user"></i><b>Reçue par :</b> @r.RecuPar, le @r.DateCreation.ToString("dd/MM/yyyy HH:mm")</li>
+                    <li><i class="iconoir-page"></i><b>Bordereau :</b> @(string.IsNullOrEmpty(r.Bordereau) ? "—" : r.Bordereau)</li>
+                </ul>
+            </div>
+            <div class="col-lg-7">
+                <div class="row g-3">
+                    <div class="col-sm-4">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-box-iso"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Unités reçues</p>
+                                <p class="lc-kpi-value">@r.QuantiteRecue</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-check-circle"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Biens créés</p>
+                                <p class="lc-kpi-value">@Page.Immos.Count</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-sm-4">
+                        <div class="lc-kpi">
+                            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-stats-report"></i></span>
+                            <div>
+                                <p class="lc-kpi-label">Commande</p>
+                                @if (c != null)
+                                {
+                                    <span class="badge lc-badge @classeStatut(c.Statut) mt-1"><i class="@iconeStatut(c.Statut)"></i>@c.StatutLibelle</span>
+                                }
+                                else
+                                {
+                                    <p class="lc-kpi-value">—</p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        @if (!string.IsNullOrEmpty(r.Commentaire))
+        {
+            <div class="bg-primary-subtle p-2 border-dashed border-primary rounded mt-3">
+                <span class="text-primary fw-semibold">Note :</span> <span class="text-primary fw-normal">@r.Commentaire</span>
+            </div>
+        }
+    </div>
+</div>
+
+<div class="row g-3">
+    <div class="col-lg-5">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col">
+                        <h4 class="card-title">Articles reçus</h4>
+                        <p class="lc-card-subtitle">Quantités livrées et prix de la commande.</p>
+                    </div>
+                    <div class="col-auto"><span class="lc-count">@Page.Lignes.Count</span></div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                <div class="table-responsive">
+                    <table class="table lc-table mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Article</th>
+                                <th class="text-end">Quantité</th>
+                                <th class="text-end">Prix unitaire</th>
+                                <th class="text-end">Biens</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var ligne in Page.Lignes)
+                            {
+                                <tr>
+                                    <td><a href="/article/id/@ligne.IdArticle" class="text-body fw-medium">@ligne.ArticleDesignation</a></td>
+                                    <td class="lc-num">@ligne.Quantite</td>
+                                    <td class="lc-num">@Utilities.FormatNumber(ligne.PrixUnitaire)</td>
+                                    <td class="lc-num">@ligne.NbreBiens</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-7">
+        <div class="card">
+            <div class="card-header">
+                <div class="row align-items-center g-2">
+                    <div class="col">
+                        <h4 class="card-title">Biens créés par cette livraison</h4>
+                        <p class="lc-card-subtitle">Rattachés au local <span class="lc-code">@r.LocalCode</span> ; ils peuvent ensuite être affectés ailleurs.</p>
+                    </div>
+                    <div class="col-auto"><a href="/immo/local/@r.IdLocal" class="btn btn-sm btn-light"><i class="iconoir-building me-1"></i>Voir le local</a></div>
+                </div>
+            </div>
+            <div class="card-body pt-0">
+                @if (Page.Immos.Count == 0)
+                {
+                    <div class="lc-empty">
+                        <div class="lc-empty-icon"><i class="iconoir-warning-triangle"></i></div>
+                        <h6>Aucun bien créé</h6>
+                        <p class="mb-0">Aucun bien n'a pu être créé pour cette livraison. Consultez le journal de l'application.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table lc-table w-100 mb-0 @(Page.Immos.Count > 10 ? "datatable" : "")">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>N°</th>
+                                    <th>Bien</th>
+                                    <th class="text-end">Prix d'acquisition</th>
+                                    <th class="text-end">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var immo in Page.Immos)
+                                {
+                                    <tr>
+                                        <td><a href="/immo/id/@immo.Id" class="lc-code">@immo.Id</a></td>
+                                        <td><a href="/immo/id/@immo.Id" class="text-body">@immo.Designation</a></td>
+                                        <td class="lc-num">@(immo.PrixAcquisition.HasValue ? Utilities.FormatNumber(immo.PrixAcquisition.Value) + " " + immo.DeviseAcquisition : "—")</td>
+                                        <td class="text-end">
+                                            <span class="lc-actions">
+                                                <a href="/immo/id/@immo.Id" title="Voir le bien" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>

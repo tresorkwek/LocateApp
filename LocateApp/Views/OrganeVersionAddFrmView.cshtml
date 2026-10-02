@@ -1,0 +1,79 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ OrganeVersionListViewModel Page = (OrganeVersionListViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{
+    OrganeVersion courante = Page.OrganeVersions.FirstOrDefault(v => v.Defaut);
+    int prochainNumero = (Page.OrganeVersions.Count == 0 ? 0 : Page.OrganeVersions.Max(v => v.Id)) + 1;
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/organe/version/add/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">Nouvelle version d'organigramme</h4>
+                    <p class="lc-card-subtitle">Préparez un nouvel organigramme sans toucher à celui en service, puis rendez-le courant le moment venu.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-callout mb-4">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Le numéro de version est attribué automatiquement (prochain : <b>@prochainNumero</b>). En partant d'une version existante, ses organes sont recopiés avec de nouveaux codes commençant par le numéro de la nouvelle version.</div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-git-branch"></i>Version</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Libelle">Libellé<span class="lc-req">*</span></label>
+                            <input type="text" class="form-control" id="Libelle" name="Libelle" maxlength="100" required placeholder="Ex. Organigramme 2027" autofocus />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="CopierDepuis">Partir de la version</label>
+                            <select class="form-select" id="CopierDepuis" name="CopierDepuis">
+                                <option value="">Version vide (organes saisis ensuite)</option>
+                                @foreach (var version in Page.OrganeVersions.Where(v => v.NbOrgane > 0))
+                                {
+                                    if (courante != null && version.Id == courante.Id)
+                                    {
+                                        <option value="@version.Id" selected>Version @version.Id (courante) - @version.NbOrgane organes</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@version.Id">Version @version.Id - @version.NbOrgane organes</option>
+                                    }
+                                }
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Commentaire">Commentaire</label>
+                            <textarea class="form-control" id="Commentaire" name="Commentaire" rows="3" maxlength="500" placeholder="Référence de la décision, date d'effet, principaux changements…"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-check-circle"></i>Mise en service</div>
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" role="switch" id="Defaut" name="Defaut" value="true" />
+                        <label class="form-check-label" for="Defaut">Définir immédiatement comme version courante</label>
+                    </div>
+                    <div class="form-text">Déconseillé pour une version vide : toute l'application basculerait sur un organigramme sans organe.</div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/organe/version/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Créer la version</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

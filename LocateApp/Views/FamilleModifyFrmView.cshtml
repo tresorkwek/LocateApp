@@ -1,0 +1,106 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ FamilleModifyFrmViewModel Page = (FamilleModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+@{
+    string checkedLocked = Page.Famille.IsActive ? "checked" : "";
+    string couleurFamille = string.IsNullOrWhiteSpace(Page.Famille.Couleur) ? null : Page.Famille.Couleur.Trim();
+    string sousTitreFamille = "N° " + Page.Famille.Id + (couleurFamille == null ? "" : " · " + couleurFamille);
+    string styleVignette = couleurFamille == null ? null : "background-color: color-mix(in srgb, " + couleurFamille + " 16%, transparent); color: " + couleurFamille + ";";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <a href="/famille/" class="d-inline-flex align-items-center gap-1 text-muted mb-3"><i class="iconoir-arrow-left"></i>Retour aux familles</a>
+
+        <form class="lc-form" method="post" action="/famille/modify/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Modifier la famille" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Les catégories rattachées à cette famille suivent automatiquement les changements.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-4 rounded border border-dashed bg-light-subtle">
+                        <div class="lc-entity flex-grow-1">
+                            @if (styleVignette != null)
+                            {
+                                <span class="lc-thumb lc-thumb-lg" style="@styleVignette"><i class="iconoir-view-grid"></i></span>
+                            }
+                            else
+                            {
+                                <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-view-grid"></i></span>
+                            }
+                            <div class="lc-entity-body">
+                                <span class="lc-name fs-15">@Page.Famille.Nom</span>
+                                <span class="lc-sub">@sousTitreFamille</span>
+                            </div>
+                        </div>
+                        @if (Page.Famille.IsActive)
+                        {
+                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Active</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivée</span>
+                        }
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Désignation<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" class="form-control" value="@Page.Famille.Nom" placeholder="Ex. Matériel informatique">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Couleur">Code couleur</label>
+                            <div class="input-group">
+                                <input type="color" id="CouleurPicker" class="form-control form-control-color flex-grow-0" value="#3167f3" title="Choisir une couleur" aria-label="Choisir une couleur">
+                                <input id="Couleur" name="Couleur" type="text" class="form-control" value="@Page.Famille.Couleur" placeholder="Ex. #3167F3">
+                            </div>
+                            <div class="form-text">Couleur utilisée pour représenter la famille dans les graphiques du tableau de bord.</div>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input type="checkbox" role="switch" id="IsActive" name="IsActive" value="true" @checkedLocked class="form-check-input">
+                                <label class="form-check-label" for="IsActive">Famille active</label>
+                            </div>
+                            <div class="form-text">Une famille désactivée n'est plus proposée lors de la création d'une catégorie.</div>
+                        </div>
+                    </div>
+
+                    <input type="hidden" name="Id" value="@Page.Famille.Id" />
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/famille/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer les modifications</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var picker = document.getElementById('CouleurPicker');
+        var champ = document.getElementById('Couleur');
+        if (!picker || !champ) { return; }
+        function versPicker() {
+            var v = champ.value.trim();
+            if (/^#[0-9a-fA-F]{6}$/.test(v)) { picker.value = v; }
+        }
+        picker.addEventListener('input', function () { champ.value = picker.value.toUpperCase(); });
+        champ.addEventListener('input', versPicker);
+        versPicker();
+    })();
+</script>

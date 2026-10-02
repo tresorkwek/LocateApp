@@ -1,0 +1,176 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CommandeViewModel Page = (CommandeViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+
+    // Seules les commandes dont toutes les pages ne sont pas encore générées sont affichées.
+    var enAttente = new List<Commande>();
+    if (Page.Commandes != null)
+    {
+        foreach (var commande in Page.Commandes)
+        {
+            if (!commande.IsValidate()) { enAttente.Add(commande); }
+        }
+    }
+    long totalPages = 0;
+    long totalEtiquettes = 0;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    string link;
+    Identity creatorIdentity;  //CreatedBy
+    EtiquetteFormat etiquetteFormat;
+    string photoUser;
+
+    // Pré-calcul des lignes (formats et demandeurs) pour les indicateurs
+    var formats = new Dictionary<Guid, EtiquetteFormat>();
+    foreach (var commande in enAttente)
+    {
+        etiquetteFormat = commande.GetFormatEtiquette();
+        formats[commande.Id] = etiquetteFormat;
+        totalPages += commande.NbrePage;
+        if (etiquetteFormat != null) { totalEtiquettes += (long)commande.NbrePage * etiquetteFormat.Ligne * etiquetteFormat.Colone; }
+    }
+}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-clock"></i></span>
+            <div>
+                <p class="lc-kpi-label">Commandes en attente</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(enAttente.Count, 0)<small>à générer</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-multiple-pages"></i></span>
+            <div>
+                <p class="lc-kpi-label">Pages</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalPages, 0)<small>planches demandées</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-4">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-qr-code"></i></span>
+            <div>
+                <p class="lc-kpi-label">Étiquettes</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(totalEtiquettes, 0)<small>QR codes à produire</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Commandes d'étiquettes QR dont les pages ne sont pas encore toutes générées.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/commande/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Passer une commande</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (enAttente.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-qr-code"></i></div>
+                <h6>Aucune commande en attente</h6>
+                <p>Toutes les commandes d'étiquettes ont été générées.</p>
+                <a href="/commande/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Passer une commande</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Commande</th>
+                            <th>Format</th>
+                            <th>Demandée par</th>
+                            <th>Date</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var commande in enAttente)
+                        {
+                            link = Page.Link + commande.Id;
+                            creatorIdentity = commande.GetIdentity(commande.CreatedBy);
+                            etiquetteFormat = formats[commande.Id];
+                            photoUser = creatorIdentity == null ? null : Utilities.GetPhotoAgentPath() + creatorIdentity.Photo;
+                            string nomComplet = creatorIdentity == null ? commande.CreatedBy : $"{creatorIdentity.Nom} {creatorIdentity.Postnom}".Trim();
+                            string telephone = creatorIdentity?.Telephone?.Trim();
+                            long parPage = etiquetteFormat == null ? 0 : (long)etiquetteFormat.Ligne * etiquetteFormat.Colone;
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-qr-code"></i></span>
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">CMD-@commande.NumeroCommande</a>
+                                            <span class="lc-sub">@commande.NbrePage page(s) · @Utilities.FormatNumber(commande.NbrePage * parPage, 0) étiquette(s)</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (etiquetteFormat != null)
+                                    {
+                                        <span class="d-block text-body">@etiquetteFormat.Nom</span>
+                                        <span class="d-block fs-12 text-muted">@etiquetteFormat.Colone colonnes × @etiquetteFormat.Ligne lignes · @etiquetteFormat.Largeur × @etiquetteFormat.Hauteur · @etiquetteFormat.Papier</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary">Format inconnu</span>
+                                    }
+                                </td>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (photoUser != null)
+                                        {
+                                            <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet" class="lc-thumb rounded-circle avatar-zoom" loading="lazy" />
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb rounded-circle bg-secondary-subtle text-secondary"><i class="iconoir-user"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <span class="lc-name">@nomComplet</span>
+                                            <span class="lc-sub">@(creatorIdentity == null ? "" : creatorIdentity.UserName)@(string.IsNullOrEmpty(telephone) ? "" : " · " + telephone)</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td data-order="@commande.DateCreation.ToString("yyyyMMddHHmm")">
+                                    <span class="d-block text-body">@commande.DateCreation.ToString("dd/MM/yyyy")</span>
+                                    <span class="d-block fs-12 text-muted">à @commande.DateCreation.ToString("HH:mm")</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(link)" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

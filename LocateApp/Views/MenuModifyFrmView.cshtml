@@ -1,0 +1,215 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ MenuModifyFrmViewModel Page = (MenuModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    // Les listes du modèle interrogent la base à chaque lecture : on les lit une seule fois.
+    List<GroupMenu> groupes = Page.GroupMenus ?? new List<GroupMenu>();
+    Func<string, string> libelleSection = s => s == "Principale" ? "Barre latérale (Principale)" : (s == "Profil" ? "Menu utilisateur (Profil)" : (s == "Invisible" ? "Routes protégées (Invisible)" : s));
+    GroupMenu groupeActuel = groupes.FirstOrDefault(g => g.IdGroupMenu == Page.Menu.IdGroupMenu);
+    string icone = !string.IsNullOrWhiteSpace(Page.Menu.Icone) ? Page.Menu.Icone : (groupeActuel != null ? groupeActuel.Icone : null);
+    string libelleMenu = string.IsNullOrWhiteSpace(Page.Menu.Libelle) ? Page.Menu.Nom : Page.Menu.Libelle;
+    string selected;
+    string checkedVisibility = Page.Menu.Visible ? "checked=\"checked\"" : "";
+    string checkedDefault = Page.Menu.DefaultMenu ? "checked=\"checked\"" : "";
+}
+
+<style>
+    .lc-thumb .material-icons { font-size: 1.625rem; }
+</style>
+
+<form class="lc-form" method="post" action="/menu/modify/">
+    <input type="hidden" id="IdMenu" name="IdMenu" value="@Page.Menu.IdMenu" />
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Modifiez la déclaration du menu ; les profils qui en ont le droit le conservent.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-flex flex-wrap align-items-center gap-3 p-3 mb-3 rounded bg-light-subtle border">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary">
+                            @if (!string.IsNullOrWhiteSpace(icone))
+                            {
+                                <i class="material-icons">@icone</i>
+                            }
+                            else
+                            {
+                                <i class="iconoir-link"></i>
+                            }
+                        </span>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h5 class="m-0 fw-bold fs-16 text-truncate">@libelleMenu</h5>
+                            <p class="mb-0 mt-1 d-flex flex-wrap gap-1 align-items-center">
+                                <span class="lc-code">@Page.Menu.Nom</span>
+                                @if (!string.IsNullOrWhiteSpace(Page.Menu.Url))
+                                {
+                                    <span class="lc-code">@Page.Menu.Url</span>
+                                }
+                            </p>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1">
+                            @if (Page.Menu.Visible)
+                            {
+                                <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-eye"></i>Visible</span>
+                            }
+                            else
+                            {
+                                <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-eye-closed"></i>Masqué</span>
+                            }
+                            @if (Page.Menu.DefaultMenu)
+                            {
+                                <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-check"></i>Par défaut</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-label"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Libelle">Libellé</label>
+                            <input id="Libelle" name="Libelle" type="text" value="@Page.Menu.Libelle" class="form-control" placeholder="Ex. Articles">
+                            <div class="form-text">Texte affiché dans la navigation.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Nom">Nom technique<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" value="@Page.Menu.Nom" class="form-control" placeholder="Ex. GetArticle">
+                            <div class="form-text">Clé du droit : ne la modifiez que si la route change, sinon la page devient inaccessible.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Titre">Titre de la page</label>
+                            <input id="Titre" name="Titre" type="text" value="@Page.Menu.Titre" class="form-control" placeholder="Ex. Catalogue des articles">
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Commentaire">Description</label>
+                            <textarea id="Commentaire" name="Commentaire" class="form-control" rows="2" placeholder="À quoi sert cette page ? Affiché lors de l'attribution des droits.">@Page.Menu.Commentaire</textarea>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-link"></i>Navigation</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="IdGroupMenu">Groupe de menus</label>
+                            <select name="IdGroupMenu" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdGroupMenu">
+                                @foreach (var section in groupes.GroupBy(g => g.Section))
+                                {
+                                    <optgroup label="@libelleSection(section.Key)">
+                                        @foreach (var groupMenu in section)
+                                        {
+                                            selected = Page.Menu.IdGroupMenu == groupMenu.IdGroupMenu ? "selected=\"selected\"" : "";
+
+                                            <option value="@groupMenu.IdGroupMenu" @selected>@(string.IsNullOrWhiteSpace(groupMenu.Libelle) ? groupMenu.Nom : groupMenu.Libelle)</option>
+                                        }
+                                    </optgroup>
+                                }
+                            </select>
+                            <div class="form-text">La section du groupe détermine où le menu apparaît : barre latérale, menu utilisateur ou aucune entrée.</div>
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="Url">URL</label>
+                            <div class="lc-input-icon">
+                                <i class="iconoir-link"></i>
+                                <input id="Url" name="Url" type="text" value="@Page.Menu.Url" class="form-control" placeholder="Ex. /article/">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Ordre">Ordre</label>
+                            <input id="Ordre" name="Ordre" type="number" min="0" step="1" value="@Page.Menu.Ordre" class="form-control" placeholder="Ex. 1">
+                            <div class="form-text">Position dans le groupe.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-settings"></i>Routage serveur</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdModule">Module</label>
+                            <select name="IdModule" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdModule">
+                                @foreach (var module in Page.Modules)
+                                {
+                                    selected = Page.Menu.IdModule == module.IdModule ? "selected=\"selected\"" : "";
+
+                                    <option value="@module.IdModule" @selected>@module.Nom</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdAction">Action</label>
+                            <select name="IdAction" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdAction">
+                                @foreach (var action in Page.Actions)
+                                {
+                                    selected = Page.Menu.IdAction == action.IdAction ? "selected=\"selected\"" : "";
+
+                                    <option value="@action.IdAction" @selected>@action.Nom</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-eye"></i>Options</div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="form-check form-switch m-0">
+                                    <input role="switch" type="checkbox" id="Visible" name="Visible" value="true" @checkedVisibility class="form-check-input" />
+                                    <label class="form-check-label" for="Visible">
+                                        <span class="fw-medium d-block">Visible</span>
+                                        <span class="d-block fs-12 text-muted">Affiche le menu dans la navigation. Désactivé, la page reste accessible par son URL si le droit est accordé.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="border rounded p-3 h-100">
+                                <div class="form-check form-switch m-0">
+                                    <input role="switch" type="checkbox" name="DefaultMenu" id="DefaultMenu" value="true" @checkedDefault class="form-check-input" />
+                                    <label class="form-check-label" for="DefaultMenu">
+                                        <span class="fw-medium d-block">Menu par défaut</span>
+                                        <span class="d-block fs-12 text-muted">Accordé automatiquement à tous les profils internes, sans droit explicite.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/menu/groupmenu/@Page.Menu.IdGroupMenu" class="btn btn-light">Annuler</a>
+                    <button type="reset" class="btn btn-light"><i class="iconoir-undo me-1"></i>Rétablir</button>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-aside">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>À savoir</h6>
+                        <ul>
+                            <li>Les droits accordés restent attachés au menu ; son nom technique doit toujours correspondre à la route protégée.</li>
+                            <li>Changer de groupe déplace le menu dans la navigation (barre latérale, menu utilisateur ou aucune entrée).</li>
+                            <li>« Rétablir » revient aux valeurs enregistrées sans quitter la page.</li>
+                        </ul>
+                    </div>
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div>Pour choisir quels profils accèdent à ce menu, passez par <a href="/claim/" class="fw-semibold">Droits d'accès</a>.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

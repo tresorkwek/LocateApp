@@ -1,0 +1,58 @@
+/* Write your custom CSS here */
+
+.inputDiscret {
+    border-bottom: 0px hidden transparent;
+    border-left: 0px hidden transparent;
+    border-right: 0px hidden transparent;
+    border-top: 0px hidden transparent;
+    background: transparent;
+}
+
+.inputDiscretRadio {
+    border-bottom: 0px hidden transparent;
+    border-left: 0px hidden transparent;
+    border-right: 0px hidden transparent;
+    border-top: 0px hidden transparent;
+}
+
+.badges {
+
+    /*width: 5.5cm;*/
+    /*height: 8.5cm;*/
+
+    width: 316px;
+    height: 500px;
+
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    padding-top: 0px;
+    padding-right: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+}
+
+.badges-verso {
+
+    width: 316px;
+
+    margin-top: 0px;
+    margin-right: 0px;
+    margin-bottom: 0px;
+    margin-left: 0px;
+    padding-top: 0px;
+    padding-right: 0px;
+    padding-bottom: 0px;
+    padding-left: 0px;
+}
+
+.cancel-action{
+    /*pour le bouton exigeant la suppression*/
+}
+
+@media print {
+    .invisibleForPrint {
+        display:none;
+    }
+}

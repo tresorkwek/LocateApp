@@ -1,0 +1,246 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+@using System.Collections.Generic;
+
+
+
+@{ OrganeModifyFrmViewModel Page = (OrganeModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+@{
+    string checkFictif = Page.Organe.Fictif ? "checked" : "";
+    string checkActif = Page.Organe.Actif ? "checked" : "";
+    string checkInterne = Page.Organe.Interne ? "checked" : "";
+    string checkEntite = Page.Organe.Entite ? "checked" : "";
+    string sigleOrgane = Page.Organe.Sigle == null ? string.Empty : Page.Organe.Sigle.Trim();
+}
+
+<form class="lc-form" method="post" action="@Page.Link" enctype="multipart/form-data">
+    <div class="row g-3">
+        <div class="col-xl-8">
+            <div class="card h-100 mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Modifier l'organe" : Page.Title)</h4>
+                    <p class="lc-card-subtitle">Mettez à jour l'identification de l'organe, sa place dans l'organigramme et ses caractéristiques.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-building"></i></span>
+                        <div class="lc-entity-body">
+                            <span class="lc-name">@Page.Organe.Nom</span>
+                            <span class="lc-sub">
+                                <span class="lc-code me-1">@Page.Organe.Id</span>
+                                @if (!string.IsNullOrWhiteSpace(sigleOrgane))
+                                {
+                                    <span class="badge lc-badge bg-primary-subtle text-primary me-1">@sigleOrgane</span>
+                                }
+                                @if (Page.Organe.Actif)
+                                {
+                                    <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Actif</span>
+                                }
+                                else
+                                {
+                                    <span class="badge lc-badge bg-secondary-subtle text-secondary">Inactif</span>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-building"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" value="@Page.Organe.Nom" class="form-control" required>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Id">Code organe</label>
+                            <input id="Id" name="Id" type="text" value="@Page.Organe.Id" readonly class="form-control bg-body-tertiary">
+                            <div class="form-text">Non modifiable.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Sigle">Sigle</label>
+                            <input id="Sigle" name="Sigle" type="text" value="@Page.Organe.Sigle" class="form-control">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="IndCoresp">Indice de correspondance</label>
+                            <input id="IndCoresp" name="IndCoresp" type="text" value="@Page.Organe.IndCoresp" class="form-control">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-git-fork"></i>Place dans l'organigramme</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label" for="IdOrganeParent">Organe parent</label>
+                            <select name="IdOrganeParent" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdOrganeParent">
+
+                                @if (Page.Organe.IdOrganeParent == null)
+                                {
+                                    <option value="" disabled selected>Choisissez l'organe parent</option>
+                                }
+
+                                @{ string nomOrgageStructure; }
+
+                                @foreach (var organe in Page.Organigramme)
+                                {
+                                    int spaceCharNum = 0;
+                                    nomOrgageStructure = organe.Id == organe.IdStructure ? "" : $"   ({organe.NomStructure})";
+
+                                    if (Page.Organe.IdOrganeParent == organe.Id)
+                                    {
+                                        <option value="@organe.Id" selected>@organe.Nom @nomOrgageStructure</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@organe.Id">@organe.Nom @nomOrgageStructure</option>
+                                    }
+
+                                    if (organe.Organes.Count > 0)
+                                    {
+                                        @Html.Raw(GetChildrenOrganes(organe.Organes, Page, spaceCharNum + 1).ToString());
+                                    }
+                                }
+
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label" for="Version">Version de l'organigramme</label>
+                            <select name="Version" class="js-states form-select" tabindex="-1" style="width: 100%" id="Version">
+                                @{ string selectVersionOrgane; }
+                                @foreach (var organeVersion in Page.OrganeVersions)
+                                {
+                                    selectVersionOrgane = Page.Organe.Version == organeVersion.Id ? "selected" : "";
+
+                                    string libelleVersion = (string.IsNullOrWhiteSpace(organeVersion.Libelle) ? "Version " + organeVersion.Id : "Version " + organeVersion.Id + " · " + organeVersion.Libelle) + (organeVersion.Defaut ? " (courante)" : "");
+
+                                    <option value="@organeVersion.Id" @selectVersionOrgane>@libelleVersion</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="IdTypeOrgane">Type d'organe</label>
+                            <select name="IdTypeOrgane" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdTypeOrgane">
+                                @{ string selectTypeOrgane; }
+                                @foreach (var organeType in Page.OrganeTypes)
+                                {
+                                    selectTypeOrgane = Page.Organe.IdTypeOrgane == organeType.Id ? "selected" : "";
+
+                                    <option value="@organeType.Id" @selectTypeOrgane>@organeType.Nom</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="Ordre">Ordre</label>
+                            <input id="Ordre" name="Ordre" type="text" inputmode="numeric" value="@Page.Organe.Ordre" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label" for="OrdreInterne">Ordre interne</label>
+                            <input id="OrdreInterne" name="OrdreInterne" type="text" inputmode="numeric" value="@Page.Organe.OrdreInterne" class="form-control" />
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-settings"></i>Caractéristiques</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-sm-6 col-md-3">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Actif" name="Actif" value="true" @checkActif class="form-check-input" />
+                                <label class="form-check-label" for="Actif">Actif</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Entite" name="Entite" value="true" @checkEntite class="form-check-input" />
+                                <label class="form-check-label" for="Entite">Entité (structure)</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Interne" name="Interne" value="true" @checkInterne class="form-check-input" />
+                                <label class="form-check-label" for="Interne">Organe interne</label>
+                            </div>
+                        </div>
+                        <div class="col-sm-6 col-md-3">
+                            <div class="form-check form-switch">
+                                <input role="switch" type="checkbox" id="Fictif" name="Fictif" value="true" @checkFictif class="form-check-input" />
+                                <label class="form-check-label" for="Fictif">Organe fictif</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-map-pin"></i>Adresse</div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label visually-hidden" for="Adresse">Adresse</label>
+                            <textarea id="Adresse" name="Adresse" class="form-control" rows="3" placeholder="Adresse postale ou localisation de l'organe">@Page.Organe.Adresse</textarea>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/organe/config/organigramme/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-xl-4">
+            <div class="card h-100 mb-0">
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-link"></i>Accès rapides</div>
+                    <div class="d-grid gap-2 mb-3">
+                        <a href="/local/organe/@Page.Organe.Id" class="btn btn-soft-primary text-start"><i class="iconoir-home-simple me-1"></i>Locaux de cet organe</a>
+                        <a href="/organe/add/@Page.Organe.Id" class="btn btn-light text-start"><i class="iconoir-plus me-1"></i>Ajouter un sous-organe</a>
+                    </div>
+                    <div class="lc-aside h-auto">
+                        <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bon à savoir</h6>
+                        <ul>
+                            <li>Changer l'organe parent déplace l'organe (et ses sous-organes) dans l'organigramme.</li>
+                            <li>Un organe inactif reste visible, grisé, dans la configuration de l'organigramme.</li>
+                            <li>L'ordre se règle plus simplement par glisser-déposer dans la configuration de l'organigramme.</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@helper GetChildrenOrganes(IEnumerable<Organe> organes, OrganeModifyFrmViewModel Page, int spaceCharNum)
+{
+    string str = "&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;";
+    string strs = "";
+    string nomOrgageStructure;
+
+    for (var i = 0; i < spaceCharNum; i++)
+    {
+        strs = string.Format("{0}{1}", strs, str);
+    }
+
+    foreach (var organe in organes)
+    {
+        nomOrgageStructure = organe.Id == organe.IdStructure ? "" : $"   ({organe.NomStructure})";
+
+        if (Page.Organe.IdOrganeParent == organe.Id)
+        {
+            <option value="@organe.Id" selected>@Html.Raw(strs) @organe.Nom @nomOrgageStructure</option>
+        }
+        else
+        {
+            <option value="@organe.Id">@Html.Raw(strs) @organe.Nom @nomOrgageStructure</option>
+        }
+
+        if (organe.Organes.Count > 0)
+        {
+            @Html.Raw(GetChildrenOrganes(organe.Organes, Page, spaceCharNum + 1).ToString());
+        }
+    }
+}

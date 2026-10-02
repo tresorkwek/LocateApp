@@ -1,0 +1,156 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CategorieListViewModel Page = (CategorieListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Categorie> categories = Page.Categories ?? new List<Categorie>();
+   int nbCategories = categories.Count;
+   int nbActives = categories.Count(c => c.IsActive);
+   int nbFamilles = categories.Where(c => !string.IsNullOrEmpty(c.Famille)).Select(c => c.IdFamille).Distinct().Count();
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-folder"></i></span>
+            <div>
+                <p class="lc-kpi-label">Catégories</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbCategories, 0)<small>au total</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-check-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Actives</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbActives, 0)<small>proposées à la saisie</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-secondary-subtle text-secondary"><i class="iconoir-xmark-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Désactivées</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbCategories - nbActives, 0)<small>masquées</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-view-grid"></i></span>
+            <div>
+                <p class="lc-kpi-label">Familles</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbFamilles, 0)<small>représentées</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Chaque article du catalogue est classé dans une catégorie, elle-même rattachée à une famille.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/famille/" class="btn btn-light"><i class="iconoir-view-grid me-1"></i>Familles</a>
+                <a href="/categorie/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvelle catégorie</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbCategories == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-folder"></i></div>
+                <h6>Aucune catégorie</h6>
+                <p>Créez une première catégorie pour pouvoir classer les articles du catalogue.</p>
+                <a href="/categorie/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouvelle catégorie</a>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Catégorie</th>
+                            <th>Famille</th>
+                            <th>Statut</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @{
+                            string link;
+                        }
+
+                        @foreach (var categorie in categories)
+                        {
+                            link = Page.Link + categorie.Id;
+                            string onclik = $"$(this).confirmUrl('Suppression', '/categorie/delete/{categorie.Id}', 'Êtes-vous sûr de vouloir supprimer la catégorie : <br/> <div class=\\'chip\\'> {categorie.Designation} </div> ?', 'Suppression de la catégorie <div class=\\'chip\\'> {categorie.Designation} </div> annul&eacute;e')";
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (categorie.IsActive)
+                                        {
+                                            <span class="lc-thumb bg-primary-subtle text-primary"><i class="iconoir-folder"></i></span>
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb"><i class="iconoir-folder"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(link)" class="lc-name">@categorie.Designation</a>
+                                            <span class="lc-sub">N° @categorie.Id</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(categorie.Famille))
+                                    {
+                                        <a href="/famille/id/@categorie.IdFamille" class="text-body">@categorie.Famille</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (categorie.IsActive)
+                                    {
+                                        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Active</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-xmark"></i>Désactivée</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="/categorie/modify/@categorie.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        <a onclick="@Html.Raw(onclik)" role="button" class="lc-danger" title="Supprimer" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

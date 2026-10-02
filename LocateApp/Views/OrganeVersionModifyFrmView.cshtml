@@ -1,0 +1,99 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ OrganeVersionModifyFrmViewModel Page = (OrganeVersionModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_Layout.cshtml"; }
+
+@{ OrganeVersion v = Page.OrganeVersion; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/organe/version/modify/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">Modifier la version @v.Id</h4>
+                    <p class="lc-card-subtitle">Renommez la version, complétez son commentaire ou mettez-la en service.</p>
+                </div>
+                <div class="card-body">
+                    <input type="hidden" name="Id" value="@v.Id" />
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        <span class="lc-thumb lc-thumb-lg @(v.Defaut ? "bg-success-subtle text-success" : "bg-primary-subtle text-primary")"><i class="iconoir-network-left"></i></span>
+                        <div class="lc-entity-body">
+                            <span class="lc-name">@v.LibelleAffiche</span>
+                            <span class="lc-sub d-flex align-items-center flex-wrap gap-1">
+                                Version @v.Id · @v.NbOrgane organe(s)
+                                @if (v.Defaut)
+                                {
+                                    <span class="badge lc-badge bg-success-subtle text-success ms-1"><i class="iconoir-check-circle"></i>Version courante</span>
+                                }
+                                else if (v.NbOrgane == 0)
+                                {
+                                    <span class="badge lc-badge bg-warning-subtle text-warning ms-1">Vide</span>
+                                }
+                                else
+                                {
+                                    <span class="badge lc-badge bg-secondary-subtle text-secondary ms-1">Archivée</span>
+                                }
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-git-branch"></i>Version</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-12">
+                            <label class="form-label" for="Libelle">Libellé</label>
+                            <input type="text" class="form-control" id="Libelle" name="Libelle" maxlength="100" value="@v.Libelle" placeholder="Ex. Organigramme 2027" />
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="Commentaire">Commentaire</label>
+                            <textarea class="form-control" id="Commentaire" name="Commentaire" rows="3" maxlength="500" placeholder="Référence de la décision, date d'effet, principaux changements…">@v.Commentaire</textarea>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-check-circle"></i>Mise en service</div>
+                    <div class="form-check form-switch">
+                        @if (v.Defaut)
+                        {
+                            <input class="form-check-input" type="checkbox" role="switch" id="Defaut" name="Defaut" value="true" checked disabled />
+                            <input type="hidden" name="Defaut" value="true" />
+                            <label class="form-check-label" for="Defaut">Version courante</label>
+                        }
+                        else
+                        {
+                            <input class="form-check-input" type="checkbox" role="switch" id="Defaut" name="Defaut" value="true" @(v.NbOrgane == 0 ? "disabled" : "") />
+                            <label class="form-check-label" for="Defaut">Définir comme version courante</label>
+                        }
+                    </div>
+                    @if (v.Defaut)
+                    {
+                        <div class="form-text">Pour changer de version courante, définissez-en une autre depuis la liste des versions.</div>
+                    }
+                    else if (v.NbOrgane == 0)
+                    {
+                        <div class="form-text">Impossible tant que la version ne contient aucun organe.</div>
+                    }
+                    else
+                    {
+                        <div class="form-text">Le changement est immédiat et concerne toute l'application.</div>
+                    }
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start">
+                        <a href="/organe/organigramme/version/@v.Id" class="btn btn-soft-primary"><i class="iconoir-network-left me-1"></i>Voir l'organigramme</a>
+                    </span>
+                    <a href="/organe/version/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>

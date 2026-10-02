@@ -1,0 +1,80 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ CommandeAddFormViewModel Page = (CommandeAddFormViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<div class="row justify-content-center">
+    <div class="col-lg-8 col-xl-6">
+        <form class="lc-form" method="post" action="/commande/add/">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-qr-code"></i></span>
+                        <div>
+                            <h4 class="card-title">@(string.IsNullOrEmpty(Page.Title) ? "Commande d'étiquettes" : Page.Title)</h4>
+                            <p class="lc-card-subtitle">Indiquez le nombre de pages et le format de planche : les étiquettes QR seront générées pour impression.</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="lc-section-title"><i class="iconoir-multiple-pages"></i>Planches à imprimer</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label" for="NbrePage">Nombre de pages<span class="lc-req">*</span></label>
+                            <input id="NbrePage" name="NbrePage" type="number" min="1" step="1" inputmode="numeric" class="form-control" placeholder="Ex. 10">
+                        </div>
+                        <div class="col-md-8">
+                            <label class="form-label" for="IdFormat">Format<span class="lc-req">*</span></label>
+                            <select class="js-states form-select" tabindex="-1" style="width: 100%" name="IdFormat" id="IdFormat">
+                                <option value="" disabled selected>Choisissez le format</option>
+                                @foreach (var format in Page.FormatEtiquettes)
+                                {
+                                    <option value="@format.Id" data-par-page="@(format.Colone * format.Ligne)">@format.Nom (@format.Colone x @format.Ligne)</option>
+                                }
+                            </select>
+                            <div class="form-text">Colonnes × lignes d'étiquettes par page.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-callout mt-3">
+                        <i class="iconoir-info-circle"></i>
+                        <div id="resumeEtiquettes">Choisissez le nombre de pages et le format pour connaître le nombre d'étiquettes générées.</div>
+                    </div>
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                    <a href="/commande/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Passer la commande</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Aperçu du nombre d'étiquettes : pages × étiquettes par page du format choisi.
+    document.addEventListener('DOMContentLoaded', function () {
+        var pages = document.getElementById('NbrePage');
+        var format = document.getElementById('IdFormat');
+        var resume = document.getElementById('resumeEtiquettes');
+        function majResume() {
+            var option = format.options[format.selectedIndex];
+            var parPage = option ? parseInt(option.getAttribute('data-par-page'), 10) : 0;
+            var nb = parseInt(pages.value, 10) || 0;
+            if (nb > 0 && parPage > 0) {
+                resume.innerHTML = '<strong>' + (nb * parPage).toLocaleString('fr-FR') + '</strong> étiquette(s) seront générées (' + parPage + ' par page).';
+            }
+        }
+        pages.addEventListener('input', majResume);
+        if (window.jQuery) { jQuery(format).on('change', majResume); } else { format.addEventListener('change', majResume); }
+    });
+</script>

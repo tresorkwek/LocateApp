@@ -1,0 +1,100 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ ProfilModifyFrmViewModel Page = (ProfilModifyFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+@{
+    string nom = Page.Profil.Nom ?? "";
+    string[] mots = nom.Split(new[] { ' ', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+    string initiales = mots.Length >= 2 ? mots[0].Substring(0, 1) + mots[1].Substring(0, 1) : (nom.Length >= 2 ? nom.Substring(0, 2) : nom);
+    string couleur = Page.Profil.Externe ? "info" : "primary";
+    string checkedExterne = Page.Profil.Externe ? "checked=\"checked\"" : "";
+}
+
+<form class="lc-form" method="post" action="/profil/modify/">
+    <input type="hidden" name="IdProfil" id="IdProfil" value="@Page.Profil.IdProfil" />
+    <div class="row justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <div class="row align-items-center g-2">
+                        <div class="col">
+                            <h4 class="card-title">@Page.Title</h4>
+                            <p class="lc-card-subtitle">Modifiez l'identité et la page d'accueil du profil ; les droits se gèrent à part.</p>
+                        </div>
+                        <div class="col-auto lc-card-actions">
+                            <a href="/profil/" class="btn btn-sm btn-light"><i class="iconoir-arrow-left me-1"></i>Profils</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+
+                    <div class="d-flex align-items-center gap-3 p-3 mb-3 rounded bg-light-subtle border">
+                        <span class="lc-thumb lc-thumb-lg rounded-circle lc-initials bg-@couleur-subtle text-@couleur">@initiales</span>
+                        <div class="flex-grow-1 overflow-hidden">
+                            <h5 class="m-0 fw-bold fs-16 text-truncate">@Page.Profil.Nom</h5>
+                            <p class="text-muted mb-0 fs-13 text-truncate">@(string.IsNullOrWhiteSpace(Page.Profil.Libelle) ? "Aucun libellé" : Page.Profil.Libelle)</p>
+                        </div>
+                        <div class="d-flex flex-wrap gap-1 justify-content-end">
+                            <span class="lc-code">N° @Page.Profil.IdProfil</span>
+                            @if (Page.Profil.DefaultProfil)
+                            {
+                                <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Par défaut</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-user-badge-check"></i>Identification</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                            <input id="Nom" name="Nom" type="text" value="@Page.Profil.Nom" class="form-control" placeholder="Ex. Gestionnaire">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label" for="Libelle">Libellé</label>
+                            <input id="Libelle" name="Libelle" type="text" value="@Page.Profil.Libelle" class="form-control" placeholder="Ex. Gestionnaire du patrimoine">
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-lock"></i>Accès<a href="/claim/modify/@Page.Profil.IdProfil" class="lc-section-hint link-primary text-decoration-none"><i class="iconoir-key-command me-1"></i>Gérer les droits</a></div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <div class="border rounded p-3">
+                                <div class="form-check form-switch m-0">
+                                    <input role="switch" type="checkbox" id="Externe" name="Externe" value="true" @checkedExterne class="form-check-input" />
+                                    <label class="form-check-label" for="Externe">
+                                        <span class="fw-medium d-block">Profil externe</span>
+                                        <span class="d-block fs-12 text-muted">Pour les utilisateurs extérieurs à l'organisation : ils ne reçoivent que les droits attribués explicitement, sans les menus par défaut des agents.</span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label" for="HomeUrl">Page d'accueil</label>
+                            <div class="lc-input-icon">
+                                <i class="iconoir-home-simple"></i>
+                                <input id="HomeUrl" name="HomeUrl" value="@Page.Profil.HomeUrl" type="text" class="form-control" placeholder="Ex. /immo/">
+                            </div>
+                            <div class="form-text">Adresse ouverte après la connexion des utilisateurs de ce profil.</div>
+                        </div>
+                    </div>
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <span class="lc-form-actions-start"><span class="lc-req">*</span> champ obligatoire</span>
+                    <a href="/profil/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

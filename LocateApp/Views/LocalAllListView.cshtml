@@ -1,0 +1,219 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ LocalListViewModel Page = (LocalListViewModel)Model; }
+
+@{
+    ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+
+    // Chaque quantité est une requête : on les lit une seule fois par local, avant d'afficher les indicateurs et le tableau.
+    bool suiviInventaire = Page.AnneEnCours > 0;
+    var locaux = Page.Locaux;
+    int nbLocaux = locaux == null ? 0 : locaux.Count;
+    long[] qteImmo = new long[nbLocaux];
+    long[] qteIdentifiee = new long[nbLocaux];
+    long[] qteInventoriee = new long[nbLocaux];
+    int nbAvecQr = 0;
+    int nbEspaces = 0;
+    long totalImmo = 0;
+    long totalInventorie = 0;
+    for (int k = 0; k < nbLocaux; k++)
+    {
+        qteImmo[k] = locaux[k].QuantiteImmo;
+        if (suiviInventaire)
+        {
+            qteIdentifiee[k] = locaux[k].QuantiteImmoIdentifier;
+            qteInventoriee[k] = locaux[k].QuantiteImmoInventorier;
+        }
+        totalImmo += qteImmo[k];
+        totalInventorie += qteInventoriee[k];
+        if (locaux[k].QrCode != null) { nbAvecQr++; }
+        if (locaux[k].IsSpace) { nbEspaces++; }
+    }
+    int tauxInventaire = totalImmo > 0 ? (int)Math.Round(100.0 * totalInventorie / totalImmo) : 0;
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<style>
+    /* Suivi d'inventaire compact : compteurs + barre de progression */
+    .lc-suivi { min-width: 210px; max-width: 280px; }
+</style>
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-home-simple"></i></span>
+            <div>
+                <p class="lc-kpi-label">Locaux</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbLocaux, 0)<small>dont @nbEspaces espace(s)</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-qr-code"></i></span>
+            <div>
+                <p class="lc-kpi-label">Avec QR code</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAvecQr, 0)<small>étiquetés</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-scan-qr-code"></i></span>
+            <div>
+                <p class="lc-kpi-label">Sans QR code</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbLocaux - nbAvecQr, 0)<small>à étiqueter</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Biens</p>
+                @if (suiviInventaire)
+                {
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(totalImmo, 0)<small>@tauxInventaire % inventoriés</small></p>
+                }
+                else
+                {
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(totalImmo, 0)<small>dans les locaux</small></p>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Tous les locaux et espaces avec leur organe de rattachement@(suiviInventaire ? " et le suivi d'inventaire (biens / identifiés / inventoriés)" : "").</p>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbLocaux == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-home-simple"></i></div>
+                <h6>Aucun local</h6>
+                <p>Aucun local ne correspond à la recherche. Les locaux se créent depuis la liste des locaux d'un organe.</p>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Local</th>
+                            <th>Code</th>
+                            <th>@(suiviInventaire ? "Suivi d'inventaire" : "Biens")</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int k = 0; k < nbLocaux; k++)
+                        {
+                            Local local = locaux[k];
+                            string link = Page.Link + local.Id;
+                            Organe organeLocal = local.GetOrgane();
+                            string nomStructure = organeLocal == null ? null : (organeLocal.Id == organeLocal.IdStructure ? organeLocal.NomStructure : $"{organeLocal.Nom} / {organeLocal.NomStructure}");
+                            string designationJs = (local.Designation ?? "").Replace("\\", "\\\\").Replace("'", "\\'").Replace("\"", "&quot;");
+                            int taux = qteImmo[k] > 0 ? (int)Math.Round(100.0 * qteInventoriee[k] / qteImmo[k]) : 0;
+                            string couleurTaux = taux >= 100 ? "bg-success" : (taux > 0 ? "bg-primary" : "bg-secondary");
+
+                            string onclik = $"$(this).confirmUrl('Suppression', '/local/delete/{local.Id}', 'Êtes-vous sûr de vouloir supprimer le local : <br/> <div class=\\'chip\\'> {designationJs} </div> ?', 'Suppression du local <div class=\\'chip\\'> {designationJs} </div> annul&eacute;e')";
+
+                            <tr>
+                                <td>
+                                    <div class="lc-entity">
+                                        @if (local.QrCode != null)
+                                        {
+                                            <img src="/Content/images/QRCode.png" alt="QR code affecté" title="QR code affecté" class="lc-thumb p-1 bg-body border" />
+                                        }
+                                        else
+                                        {
+                                            <span class="lc-thumb"><i class="iconoir-home-simple"></i></span>
+                                        }
+                                        <div class="lc-entity-body">
+                                            <div class="d-flex align-items-center flex-wrap gap-1">
+                                                <a href="@Html.Raw(link)" class="lc-name">@local.Designation</a>
+                                                @if (local.QrCode == null)
+                                                {
+                                                    <span class="badge lc-badge bg-warning-subtle text-warning" title="Aucun QR code n'est affecté à ce local">sans QR</span>
+                                                }
+                                                @if (local.IsSpace)
+                                                {
+                                                    <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-community"></i>Espace</span>
+                                                }
+                                            </div>
+                                            @if (!string.IsNullOrEmpty(nomStructure))
+                                            {
+                                                <span class="lc-sub"><i class="iconoir-building me-1"></i>@nomStructure</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(local.Code))
+                                    {
+                                        <span class="lc-code">@local.Code</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td data-order="@qteImmo[k]">
+                                    @if (suiviInventaire)
+                                    {
+                                        <div class="lc-suivi">
+                                            <div class="d-flex align-items-center gap-3 fs-12 text-muted">
+                                                <span title="Biens dans le local"><i class="iconoir-box-iso me-1"></i><b class="text-body">@Utilities.FormatNumber(qteImmo[k], 0)</b></span>
+                                                <span title="Biens identifiés"><i class="iconoir-scan-qr-code me-1"></i><b class="text-body">@Utilities.FormatNumber(qteIdentifiee[k], 0)</b></span>
+                                                <span title="Biens inventoriés"><i class="iconoir-clipboard-check me-1"></i><b class="text-body">@Utilities.FormatNumber(qteInventoriee[k], 0)</b></span>
+                                                <span class="ms-auto fw-semibold">@taux %</span>
+                                            </div>
+                                            <div class="lc-progress mt-1" title="@taux % des biens inventoriés">
+                                                <div class="progress-bar @couleurTaux" role="progressbar" style="width: @(taux)%" aria-valuenow="@taux" aria-valuemin="0" aria-valuemax="100"></div>
+                                            </div>
+                                        </div>
+                                    }
+                                    else
+                                    {
+                                        <span class="lc-count">@Utilities.FormatNumber(qteImmo[k], 0)</span>
+                                        <span class="fs-12 text-muted ms-1">bien(s)</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    @if (local.IdTypeLocal == 1)
+                                    {
+                                        <span class="lc-actions">
+                                            <a href="/local/modify/@local.Id" title="Modifier" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                            <a href="javascript:void(0)" onclick="@Html.Raw(onclik)" class="lc-danger" title="Supprimer" data-bs-toggle="tooltip"><i class="iconoir-trash"></i></a>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted" title="Ce type de local n'est pas modifiable depuis cette liste" data-bs-toggle="tooltip"><i class="iconoir-lock"></i></span>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

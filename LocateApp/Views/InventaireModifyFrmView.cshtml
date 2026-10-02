@@ -1,0 +1,84 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ InventaireViewModel Page = (InventaireViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   Inventaire inventaire = Page.Inventaire;
+   bool cloture = inventaire.DateCloture.Year != 1;
+   Identity lanceur = inventaire.GetIdentity(inventaire.UserCreation);
+   string nomLanceur = lanceur == null ? inventaire.UserCreation : $"{lanceur.Nom} {lanceur.Postnom}".Trim();
+ }
+
+@{ Layout = "Views/Layout/_LayoutForm.cshtml"; }
+
+<form class="lc-form" method="post" action="/inventaire/modify/">
+    <div class="row g-3 justify-content-center">
+        <div class="col-lg-8 col-xl-6">
+            <div class="card mb-0">
+                <div class="card-header">
+                    <h4 class="card-title">@Page.Title</h4>
+                    <p class="lc-card-subtitle">Activez ou suspendez la campagne d'inventaire.</p>
+                </div>
+                <div class="card-body">
+
+                    <div class="lc-entity p-3 mb-4 rounded-3 bg-body-tertiary">
+                        <span class="lc-thumb lc-thumb-lg bg-primary-subtle text-primary"><i class="iconoir-clipboard-check"></i></span>
+                        <div class="lc-entity-body flex-grow-1">
+                            <span class="lc-name fs-15">Inventaire @inventaire.Annee</span>
+                            <span class="lc-sub">
+                                Lancé le @inventaire.DateCreation.ToString("dd MMMM yyyy")
+                                @if (!string.IsNullOrEmpty(nomLanceur))
+                                {
+                                    <text>par @nomLanceur</text>
+                                }
+                            </span>
+                        </div>
+                        @if (cloture)
+                        {
+                            <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-lock"></i>Clôturé</span>
+                        }
+                        else
+                        {
+                            <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-play"></i>En cours</span>
+                        }
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-calendar"></i>Campagne</div>
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label" for="Annee">Année</label>
+                            <input id="Annee" name="Annee" type="text" value="@Page.Inventaire.Annee" class="form-control" readonly>
+                            <div class="form-text">L'année d'une campagne ne peut pas être modifiée.</div>
+                        </div>
+                    </div>
+
+                    <div class="lc-section-title"><i class="iconoir-settings"></i>Statut</div>
+                    @{ string checkedActif = Page.Inventaire.Actif ? "checked=\"checked\"" : "";}
+                    <div class="form-check form-switch">
+                        <input role="switch" type="checkbox" id="Actif" name="Actif" value="true" @checkedActif class="form-check-input" />
+                        <label class="form-check-label fw-medium" for="Actif">Campagne active</label>
+                    </div>
+
+                    @if (cloture)
+                    {
+                        <div class="lc-callout lc-callout-warning mt-3">
+                            <i class="iconoir-warning-triangle"></i>
+                            <div>Cet inventaire est clôturé : il ne peut plus être modifié.</div>
+                        </div>
+                    }
+
+                </div>
+                <div class="card-footer lc-form-actions">
+                    <a href="/inventaire/" class="btn btn-light">Annuler</a>
+                    <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>Enregistrer</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>

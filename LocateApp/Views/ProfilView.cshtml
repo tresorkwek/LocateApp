@@ -1,0 +1,206 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Controllers;
+@using LocateApp.Utilities;
+
+
+@{ ProfilViewModel Page = (ProfilViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+
+   List<Profil> profils = Page.Profils ?? new List<Profil>();
+   List<Menu> tousLesMenus = MenuController.GetAllMenu();
+   int nbMenus = tousLesMenus == null ? 0 : tousLesMenus.Count;
+   Dictionary<int, int> droitsParProfil = new Dictionary<int, int>();
+   int nbProfils = profils.Count;
+   int nbExternes = 0;
+   int nbSansDroits = 0;
+   foreach (var p in profils)
+   {
+       int n = 0;
+       if (!p.Root)
+       {
+           List<UserClaim> claims = ClaimControllers.GetClaimsByProfilForConfig(p.IdProfil);
+           n = claims == null ? 0 : claims.Count;
+           if (n == 0) { nbSansDroits++; }
+       }
+       droitsParProfil[p.IdProfil] = n;
+       if (p.Externe) { nbExternes++; }
+   }
+}
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-group"></i></span>
+            <div>
+                <p class="lc-kpi-label">Profils</p>
+                <p class="lc-kpi-value">@nbProfils<small>définis</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-user-badge-check"></i></span>
+            <div>
+                <p class="lc-kpi-label">Profils internes</p>
+                <p class="lc-kpi-value">@(nbProfils - nbExternes)<small>agents</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-globe"></i></span>
+            <div>
+                <p class="lc-kpi-label">Profils externes</p>
+                <p class="lc-kpi-value">@nbExternes<small>partenaires</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-warning-triangle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Sans droits</p>
+                <p class="lc-kpi-value">@nbSansDroits<small>à configurer</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@libellePage</h4>
+                <p class="lc-card-subtitle">Un profil regroupe des droits sur les menus ; chaque utilisateur est rattaché à un profil.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                <a href="/claim/" class="btn btn-light"><i class="iconoir-key-command me-1"></i>Droits d'accès</a>
+                <a href="/profil/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouveau profil</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbProfils == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-group"></i></div>
+                <h6>Aucun profil</h6>
+                <p>Créez un premier profil, puis attribuez-lui des droits sur les menus de l'application.</p>
+                <a href="/profil/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouveau profil</a>
+            </div>
+        }
+        else
+        {
+            <div class="row g-3">
+                @foreach (var menu in Page.Profils)
+                {
+                    string link = Page.Link + menu.IdProfil;
+                    int nbDroits = droitsParProfil.ContainsKey(menu.IdProfil) ? droitsParProfil[menu.IdProfil] : 0;
+                    int pourcentage = nbMenus > 0 ? (int)Math.Round(nbDroits * 100.0 / nbMenus) : 0;
+                    if (pourcentage > 100) { pourcentage = 100; }
+
+                    string nom = menu.Nom ?? "";
+                    string[] mots = nom.Split(new[] { ' ', '-', '_', '.' }, StringSplitOptions.RemoveEmptyEntries);
+                    string initiales = mots.Length >= 2 ? mots[0].Substring(0, 1) + mots[1].Substring(0, 1) : (nom.Length >= 2 ? nom.Substring(0, 2) : nom);
+                    string couleur = menu.Root ? "warning" : (menu.Externe ? "info" : "primary");
+
+                    <div class="col-md-6 col-xxl-4">
+                        <div class="card h-100 mb-0 border">
+                            <div class="card-body d-flex flex-column">
+                                <div class="d-flex align-items-start gap-3 pb-3 border-dashed-bottom">
+                                    <span class="lc-thumb lc-thumb-lg rounded-circle lc-initials bg-@couleur-subtle text-@couleur">@initiales</span>
+                                    <div class="flex-grow-1 overflow-hidden">
+                                        <h5 class="m-0 fw-bold fs-16 text-truncate">@menu.Nom</h5>
+                                        <p class="text-muted mb-2 fs-13 text-truncate">@(string.IsNullOrWhiteSpace(menu.Libelle) ? "Aucun libellé" : menu.Libelle)</p>
+                                        <div class="d-flex flex-wrap gap-1">
+                                            @if (menu.Root)
+                                            {
+                                                <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-crown"></i>Administrateur racine</span>
+                                            }
+                                            @if (menu.Externe)
+                                            {
+                                                <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-globe"></i>Externe</span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-user"></i>Interne</span>
+                                            }
+                                            @if (menu.DefaultProfil)
+                                            {
+                                                <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-check"></i>Profil par défaut</span>
+                                            }
+                                        </div>
+                                    </div>
+                                    @if (!menu.Root)
+                                    {
+                                        <span class="lc-actions">
+                                            <a href="@Html.Raw(link)" title="Modifier le profil" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        </span>
+                                    }
+                                </div>
+
+                                <ul class="lc-meta mt-3">
+                                    <li>
+                                        <i class="iconoir-home-simple"></i><b>Page d'accueil :</b>
+                                        @if (!string.IsNullOrWhiteSpace(menu.HomeUrl))
+                                        {
+                                            <span class="lc-code text-truncate">@menu.HomeUrl</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">non définie</span>
+                                        }
+                                    </li>
+                                </ul>
+
+                                <div class="mt-3 mb-3">
+                                    @if (menu.Root)
+                                    {
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="fs-13 fw-medium"><i class="iconoir-key-command me-1 text-muted"></i>Droits</span>
+                                            <span class="fs-12 text-muted">accès complet</span>
+                                        </div>
+                                        <div class="lc-progress"><div class="progress-bar bg-warning" style="width: 100%"></div></div>
+                                    }
+                                    else
+                                    {
+                                        <div class="d-flex align-items-center justify-content-between mb-1">
+                                            <span class="fs-13 fw-medium"><i class="iconoir-key-command me-1 text-muted"></i>Droits <span class="lc-count ms-1">@nbDroits</span></span>
+                                            <span class="fs-12 text-muted">@nbDroits / @nbMenus menus</span>
+                                        </div>
+                                        <div class="lc-progress"><div class="progress-bar bg-@(nbDroits == 0 ? "warning" : "primary")" style="width: @pourcentage%"></div></div>
+                                    }
+                                </div>
+
+                                <div class="mt-auto d-flex flex-wrap gap-2">
+                                    @if (menu.Root)
+                                    {
+                                        <span class="fs-12 text-muted"><i class="iconoir-lock me-1"></i>Profil système : non modifiable.</span>
+                                    }
+                                    else if (nbDroits > 0)
+                                    {
+                                        <a href="/claim/modify/@menu.IdProfil" class="btn btn-sm btn-soft-primary"><i class="iconoir-key-command me-1"></i>Gérer les droits</a>
+                                        <a href="@Html.Raw(link)" class="btn btn-sm btn-light"><i class="iconoir-edit-pencil me-1"></i>Modifier</a>
+                                    }
+                                    else
+                                    {
+                                        <a href="/claim/add/" class="btn btn-sm btn-soft-primary"><i class="iconoir-plus me-1"></i>Attribuer des droits</a>
+                                        <a href="@Html.Raw(link)" class="btn btn-sm btn-light"><i class="iconoir-edit-pencil me-1"></i>Modifier</a>
+                                    }
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>

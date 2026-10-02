@@ -1,0 +1,782 @@
+﻿/* ============================================================
+   Locate - surcharges du thème Approx (Bootstrap 5)
+   Adapte les composants jQuery conservés (DataTables, Select2,
+   SweetAlert, Nestable) au thème sombre/clair d'Approx.
+   ============================================================ */
+
+:root {
+    --locate-accent: #3167f3;
+}
+
+/* ---------- Icônes Material (icônes de menu pilotées par la base) ---------- */
+.material-icons {
+    vertical-align: middle;
+    line-height: 1;
+}
+
+.startbar .navbar-nav .nav-link .material-icons.menu-icon {
+    font-size: 20px;
+    width: 20px;
+    margin-right: 16px;
+}
+
+.dropdown-item .material-icons {
+    font-size: 18px;
+    margin-right: 6px;
+}
+
+.btn .material-icons {
+    font-size: 18px;
+}
+
+.badge .material-icons {
+    font-size: 14px;
+    vertical-align: -2px;
+}
+
+/* ---------- Bouton d'action flottant (remplace fixed-action-btn) ---------- */
+.fab-action {
+    position: fixed;
+    right: 28px;
+    bottom: 84px;
+    z-index: 1030;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    align-items: flex-end;
+}
+
+.fab-action .btn {
+    width: 54px;
+    height: 54px;
+    border-radius: 50%;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, .35);
+}
+
+.fab-action .btn .material-icons {
+    font-size: 26px;
+}
+
+/* ---------- DataTables (jQuery) sur Bootstrap 5 ---------- */
+.dataTables_wrapper {
+    color: var(--bs-body-color);
+}
+
+.dataTables_wrapper .dataTables_length,
+.dataTables_wrapper .dataTables_filter {
+    margin-bottom: .75rem;
+}
+
+.dataTables_wrapper .dataTables_length select,
+.dataTables_wrapper .dataTables_filter input {
+    display: inline-block;
+    width: auto;
+    padding: .375rem .75rem;
+    font-size: .875rem;
+    color: var(--bs-body-color);
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .25rem;
+    margin-left: .5rem;
+}
+
+.dataTables_wrapper .dataTables_filter input:focus,
+.dataTables_wrapper .dataTables_length select:focus {
+    outline: 0;
+    border-color: var(--locate-accent);
+    box-shadow: 0 0 0 .15rem rgba(49, 103, 243, .25);
+}
+
+.dataTables_wrapper .dataTables_info,
+.dataTables_wrapper .dataTables_paginate {
+    padding-top: .75rem;
+    color: var(--bs-secondary-color) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button {
+    padding: .25rem .6rem;
+    margin: 0 2px;
+    border-radius: .25rem;
+    border: 1px solid transparent !important;
+    color: var(--bs-body-color) !important;
+    background: transparent !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.dataTables_wrapper .dataTables_paginate .paginate_button:hover:not(.disabled) {
+    color: #fff !important;
+    background: var(--locate-accent) !important;
+    border-color: var(--locate-accent) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .paginate_button.disabled {
+    opacity: .4;
+}
+
+table.dataTable {
+    border-collapse: collapse !important;
+}
+
+table.dataTable thead th,
+table.dataTable thead td,
+table.dataTable.no-footer {
+    border-bottom: 1px solid var(--bs-border-color);
+}
+
+table.dataTable tfoot th,
+table.dataTable tfoot td {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+table.dataTable tbody tr {
+    background-color: transparent;
+}
+
+/* ---------- Select2 ---------- */
+.select2-container {
+    width: 100% !important;
+}
+
+.select2-container--default .select2-selection--single,
+.select2-container--default .select2-selection--multiple {
+    min-height: calc(1.5em + .75rem + 2px);
+    background-color: var(--bs-body-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .25rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--bs-body-color);
+    line-height: calc(1.5em + .75rem);
+    padding-left: .75rem;
+}
+
+.select2-container--default .select2-selection--single .select2-selection__placeholder {
+    color: var(--bs-secondary-color);
+}
+
+.select2-container--default .select2-selection--single .select2-selection__arrow {
+    height: calc(1.5em + .75rem);
+}
+
+.select2-container--default.select2-container--focus .select2-selection--multiple,
+.select2-container--default.select2-container--open .select2-selection--single {
+    border-color: var(--locate-accent);
+}
+
+.select2-dropdown {
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+.select2-container--default .select2-search--dropdown .select2-search__field,
+.select2-container--default .select2-selection--multiple .select2-search__field {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+}
+
+.select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background-color: var(--locate-accent);
+    color: #fff;
+}
+
+.select2-container--default .select2-results__option[aria-selected=true] {
+    background-color: var(--bs-secondary-bg);
+}
+
+.select2-container--default .select2-selection--multiple .select2-selection__choice {
+    background-color: var(--bs-secondary-bg);
+    border-color: var(--bs-border-color);
+    color: var(--bs-body-color);
+}
+
+/* ---------- SweetAlert (v1) ---------- */
+.sweet-alert {
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+    border-radius: .5rem;
+}
+
+.sweet-alert h2,
+.sweet-alert p {
+    color: var(--bs-body-color);
+}
+
+.sweet-alert input {
+    background-color: var(--bs-body-bg);
+    color: var(--bs-body-color);
+    border-color: var(--bs-border-color);
+}
+
+.sweet-alert button {
+    border-radius: .25rem;
+}
+
+/* ---------- Arbre hiérarchique (organigrammes, plugin nestable) ----------
+   Reprend la présentation de l'ancien thème (indentation, boutons +/-, poignées,
+   compteurs à droite) adaptée aux couleurs du thème Approx. */
+.dd {
+    position: relative;
+    display: block;
+    margin: 0;
+    padding: 0;
+    max-width: 100%;
+    list-style: none;
+    font-size: .875rem;
+    line-height: 20px;
+}
+
+.dd-list {
+    display: block;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+.dd-list .dd-list {
+    margin-left: 12px;
+    padding-left: 24px;
+    border-left: 1px dashed var(--bs-border-color);
+}
+
+.dd-collapsed .dd-list {
+    display: none;
+}
+
+.dd-item,
+.dd-empty,
+.dd-placeholder {
+    display: block;
+    position: relative;
+    margin: 0;
+    padding: 0;
+    min-height: 20px;
+    line-height: 20px;
+}
+
+.dd-handle {
+    display: block;
+    min-height: 36px;
+    margin: 6px 0;
+    padding: 7px 12px;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    font-weight: 600;
+    background: var(--bs-tertiary-bg);
+    border: 1px solid var(--bs-border-color);
+    border-radius: .375rem;
+    cursor: pointer;
+    transition: all .2s ease;
+}
+
+.dd-handle:hover {
+    color: var(--locate-accent);
+    border-color: var(--locate-accent);
+    background: var(--bs-secondary-bg);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .25);
+}
+
+.dd-handle .badge {
+    float: right;
+    margin-left: .5rem;
+    margin-top: 1px;
+    font-weight: 500;
+}
+
+.dd-item > button {
+    display: block;
+    position: relative;
+    cursor: pointer;
+    float: left;
+    width: 26px;
+    height: 26px;
+    margin: 11px 6px 0 0;
+    padding: 0;
+    text-indent: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    border: 1px solid var(--bs-border-color);
+    border-radius: 50%;
+    background: var(--bs-body-bg);
+    font-size: 14px;
+    line-height: 24px;
+    text-align: center;
+    font-weight: bold;
+    color: var(--locate-accent);
+}
+
+.dd-item > button:hover {
+    background: var(--locate-accent);
+    color: #fff;
+}
+
+.dd-item > button:before {
+    content: '+';
+    display: block;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    text-align: center;
+    text-indent: 0;
+}
+
+.dd-item > button[data-action="collapse"]:before {
+    content: '\2212';
+}
+
+.dd-item > button + .dd-handle {
+    margin-left: 32px;
+}
+
+.dd-placeholder,
+.dd-empty {
+    margin: 6px 0;
+    padding: 0;
+    min-height: 30px;
+    background: var(--bs-secondary-bg);
+    border: 1px dashed var(--bs-border-color);
+    border-radius: .375rem;
+}
+
+.dd-dragel {
+    position: absolute;
+    pointer-events: none;
+    z-index: 9999;
+}
+
+.dd-dragel > .dd-item .dd-handle {
+    margin-top: 0;
+}
+
+.dd-hover > .dd-handle {
+    background: var(--locate-accent) !important;
+    color: #fff;
+}
+
+/* ---------- Divers ---------- */
+.locate-toast-container {
+    position: fixed;
+    right: 1rem;
+    bottom: 1rem;
+    z-index: 1090;
+}
+
+textarea.inputDiscret,
+input.inputDiscret {
+    resize: none;
+    width: 100%;
+    color: inherit;
+}
+
+.text-pre {
+    white-space: pre-line;
+}
+
+.stat-value {
+    font-size: 1.75rem;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.avatar-xl {
+    width: 96px;
+    height: 96px;
+    object-fit: cover;
+}
+
+.auth-logo {
+    max-width: 200px;
+    max-height: 70px;
+    width: auto;
+    height: auto;
+}
+
+/* ---------- Pages d'authentification : image de fond ---------- */
+body.auth-bg {
+    background: url('../images/search_image.jpg') center center / cover no-repeat fixed;
+}
+
+body.auth-bg::before {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 14, 26, .45);
+    z-index: 0;
+}
+
+body.auth-bg > .container-xxl {
+    position: relative;
+    z-index: 1;
+}
+
+body.auth-bg .card {
+    box-shadow: 0 20px 50px rgba(0, 0, 0, .45);
+}
+
+/* ---------- Marque ---------- */
+.startbar .brand .logo-lg {
+    height: 34px;
+}
+
+.startbar .brand .logo-sm {
+    height: 30px;
+}
+
+/* ---------- Impression ---------- */
+@media print {
+    .invisibleForPrint,
+    .topbar,
+    .startbar,
+    .startbar-overlay,
+    .footer,
+    .fab-action,
+    .locate-toast-container {
+        display: none !important;
+    }
+
+    .page-wrapper,
+    .page-content {
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+}
+
+/* ---------- Chips (utilisees dans les messages de confirmation) ---------- */
+.chip {
+    display: inline-block;
+    padding: .15em .7em;
+    border-radius: 1rem;
+    background-color: var(--bs-secondary-bg);
+    color: var(--bs-body-color);
+    font-size: .875rem;
+    line-height: 1.6;
+}
+
+.chip img {
+    height: 1.6em;
+    width: 1.6em;
+    border-radius: 50%;
+    margin-right: .4em;
+    vertical-align: middle;
+}
+
+/* ---------- Boutons d'action dans les tableaux ---------- */
+.table .btn {
+    padding: .2rem .5rem;
+    font-size: 1rem;
+    line-height: 1.2;
+}
+
+.table .btn + .btn {
+    margin-left: .15rem;
+}
+
+/* ---------- Alias des couleurs Materialize (classes construites dynamiquement) ---------- */
+.red-text, .text-red { color: var(--bs-danger) !important; }
+.green-text, .light-green-text, .teal-text, .text-green { color: var(--bs-success) !important; }
+.blue-text, .indigo-text, .text-blue { color: var(--bs-primary) !important; }
+.orange-text, .amber-text, .text-orange { color: var(--bs-warning) !important; }
+.cyan-text, .purple-text { color: var(--bs-info) !important; }
+.grey-text, .blue-grey-text { color: var(--bs-secondary-color) !important; }
+.white-text { color: #fff !important; }
+.black-text { color: var(--bs-body-color) !important; }
+.red { background-color: var(--bs-danger) !important; color: #fff; }
+.green, .light-green, .teal { background-color: var(--bs-success) !important; color: #fff; }
+.blue, .indigo { background-color: var(--bs-primary) !important; color: #fff; }
+.orange, .amber { background-color: var(--bs-warning) !important; }
+.cyan, .purple { background-color: var(--bs-info) !important; }
+.grey, .blue-grey { background-color: var(--bs-secondary) !important; color: #fff; }
+
+/* Texte present uniquement pour la recherche des tableaux */
+.transparent-text { position: absolute; opacity: 0; font-size: 0; pointer-events: none; }
+
+/* ---------- Panneaux dépliants hérités (ul.collapsible) rendus comme un accordéon ---------- */
+ul.collapsible {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--bs-border-color);
+    border-radius: .375rem;
+    overflow: hidden;
+}
+
+ul.collapsible > li + li {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+ul.collapsible > li > .collapsible-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .75rem 1rem;
+    cursor: pointer;
+    background-color: var(--bs-tertiary-bg);
+    font-weight: 600;
+    user-select: none;
+}
+
+ul.collapsible > li > .collapsible-header::after {
+    content: "\276F";
+    font-size: .75rem;
+    transform: rotate(90deg);
+    transition: transform .2s ease;
+    opacity: .6;
+}
+
+ul.collapsible > li > .collapsible-header.active::after {
+    transform: rotate(-90deg);
+}
+
+ul.collapsible > li > .collapsible-body {
+    display: none;
+    padding: 1rem;
+}
+
+ul.collapsible > li > .collapsible-header.active + .collapsible-body {
+    display: block;
+}
+
+/* ---------- Bouton flottant contenant une liste d'actions (menu déployé au survol) ---------- */
+.fab-action ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 10px;
+    align-items: flex-end;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(12px);
+    transition: opacity .2s ease, transform .2s ease, visibility .2s;
+}
+
+.fab-action ul .btn {
+    width: 44px;
+    height: 44px;
+    font-size: 20px;
+}
+
+.fab-action:hover ul,
+.fab-action.open ul {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.fab-action:hover > .btn > .iconoir-menu,
+.fab-action.open > .btn > .iconoir-menu {
+    transform: rotate(90deg);
+}
+
+.fab-action > .btn > .iconoir-menu {
+    transition: transform .2s ease;
+}
+
+/* ---------- Options en haut à droite d'une carte ---------- */
+.card-body {
+    position: relative;
+}
+
+.card-options {
+    position: absolute;
+    top: .75rem;
+    right: 1rem;
+}
+
+.card-options ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+}
+
+.card-options a {
+    color: var(--bs-secondary-color);
+    font-size: 1.1rem;
+}
+
+/* ---------- Menus déroulants hérités (data-activates) ---------- */
+ul.dropdown-menu.legacy-dropdown {
+    list-style: none;
+    padding: .5rem 0;
+}
+
+ul.dropdown-menu.legacy-dropdown > li > a {
+    display: block;
+    padding: .35rem 1rem;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+ul.dropdown-menu.legacy-dropdown > li > a:hover {
+    background-color: var(--bs-tertiary-bg);
+}
+
+/* ---------- Statistiques du tableau de bord ---------- */
+.stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: .5rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: .75rem;
+    padding: .5rem 0;
+}
+
+.info-item img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+}
+
+.info-item + .info-item {
+    border-top: 1px solid var(--bs-border-color);
+}
+
+/* ---------- Cartes d'articles (style "blogs" du template) ---------- */
+.article-card .article-card-img {
+    width: 100%;
+    height: 190px;
+    object-fit: contain;
+    background: var(--bs-tertiary-bg);
+    border-radius: .375rem;
+    padding: .5rem;
+}
+
+.article-card .article-card-title {
+    display: block;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--bs-body-color);
+    text-decoration: none;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.article-card .article-card-title:hover {
+    color: var(--locate-accent);
+}
+
+.article-card .article-meta {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    color: var(--bs-secondary-color);
+    font-size: .8125rem;
+}
+
+.article-card .article-meta li {
+    display: flex;
+    justify-content: space-between;
+    gap: .5rem;
+    padding: .15rem 0;
+}
+
+.article-card .article-meta li span:last-child {
+    color: var(--bs-body-color);
+    text-align: right;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ---------- Galerie photo héritée (.slider .slides) ---------- */
+.slider ul.slides {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    justify-content: center;
+}
+
+.slider ul.slides img {
+    max-width: 100%;
+    height: auto;
+    border-radius: .375rem;
+}
+
+/* ---------- Photos : aperçu agrandi au survol (img.avatar-zoom) ---------- */
+img.avatar-zoom {
+    cursor: zoom-in;
+    object-fit: cover;
+    transition: transform .15s ease;
+}
+
+img.avatar-zoom:hover {
+    transform: scale(1.08);
+}
+
+.locate-avatar-preview {
+    position: fixed;
+    z-index: 1090;
+    width: 240px;
+    height: 240px;
+    border-radius: .75rem;
+    border: 4px solid var(--bs-body-bg);
+    box-shadow: 0 .75rem 2rem rgba(0, 0, 0, .35);
+    background-color: var(--bs-secondary-bg);
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
+    opacity: 0;
+    transform: scale(.85);
+    transform-origin: left center;
+    transition: opacity .15s ease, transform .15s ease;
+    pointer-events: none;
+}
+
+.locate-avatar-preview.show {
+    opacity: 1;
+    transform: scale(1);
+}
+
+.locate-avatar-preview .locate-avatar-legende {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    padding: .35rem .6rem;
+    font-size: .8rem;
+    color: #fff;
+    background: linear-gradient(to top, rgba(0, 0, 0, .7), rgba(0, 0, 0, 0));
+    border-radius: 0 0 .5rem .5rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.avatar-md {
+    width: 44px;
+    height: 44px;
+    object-fit: cover;
+}
+
+.avatar-xxl {
+    width: 160px;
+    height: 160px;
+    object-fit: cover;
+}

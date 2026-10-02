@@ -1,0 +1,149 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+
+@{ BilletEnvoiListViewModel Page = (BilletEnvoiListViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div>
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">@libellePage</h4>
+                    <p>@Page.Description</p><br>
+                    <table id="example" class="table table-hover align-middle w-100">
+                        <thead>
+                            <tr>
+                                <th>N°</th>
+                                <th>Identité</th>
+                                <th>Formation Médicale</th>
+                                <th>Service(s)</th>
+                            </tr>
+                        </thead>
+                        <tfoot>
+                            <tr>
+                                <th>N°</th>
+                                <th>Identité</th>
+                                <th>Formation Médicale</th>
+                                <th>Service(s)</th>
+                            </tr>
+                        </tfoot>
+                        <tbody>
+
+                            @{string link; string printLink;}
+
+                            @foreach (var billetEnvoi in Page.BilletEnvoi)
+                            {
+                                link = Page.Link + billetEnvoi.Id;                               
+
+                                <tr>
+                                    <td valign="top"><a href="@Html.Raw(link)"> @billetEnvoi.NumBilletEnvoi </a> </td>
+                                    <td>
+                                        @{string naissance = (billetEnvoi.Patient.Sexe == 1) ? "Né" : "Née";}
+
+                                        <div>
+                                            <div>
+                                                <div class="float-start">
+                                                    <div class="float-start">
+                                                        <img src="~/Content/images/photos/@billetEnvoi.Patient.Photo" data-zoom-image="/Content/images/photos/@billetEnvoi.Patient.Photo" alt="" class="rounded-circle mailbox-profile-image shadow-sm" onmouseover="$(this).elevateZoom({ scrollZoom: true, zoomWindowPosition: -11 })"> 
+                                                    </div>
+                                                    <div class="float-start">
+                                                        <span class="fw-semibold">
+                                                            <table class="table table-hover align-middle w-100">
+                                                                <tr>
+                                                                    <td>
+                                                                        Nip : @billetEnvoi.Patient.Matricule <br />
+                                                                        Nom : @Html.Raw(ForString.ShowCorrectionBetween(billetEnvoi.Patient.Nom, billetEnvoi.Patient.NomAfficheable)) <br />
+                                                                        Postnom : @Html.Raw(ForString.ShowCorrectionBetween(billetEnvoi.Patient.Postnom, billetEnvoi.Patient.PostnomAfficheable)) <br />
+                                                                        Prénom : @Html.Raw(ForString.ShowCorrectionBetween(billetEnvoi.Patient.Prenom, billetEnvoi.Patient.PrenomAfficheable))<br />
+                                                                        Sexe : @Html.Raw(ForString.ShowCorrectionBetween(billetEnvoi.Patient.Genre, billetEnvoi.Patient.GenreAfficheable))
+                                                                    </td>
+                                                                    <td valign="top">                                                                
+
+                                                                    </td>
+                                                                </tr>
+                                                            </table>
+                                                            <span class="text-muted small">
+                                                                @naissance le @billetEnvoi.Patient.DateNaissance (@billetEnvoi.Patient.EtatCivil : @billetEnvoi.Patient.TypeString)
+                                                            </span>
+
+                                                        </span>
+                                                    </div>
+
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>@billetEnvoi.Hopital.Denomination </td>
+                                    <td>
+                                        <span class="fw-semibold f-s-16">
+                                            <table class="table table-hover align-middle w-100">
+                                                <tr>
+                                                    <td>
+                                                        @{ string icone;
+                                                            string color;
+                                                            string text;
+                                                            string onclik;
+                                                            string approvedValues;
+                                                            string pointeur;
+                                                            string nomPatient;
+                                                            string imageBox;
+                                                         }
+
+                                                        @foreach (var serviceBilletEnvois in billetEnvoi.ServiceBilletEnvois)
+                                                        {
+                                                            approvedValues = $"{serviceBilletEnvois.IdBilletEnvoi}-{serviceBilletEnvois.IdService}";
+
+                                                            icone = (serviceBilletEnvois.IsApproved) ? "verified_user" : "pause_circle_filled";
+                                                            color = (serviceBilletEnvois.IsApproved) ? "green" : "orange";
+                                                            text = (serviceBilletEnvois.IsApproved) ? "Approuvé" : "... En attente d'approbation";
+
+                                                            nomPatient = billetEnvoi.Patient.NomAfficheable.Trim() + " " + billetEnvoi.Patient.PostnomAfficheable.Trim() + " " + billetEnvoi.Patient.PrenomAfficheable.Trim();
+                                                            imageBox = $"<img src =\\'/Content/images/photos/{billetEnvoi.Patient.Photo}\\' width=\\'130px\\'  class=\\'circle mailbox-profile\\'>";
+                                                            onclik = (serviceBilletEnvois.IsApproved || !Page.CanApprove) ? "" : $"$(this).confirmUrl('Approbation <br/> {imageBox}', '/billetenvoi/approve/{approvedValues}', 'Etes-vous sûr de vouloir approuver la demande du billet d\\'envoi de <div class=\\'chip\\'> {nomPatient} </div> au service {serviceBilletEnvois.Denomination} de {billetEnvoi.Hopital.Denomination} ?', 'Approbation du billet d\\'envoi de <div class=\\'chip\\'> {nomPatient} </div> au service {serviceBilletEnvois.Denomination} annul&eacute;e')";
+
+
+                                                            pointeur = (!serviceBilletEnvois.IsApproved) ? "fa-mouse-pointer" : "";
+                                                            color = (serviceBilletEnvois.IsUsed) ? "blue" : color;
+                                                            text = (serviceBilletEnvois.IsUsed) ? "Pris en charge" : text;
+
+                                                            icone = (serviceBilletEnvois.IsUrgent) ? "new_releases" : icone;
+                                                            color = (serviceBilletEnvois.IsUrgent) ? "red" : color;
+                                                            text = (serviceBilletEnvois.IsUrgent) ? "En urgence" : text;
+                                                            onclik = (serviceBilletEnvois.IsUrgent) ? "" : onclik;
+                                                            pointeur = (serviceBilletEnvois.IsUrgent) ? "" : pointeur;
+
+
+                                                            //TODO afficher le lien qu'à celui qui en a droit
+
+                                                            <a onclick="@Html.Raw(onclik)" class="btn btn-light @color-text @pointeur" data-bs-placement="left" data-bs-toggle="tooltip" title="@text">
+                                                                <i class="material-icons sweetalert-cancel">@icone</i>
+                                                            </a>
+
+                                                              @serviceBilletEnvois.Denomination <br />
+                                                         }
+
+                                                    </td>
+                                                    <td valign="top">
+                                                    </td>
+                                                </tr>
+                                            </table>
+                                        </span>
+                                    </td>
+                                </tr>
+                             }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

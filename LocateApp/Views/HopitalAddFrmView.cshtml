@@ -1,0 +1,244 @@
+﻿@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using System.Globalization;
+@using System.Threading;
+
+
+@{ HopitalFmViewModel Page = (HopitalFmViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+    string libellePage = Page.MenuData?.Libelle;
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div>
+    <div class="row">
+        <div class="col-12 col-md-12 col-lg-12">
+            <div class="card">
+                <div class="card-body">
+                    <h4 class="card-title">@libellePage</h4>
+                    <p>@Page.Description</p><br>
+
+                    <form id="example-form" action="/hopital/add/" method="post">
+                        <div>
+                            <h3>Information de la formation médicale</h3>
+                            <section>
+                                <div class="wizard-content">
+                                    <div class="row">
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="Id">Code</label>
+                                            <input id="Id" name="Id" type="text" value="" class="form-control">
+                                        </div>
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="Denomination">Nom</label>
+                                            <input id="Denomination" name="Denomination" type="text" value="" class="form-control">
+                                        </div>
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="Acronyme">Acronyme</label>
+                                            <input id="Acronyme" name="Acronyme" type="text" value="" class="form-control">
+                                        </div>
+
+                                        <div class="form-group mb-3 col-12">
+                                            <br />
+                                        </div>
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="IdNat">IdNat</label>
+                                            <input id="IdNat" name="IdNat" type="text" value="" class="form-control">
+                                        </div>
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="Rccm">Rccm</label>
+                                            <input id="Rccm" name="Rccm" type="text" value="" class="form-control">
+                                        </div>
+
+                                        <div class="form-group mb-3 col-12">
+                                            <br />
+                                        </div>
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="DateConv">Date de Convention</label>
+                                            <input id="DateConv" name="DateConv" type="text" class="datepicker form-control" value="" />
+                                        </div>
+
+
+                                        <div class="form-group mb-3 col-6"><br />
+                                            <label class="form-label" for="RefDocInterne">Référence de Document Interne</label>
+                                            <input id="RefDocInterne" name="RefDocInterne" type="text" value="" class="form-control">
+                                        </div>
+
+                                        <div class="form-group mb-3 col-12">
+                                            <br />
+                                        </div>
+
+                                        <div class="form-group mb-3 col-4">
+                                            Actif
+                                        </div>
+
+                                        <div class="form-group mb-3 col-4">
+                                            Public
+                                        </div>
+
+                                        <div class="form-group mb-3 col-4">
+                                            Hopital
+                                        </div>
+
+                                        <div class="form-group mb-3 col-4">
+
+                                            <div class="form-check form-switch mb-3">
+<input role="switch" type="checkbox" id="IsActive" name="IsActive" value="true" class="form-check-input" />
+<label class="form-check-label" for="IsActive">Oui</label>
+</div>
+
+                                        </div>
+
+                                        <div class="form-group mb-3 col-4">
+
+                                            <div class="form-check form-switch mb-3">
+<input role="switch" type="checkbox" id="IsPublic" name="IsPublic" value="true" class="form-check-input" />
+<label class="form-check-label" for="IsPublic">Oui</label>
+</div>
+
+                                        </div>
+
+                                        <div class="form-group mb-3 col-4">
+
+                                            <div class="form-check form-switch mb-3">
+<input role="switch" type="checkbox" id="IsHospital" name="IsHospital" value="true" class="form-check-input" />
+<label class="form-check-label" for="IsHospital">Oui</label>
+</div>
+
+                                        </div>
+
+                                        <div class="form-group mb-3 col-12">
+                                            <br />
+                                        </div>
+
+                                        <div class="form-group mb-3 col-12">
+                                            <label for="Adresse">Adresse</label>
+                                            <br />
+                                            <textarea id="Adresse" name="Adresse" class="form-control"></textarea>
+                                        </div>
+
+
+                                    </div>
+                                </div>
+                            </section>
+                            <h3>Services Médicaux </h3>
+                            <section>
+                                <div class="wizard-content">
+                                    <div class="row">
+
+                                        <div class="col-12">
+
+                                            <div id="ServicesSelected">
+                                               
+
+                                            </div>
+
+                                            <table id="example" class="table table-hover align-middle w-100">
+                                                <thead>
+                                                    <tr>
+                                                        <th>N°</th>
+                                                        <th>Libellé</th>
+                                                        <th>Acronyme</th>
+                                                        <th>Auto approbation</th>
+                                                        <th>Choisir</th>
+                                                    </tr>
+                                                </thead>
+                                                <tfoot>
+                                                    <tr>
+                                                        <th>N°</th>
+                                                        <th>Libellé</th>
+                                                        <th>Acronyme</th>
+                                                        <th>Auto approbation</th>
+                                                        <th>Choisir</th>
+                                                    </tr>
+                                                </tfoot>
+                                                <tbody>
+
+                                                    @{ int compteur = 0;  }
+
+                                                    @foreach (var serviceMedical in Page.ServiceMedical)
+                                                    {
+
+                                                        compteur++;
+
+                                                        <tr>
+                                                            <td valign="top">@compteur </td>
+                                                            <td>@serviceMedical.Denomination </td>
+                                                            <td>@serviceMedical.Acronyme </td>
+                                                            <td>
+
+                                                                @if (serviceMedical.AutoApprobation)
+                                                                {
+                                                                    <a class="btn btn-light text-success" data-bs-placement="right" data-bs-toggle="tooltip" title="Auto approbation">
+                                                                        <i class="material-icons">verified_user</i>
+                                                                    </a>
+                                                                    <span class="transparent-text">Auto approbation</span>                                                                    
+                                                                 }
+
+                                                            </td>
+                                                            <td>
+
+                                                                @{ string valueToSelect = $"{serviceMedical.IdService}_{serviceMedical.Denomination}";  }
+
+                                                                <div class="form-check"><input type="checkbox" class="filled-in form-check-input" onClick="$(this).checkData('Services')" name="CheckServices" value="@valueToSelect" id="@serviceMedical.IdService" />
+                                                                <label for="@serviceMedical.IdService" class="text-dark form-check-label">@serviceMedical.Denomination</label></div>
+                                                            </td>
+
+                                                        </tr>
+                                                     }
+
+                                                </tbody>
+                                            </table>
+
+
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </section>
+
+                            <h3>Valider</h3>
+                            <section>
+                                <div class="wizard-content">
+
+                                    <div class="col-md-3 col-12 text-center">
+                                        <img src="~/Content/images/logoBcc.png" class="img-fluid rounded-circle" width="100px" alt="">
+                                        <p class="text-muted text-center">© Banque Centrale du Congo </p>
+                                    </div>
+                                    <div class="col-md-9 col-12">
+                                        <h5><b>Création d'un formation médicale </b></h5>
+                                        <div class="row mt-4">
+                                            <div class="col-md-10">
+                                                <p class="no-p text-warning f-bold text-uppercase">Attention !</p><br /><br />
+                                                <p class="text-justify">
+                                                    Vous êtes sur le point de valider les informations de cette formation médicale. <br />
+                                                    Prière de vous rassurer d'avoir correctement remplie les informations avant de les enregrester.<br />
+                                                    Après enregistrement, la formation médicale ainsi que ses services seront directement visibles auprès de tout utilisateur ayant le droit d'émettre un billet 
+                                                    d'envoie dans cette formation médicale. <br /><br />
+                                                </p>
+                                                <p class="no-p">Etes-vous sûr de vouloir enregister ces informations ?</p> 
+                                            </div>
+                                            
+                                        </div>
+                                    </div>
+
+                                </div>
+                            </section>
+                        </div>
+                    </form>
+
+                </div>
+            </div>
+        </div>        
+
+    </div>
+</div>
