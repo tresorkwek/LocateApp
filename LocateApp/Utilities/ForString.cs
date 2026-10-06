@@ -66,8 +66,6 @@ namespace LocateApp.Utilities
             string nomForTooltip = string.IsNullOrEmpty(nom) ? "... non renseigné" : nom.ToUpper();
 
             //string.Compare(nom?.Trim(), nomAfficheable?.Trim(), true) == 0 
-            //ForString.CompareCompositeString(Nom?.Trim(), MoviaNom?.Trim())
-            //string.Equals(Nom?.Trim(), MoviaNom?.Trim(), StringComparison.OrdinalIgnoreCase)
 
             //return string.Equals(nom?.Trim(), nomAfficheable?.Trim(), StringComparison.OrdinalIgnoreCase) ? nomAfficheable : $"<a class=\"tooltipped red-text\" data-position=\"bottom\" data-delay=\"50\" data-tooltip=\"{nomForTooltip}\">{nomAfficheable}</a>";
             //return (string.Compare(nom?.Trim(), nomAfficheable?.Trim(), true) <= 0) ? nomAfficheable : $"<a class=\"tooltipped red-text\" data-position=\"bottom\" data-delay=\"50\" data-tooltip=\"{nomForTooltip}\">{nomAfficheable}</a>";

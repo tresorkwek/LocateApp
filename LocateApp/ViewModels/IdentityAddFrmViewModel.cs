@@ -10,7 +10,7 @@ namespace LocateApp.ViewModels
     public class IdentityAddFrmViewModel : ViewModel 
     {
         public List<Profil> Profil => ProfilController.GetProfil();
-        public List<Organe> Hopital => OrganeController.Select();
+        public List<Organe> Organes => OrganeController.Select();
 
         public IdentityAddFrmViewModel(string userName, MessageAlerte messageAlerte = null): base(userName, messageAlerte)
         {

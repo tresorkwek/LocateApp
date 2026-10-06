@@ -1,7 +1,7 @@
 ﻿/* ============================================================================
-   Locate - Déclassement et cession des biens, comme eTracking. Idempotent.
+   Locate - Déclassement et cession des biens. Idempotent.
 
-   Modèle eTracking repris à l'identique :
+   Modèle retenu :
    - Déclasser un bien (POST /immo/declasser/{id}) : le bien passe dans le local
      « Déclassé » (IdTypeLocal = 4) de son entité ; il reste actif.
    - Liste des déclassés (GET /immo/declasser/) : contenu de ce local.
@@ -12,7 +12,7 @@
    1. ajoute Immo.DateCession et Immo.UserCession ;
    2. ajoute le type de local « Déclassé » (Id 4) ;
    3. crée un local « Déclassé » par entité active de l'organigramme courant
-      (même méthode que les scripts eTracking des locaux Non vu et Transit) ;
+      (même méthode que pour les locaux Non vu et Transit) ;
    4. reprend les biens déjà sortis par l'ancien déclassement de Locate
       (IsActive = 0 avec DateDeclassement) comme des biens cédés ;
    5. déclare les routes dans _Menu (groupe Invisible 9) et retire la route
@@ -64,7 +64,7 @@ UPDATE dbo.Immo
 SET DateCession = DateDeclassement, UserCession = LEFT(UserDeclassement, 50)
 WHERE IsActive = 0 AND DateDeclassement IS NOT NULL AND DateCession IS NULL;
 
-/* 5. Droits : routes eTracking déclarées dans le groupe Invisible */
+/* 5. Droits : routes déclarées dans le groupe Invisible */
 DECLARE @Routes TABLE (Nom nvarchar(250), Url nvarchar(200), Libelle nvarchar(200), Modele nvarchar(250));
 INSERT INTO @Routes VALUES
  (N'GetImmoDeclasser',     N'/immo/declasser/',      N'Bien : liste des déclassés',             N'GetImmoTransit'),
@@ -88,4 +88,4 @@ COMMIT TRAN;
 
 SELECT (SELECT COUNT(*) FROM dbo.Local WHERE IdTypeLocal = 4) AS LocauxDeclasses,
        (SELECT COUNT(*) FROM dbo.Immo WHERE DateCession IS NOT NULL) AS BiensCedes;
-PRINT 'Déclassement et cession (modèle eTracking) installés.';
+PRINT 'Déclassement et cession installés.';

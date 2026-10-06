@@ -97,7 +97,7 @@ public class BiensSpeciauxPage : PageBase
         var carte = new VerticalStackLayout { Children = { Titre(Title), Sous(sous), badges } };
         if (chemin == "immo/declasser/" && biens.Count > 0)
         {
-            // Cession de tout le local des déclassés (POST /immo/local/cession/), comme dans eTracking.
+            // Cession de tout le local des déclassés (POST /immo/local/cession/).
             var cederTout = new Button
             {
                 Text = $"Céder les {biens.Count} biens", ImageSource = Icones.Image(Icones.CroixRonde, Couleurs.Rouge, 18),

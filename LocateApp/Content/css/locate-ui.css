@@ -898,3 +898,7 @@ table.dataTable.lc-table thead .sorting_desc {
 /* Éditeur de Locate, en bas de la barre latérale : logo officiel de RandareCx (variante claire, barre latérale sombre) */
 .lc-editeur-libelle { font-size: .72rem; letter-spacing: .08em; text-transform: uppercase; color: var(--bs-menu-link-color, #9ba7ca); opacity: .8; }
 .lc-editeur-logo { display: block; width: 100%; max-width: 150px; height: auto; margin: 0 auto; }
+/* Barre latérale : la colonne du menu occupe toute la hauteur visible, le bloc « Une solution RandareCx »
+   est ainsi poussé tout en bas (et reste après le dernier menu quand celui-ci dépasse l'écran). */
+.lc-startbar-flux { min-height: calc(100vh - 75px - 16px); }
+.lc-startbar-flux > .update-msg { align-self: stretch; margin-bottom: 0; }

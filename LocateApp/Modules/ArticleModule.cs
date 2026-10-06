@@ -27,6 +27,7 @@ namespace LocateApp.Modules
             Get("/id/{id}", _ => this.RunHandler<long>(GetArticleById, (long)_.id));
             Get("/local/{idLocal}", _ => this.RunHandler<long>(GetArticleByLocal, (long)_.idLocal));
             Get("/organe/{codeOrgane}", _ => this.RunHandler<string>(GetArticleByOrgane, (string)_.codeOrgane));
+            Get("/entite/{codeOrgane}", _ => this.RunHandler<string>(GetArticleByEntite, (string)_.codeOrgane));
             Get("/add/", _ => this.RunHandler(GetArticleAddForm));
             Get("/modify/{id}", _ => this.RunHandler<long>(GetModifyArticleForm, (long)_.id));
             Get("/delete/{id}", _ => this.RunHandler<long>(DeleteArticle, (long)_.id));
@@ -91,11 +92,23 @@ namespace LocateApp.Modules
         /// <summary>Biens d'un organe groupés par article (pendant de /article/local/{idLocal}).</summary>
         private object GetArticleByOrgane(string codeOrgane)
         {
-            List<Article> listOfArticle = ArticleController.SelectByOrgane(codeOrgane);
+            return AfficherArticlesOrgane(codeOrgane, false);
+        }
 
-            // Inventoriés de l'inventaire en cours, par article, parmi les biens actifs de l'organe
+        /// <summary>Biens d'une entité (structure et organes rattachés) groupés par article.</summary>
+        private object GetArticleByEntite(string codeOrgane)
+        {
+            return AfficherArticlesOrgane(codeOrgane, true);
+        }
+
+        private object AfficherArticlesOrgane(string codeOrgane, bool entite)
+        {
+            List<Article> listOfArticle = entite ? ArticleController.SelectByEntite(codeOrgane) : ArticleController.SelectByOrgane(codeOrgane);
+            string portee = entite ? "entite" : "organe";
+
+            // Inventoriés de l'inventaire en cours, par article, parmi les biens actifs de l'organe (ou de l'entité)
             int anneeEnCours = InventaireController.SelectAnneeEnCours();
-            Dictionary<long, long> inventories = ImmoController.SelectByOrgane(codeOrgane)
+            Dictionary<long, long> inventories = (entite ? ImmoController.SelectByEntite(codeOrgane) : ImmoController.SelectByOrgane(codeOrgane))
                 .Where(i => i.IdArticle != null && anneeEnCours > 0 && i.LastAnneeComptable == anneeEnCours && !string.IsNullOrEmpty(i.UserVu) && !string.IsNullOrEmpty(i.Inventorieur))
                 .GroupBy(i => (long)i.IdArticle)
                 .ToDictionary(g => g.Key, g => (long)g.Count());
@@ -106,10 +119,11 @@ namespace LocateApp.Modules
                 CurrentClaim = this.GetClaimString(),
                 Articles = listOfArticle,
                 Organe = OrganeController.SelectById(codeOrgane),
+                ParEntite = entite,
                 InventoriesParArticle = inventories,
-                Link = $"/immo/organe/select/{codeOrgane}/article/",
-                LienParArticle = $"/article/organe/{codeOrgane}",
-                LienDetails = $"/immo/organe/select/{codeOrgane}/"
+                Link = $"/immo/{portee}/select/{codeOrgane}/article/",
+                LienParArticle = $"/article/{portee}/{codeOrgane}",
+                LienDetails = $"/immo/{portee}/select/{codeOrgane}/"
             };
 
             object view = View["ArticleLocalListView", viewModelOfArticle];

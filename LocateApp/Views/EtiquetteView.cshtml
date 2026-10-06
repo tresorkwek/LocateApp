@@ -149,20 +149,6 @@
 
 
 
-    @*@{ string printUrl = $"/billetenvoi/{Page.Identity.IdInstitution}/select/{Page.BilletEnvoi.Id}";
-
-        string backUrl = $"/billetenvoi/{Page.Identity.IdInstitution}/print/{Page.BilletEnvoi.Id}";
-
-
-        string nomPatientToPrint = Page.BilletEnvoi.Patient.NomAfficheable.Trim() + " " + Page.BilletEnvoi.Patient.PostnomAfficheable.Trim() + " " + Page.BilletEnvoi.Patient.PrenomAfficheable.Trim();
-        string imageBoxToPrint = $"<img src =\\'/Content/images/photos/{Page.BilletEnvoi.Patient.Photo}\\' width=\\'130px\\'  class=\\'circle mailbox-profile\\'>";
-        string onclikToPrint = $"$(this).printAndCconfirmUrl('{printUrl}', 'Impression <br/> {imageBoxToPrint}', '{backUrl}', 'Avez-vous pu imprimer correctement le billet d\\'envoi N°{Page.BilletEnvoi.NumBilletEnvoi} de <div class=\\'chip\\'> {nomPatientToPrint.Replace("'", @"\'")} </div> pour {Page.BilletEnvoi.Hopital.Denomination} ?', 'Echec de l\\'impression du billet d\\'envoi N°{Page.BilletEnvoi.NumBilletEnvoi} de <div class=\\'chip\\'> {nomPatientToPrint.Replace("'", @"\'")} </div> pour {Page.BilletEnvoi.Hopital.Denomination}')"; }
-
-    <div class="fab-action invisibleForPrint">
-        <a class="btn btn-danger" onclick="@Html.Raw(onclikToPrint)">
-            <i class="iconoir-printer"></i>
-        </a>
-    </div>*@
 
 </div>
 

@@ -46,7 +46,7 @@ public class LocauxPage : PageBase
         grille.Add(new ContentView { Padding = new Thickness(12, 10, 12, 0), Content = Ui.Recherche(recherche) }, 0, 1);
         grille.Add(resume, 0, 2);
         grille.Add(ListeActualisable(liste), 0, 3);
-        // Deux actions flottantes, comme dans eTracking : créer un local, scanner un local.
+        // Deux actions flottantes : créer un local, scanner un local.
         var nouveau = Flottant("Nouveau local", async () => await NouveauLocal(), Icones.Plus);
         nouveau.BackgroundColor = Couleurs.Carte;
         nouveau.TextColor = Couleurs.Accent;

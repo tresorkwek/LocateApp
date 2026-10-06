@@ -19,7 +19,7 @@ namespace LocateApp
 
             if (user == null)
             {
-                user = IdentityController.TransformAgentToUser(AgentController.SelectPatientBySerialId(identifier.ToString()).FirstOrDefault());
+                user = IdentityController.TransformAgentToUser(AgentController.SelectAgentBySerialId(identifier.ToString()).FirstOrDefault());
             }
 
             return user == null

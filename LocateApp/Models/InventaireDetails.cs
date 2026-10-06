@@ -22,6 +22,15 @@ namespace LocateApp.Models
         public string Observation { get; set; }
         public string DesignationLocal { get; set; }
 
+        // Libellés joints pour l'affichage du détail d'une campagne (SqlInventaire.SelectDetailsByOrgane) ; vides ailleurs.
+        public string CodeImmo { get; set; }
+        public string DesignationArticle { get; set; }
+        public string Marque { get; set; }
+        public string LibelleObservation { get; set; }
+        public string CodeLocal { get; set; }
+        public string NomInventorieur { get; set; }
+        public string NomResponsable { get; set; }
+
         public Inventaire GetEntete()
         {
             return InventaireController.SelectEntete(Annee).FirstOrDefault();

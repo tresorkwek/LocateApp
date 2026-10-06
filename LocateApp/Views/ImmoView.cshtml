@@ -90,7 +90,7 @@
         designationJs = pourJs(designation);
         anneeEnCours = InventaireController.SelectAnneeEnCours();
         vuCetteAnnee = anneeEnCours > 0 && immo.LastAnneeComptable == anneeEnCours;
-        // Modèle eTracking : déclassé = rangé dans le local des déclassés (encore actif) ; cédé = sorti définitivement.
+        // Règle : déclassé = rangé dans le local des déclassés (encore actif) ; cédé = sorti définitivement.
         cede = immo.DateCession != null;
         declasse = !string.IsNullOrEmpty(immo.UserDeclassement) && !cede;
         couleurInventaire = vuCetteAnnee ? "success" : (anneeEnCours > 0 ? "warning" : "secondary");
@@ -781,7 +781,7 @@ else
 }
 
 <script>
-    // Confirmation SweetAlert puis envoi en POST (les routes de déclassement et de cession d'eTracking sont en POST).
+    // Confirmation SweetAlert puis envoi en POST (les routes de déclassement et de cession sont en POST).
     function locateConfirmerPost(titre, url, message) {
         swal({
             title: titre, text: message, html: true, type: 'warning', showCancelButton: true,

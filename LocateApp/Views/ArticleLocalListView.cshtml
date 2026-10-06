@@ -16,7 +16,7 @@
 
     string nomOrgane = organe == null ? "" : (organe.Id == organe.IdStructure ? organe.Nom : $"{organe.Nom} ({organe.NomStructure})");
     string titreLocal = Page.Local != null ? Page.Local.Designation : parOrgane ? nomOrgane : Page.Title;
-    string ici = parOrgane ? "dans cet organe" : "dans ce local";
+    string ici = parOrgane ? (Page.ParEntite ? "dans cette entité" : "dans cet organe") : "dans ce local";
     string lienParArticle = Page.LienParArticle ?? (Page.Local == null ? null : "/article/local/" + Page.Local.Id);
     string lienDetails = Page.LienDetails ?? (Page.Local == null ? null : "/immo/local/" + Page.Local.Id);
 
@@ -28,8 +28,9 @@
 
     foreach (var a in Page.Articles)
     {
+        long n; // déclaré à part : le compilateur des vues Nancy est en C# 6 (pas de « out long n »)
         long inventories = Page.InventoriesParArticle != null
-            ? (Page.InventoriesParArticle.TryGetValue(a.Id, out long n) ? n : 0)
+            ? (Page.InventoriesParArticle.TryGetValue(a.Id, out n) ? n : 0)
             : (Page.Local == null ? 0 : a.GetQuantiteImmoInventorie(Page.Local.Id));
         inventoriesParArticle[a.Id] = inventories;
         totalBiens += a.NbreImmo;
@@ -57,7 +58,7 @@
                         <span class="lc-sub">
                             @if (parOrgane)
                             {
-                                <text>Biens de l'organe, groupés par article</text>
+                                <text>@(Page.ParEntite ? "Biens de l'entité (structure et organes rattachés), groupés par article" : "Biens de l'organe, groupés par article")</text>
                                 <span class="lc-code ms-1">@organe.Id</span>
                             }
                             else if (!string.IsNullOrEmpty(nomOrgane))

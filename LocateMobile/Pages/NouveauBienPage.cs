@@ -4,7 +4,7 @@ using Microsoft.Maui.Controls.Shapes;
 namespace LocateMobile.Pages;
 
 /// <summary>
-/// Nouveau bien dans un local, comme « Nouveau bien » du site et d'eTracking : article, état constaté, observation,
+/// Nouveau bien dans un local, comme « Nouveau bien » du site : article, état constaté, observation,
 /// code immo facultatif et quantité, puis POST /immo/add/ (route du formulaire web). Les articles du local sont proposés d'abord ;
 /// la recherche porte sur tout le catalogue (chargé une fois par session).
 /// </summary>

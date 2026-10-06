@@ -1,0 +1,297 @@
+@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Collections.Generic;
+@using System.Linq;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ InventaireDetailsViewModel Page = (InventaireDetailsViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   Inventaire inventaire = Page.Inventaire;
+   bool parOrgane = Page.Organe != null || Page.Lignes.Count > 0;
+   bool cloture = inventaire != null && inventaire.DateCloture.Year != 1;
+   bool enCours = inventaire != null && !cloture && inventaire.Annee == Page.AnneeEnCours;
+   string lienBilan = Page.Link + Page.Annee;
+
+   // Chiffres affichés : la campagne entière (bilan par organe) ou l'organe choisi (lignes)
+   int nbLignes, nbVus, nbNonVus, nbBons, nbMauvais, nbLocaux;
+   if (parOrgane)
+   {
+       nbLignes = Page.Lignes.Count;
+       nbVus = Page.Lignes.Count(l => l.ImmoExist);
+       nbNonVus = nbLignes - nbVus;
+       nbBons = Page.Lignes.Count(l => l.ImmoExist && l.Etat == "B");
+       nbMauvais = Page.Lignes.Count(l => l.ImmoExist && l.Etat == "M");
+       nbLocaux = Page.Lignes.Select(l => l.IdLocal).Distinct().Count();
+   }
+   else
+   {
+       nbLignes = Page.Organes.Sum(o => o.NbreLignes);
+       nbVus = Page.Organes.Sum(o => o.NbreVus);
+       nbNonVus = Page.Organes.Sum(o => o.NbreNonVus);
+       nbBons = Page.Organes.Sum(o => o.NbreBons);
+       nbMauvais = Page.Organes.Sum(o => o.NbreMauvais);
+       nbLocaux = Page.Organes.Sum(o => o.NbreLocaux);
+   }
+   int tauxPresence = nbLignes == 0 ? 0 : (int)Math.Round(nbVus * 100.0 / nbLignes);
+   string nomOrgane = Page.Organe == null ? (Page.Lignes.Count > 0 ? Page.Lignes[0].CodeOrgane : "") : Page.Organe.Nom;
+   string titreCarte = parOrgane ? nomOrgane : "Bilan par organe";
+   string sousTitre = parOrgane
+       ? "Biens inventoriés dans cet organe pendant la campagne " + Page.Annee + " : constat, état, observation et agent ayant inventorié."
+       : "Avancement de la campagne " + Page.Annee + " dans chaque organe. Ouvrez un organe pour voir le détail de ses biens.";
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+    <span class="fs-13 text-muted">Inventaire</span>
+    <span class="fw-semibold">@Page.Annee</span>
+    @if (enCours)
+    {
+        <span class="badge lc-badge bg-success-subtle text-success"><i class="iconoir-play"></i>En cours</span>
+    }
+    else if (cloture)
+    {
+        <span class="badge lc-badge bg-secondary-subtle text-secondary"><i class="iconoir-lock"></i>Clôturé le @inventaire.DateCloture.ToString("dd MMMM yyyy")</span>
+    }
+    @if (inventaire != null)
+    {
+        <span class="fs-13 text-muted">· lancé le @inventaire.DateCreation.ToString("dd MMMM yyyy")</span>
+    }
+    @if (parOrgane)
+    {
+        <span class="fs-13 text-muted">· @nomOrgane</span>
+    }
+</div>
+
+@if (inventaire != null)
+{
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-clipboard-check"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Biens inventoriés</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbLignes, 0)<small>dans @Utilities.FormatNumber(nbLocaux, 0) locaux</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-eye"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Biens vus</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbVus, 0)<small>@(tauxPresence) % de présence</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i></span>
+                <div>
+                    <p class="lc-kpi-label">Non vus</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbNonVus, 0)<small>introuvables</small></p>
+                </div>
+            </div>
+        </div>
+        <div class="col-sm-6 col-xl-3">
+            <div class="lc-kpi">
+                <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-thumbs-up"></i></span>
+                <div>
+                    <p class="lc-kpi-label">État constaté</p>
+                    <p class="lc-kpi-value">@Utilities.FormatNumber(nbBons, 0)<small>bons · @Utilities.FormatNumber(nbMauvais, 0) mauvais</small></p>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@titreCarte</h4>
+                <p class="lc-card-subtitle">@sousTitre</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                @if (parOrgane)
+                {
+                    <a href="@lienBilan" class="btn btn-light"><i class="iconoir-arrow-left me-1"></i>Bilan par organe</a>
+                }
+                <a href="/inventaire/resultat/" class="btn btn-light"><i class="iconoir-stats-report me-1"></i>Résultats</a>
+                <a href="/inventaire/" class="btn btn-light"><i class="iconoir-calendar me-1"></i>Campagnes</a>
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (inventaire == null)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-clipboard-check"></i></div>
+                <h6>Campagne introuvable</h6>
+                <p>Aucune campagne d'inventaire n'a été lancée pour l'année @Page.Annee.</p>
+                <a href="/inventaire/" class="btn btn-primary btn-sm"><i class="iconoir-calendar me-1"></i>Voir les campagnes</a>
+            </div>
+        }
+        else if (!parOrgane && Page.Organes.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Aucun bien inventorié</h6>
+                <p>Aucun bien n'a encore été inventorié pendant la campagne @Page.Annee.</p>
+            </div>
+        }
+        else if (parOrgane && Page.Lignes.Count == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-box-iso"></i></div>
+                <h6>Aucun bien inventorié dans cet organe</h6>
+                <p>Aucun bien de cet organe n'a été inventorié pendant la campagne @Page.Annee.</p>
+                <a href="@lienBilan" class="btn btn-primary btn-sm"><i class="iconoir-arrow-left me-1"></i>Bilan par organe</a>
+            </div>
+        }
+        else if (!parOrgane)
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100" data-order='[[0, "asc"]]'>
+                    <thead class="table-light">
+                        <tr>
+                            <th>Organe</th>
+                            <th class="text-end">Locaux</th>
+                            <th class="text-end">Inventoriés</th>
+                            <th>Constat</th>
+                            <th>État des biens</th>
+                            <th>Taux de présence</th>
+                            <th>Dernier passage</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in Page.Organes)
+                        {
+                            string lien = lienBilan + "?organe=" + Uri.EscapeDataString(o.CodeOrgane ?? "");
+                            string nom = string.IsNullOrEmpty(o.NomOrgane) ? o.CodeOrgane : o.NomOrgane;
+                            bool estStructure = o.CodeOrgane == o.IdStructure;
+                            <tr>
+                                <td data-order="@o.CodeOrgane">
+                                    <div class="lc-entity">
+                                        <span class="lc-thumb @(estStructure ? "bg-primary-subtle text-primary" : "")"><i class="@(estStructure ? "iconoir-community" : "iconoir-building")"></i></span>
+                                        <div class="lc-entity-body">
+                                            <a href="@Html.Raw(lien)" class="lc-name">@nom</a>
+                                            <span class="lc-sub">
+                                                @if (!estStructure && !string.IsNullOrEmpty(o.NomStructure))
+                                                {
+                                                    <text>@o.NomStructure</text>
+                                                }
+                                                <span class="lc-code ms-1">@o.CodeOrgane</span>
+                                            </span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="lc-num" data-order="@o.NbreLocaux">@Utilities.FormatNumber(o.NbreLocaux, 0)</td>
+                                <td class="lc-num" data-order="@o.NbreLignes">@Utilities.FormatNumber(o.NbreLignes, 0)</td>
+                                <td data-order="@o.NbreNonVus">
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="badge lc-badge bg-success-subtle text-success" title="Biens vus" data-bs-toggle="tooltip"><i class="iconoir-eye"></i>@Utilities.FormatNumber(o.NbreVus, 0)</span>
+                                        <span class="badge lc-badge @(o.NbreNonVus > 0 ? "bg-danger-subtle text-danger" : "bg-secondary-subtle text-secondary")" title="Biens non vus" data-bs-toggle="tooltip"><i class="iconoir-eye-closed"></i>@Utilities.FormatNumber(o.NbreNonVus, 0)</span>
+                                    </div>
+                                </td>
+                                <td data-order="@o.NbreMauvais">
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <span class="badge lc-badge bg-info-subtle text-info" title="Bon état" data-bs-toggle="tooltip"><i class="iconoir-thumbs-up"></i>@Utilities.FormatNumber(o.NbreBons, 0)</span>
+                                        <span class="badge lc-badge @(o.NbreMauvais > 0 ? "bg-warning-subtle text-warning" : "bg-secondary-subtle text-secondary")" title="Mauvais état" data-bs-toggle="tooltip"><i class="iconoir-thumbs-down"></i>@Utilities.FormatNumber(o.NbreMauvais, 0)</span>
+                                    </div>
+                                </td>
+                                <td data-order="@o.TauxPresence" style="min-width: 150px;">
+                                    <div class="d-flex justify-content-between fs-12 mb-1">
+                                        <span class="text-muted">@o.NbreInventorieurs agent(s)</span>
+                                        <span class="fw-semibold">@(o.TauxPresence) %</span>
+                                    </div>
+                                    <div class="lc-progress">
+                                        <div class="progress-bar @(o.TauxPresence >= 90 ? "bg-success" : o.TauxPresence >= 60 ? "bg-warning" : "bg-danger")" role="progressbar" style="width: @(o.TauxPresence)%" aria-valuenow="@o.TauxPresence" aria-valuemin="0" aria-valuemax="100"></div>
+                                    </div>
+                                </td>
+                                <td data-order="@o.DernierPassage.ToString("yyyyMMddHHmm")">
+                                    <span class="fs-13">@o.DernierPassage.ToString("dd/MM/yyyy")</span>
+                                    <span class="lc-sub d-block">depuis le @o.PremierPassage.ToString("dd/MM/yyyy")</span>
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        <a href="@Html.Raw(lien)" title="Voir les biens inventoriés" data-bs-toggle="tooltip"><i class="iconoir-eye"></i></a>
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100" data-order='[[1, "asc"]]'>
+                    <thead class="table-light">
+                        <tr>
+                            <th>Bien</th>
+                            <th>Local</th>
+                            <th>Constat</th>
+                            <th>Observation</th>
+                            <th>Responsable</th>
+                            <th>Inventorié par</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var l in Page.Lignes)
+                        {
+                            string article = string.IsNullOrEmpty(l.DesignationArticle) ? "Bien n° " + l.IdImmo : (l.DesignationArticle.Trim() + (string.IsNullOrWhiteSpace(l.Marque) ? "" : " " + l.Marque.Trim()));
+                            string inventorieur = string.IsNullOrWhiteSpace(l.NomInventorieur) ? l.UserCreation : l.NomInventorieur;
+                            string responsable = string.IsNullOrWhiteSpace(l.NomResponsable) ? l.Responsable : l.NomResponsable;
+                            <tr>
+                                <td>
+                                    <a href="/immo/id/@l.IdImmo" class="lc-name">@article</a>
+                                    <span class="lc-sub d-block">@(string.IsNullOrEmpty(l.CodeImmo) ? "" : l.CodeImmo)</span>
+                                </td>
+                                <td data-order="@l.DesignationLocal">
+                                    <span class="fs-13">@l.DesignationLocal</span>
+                                    @if (!string.IsNullOrEmpty(l.CodeLocal))
+                                    {
+                                        <span class="lc-code d-inline-block ms-1">@l.CodeLocal</span>
+                                    }
+                                </td>
+                                <td data-order="@(l.ImmoExist ? (l.Etat == "M" ? 1 : 0) : 2)">
+                                    @if (!l.ImmoExist)
+                                    {
+                                        <span class="badge lc-badge bg-danger-subtle text-danger"><i class="iconoir-eye-closed"></i>Non vu</span>
+                                    }
+                                    else if (l.Etat == "M")
+                                    {
+                                        <span class="badge lc-badge bg-warning-subtle text-warning"><i class="iconoir-thumbs-down"></i>Mauvais état</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge bg-info-subtle text-info"><i class="iconoir-thumbs-up"></i>Bon état</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="fs-13">@(string.IsNullOrEmpty(l.LibelleObservation) ? "—" : l.LibelleObservation)</span>
+                                    @if (!string.IsNullOrWhiteSpace(l.Observation))
+                                    {
+                                        <span class="lc-sub d-block">@l.Observation</span>
+                                    }
+                                </td>
+                                <td>
+                                    <span class="fs-13">@(string.IsNullOrEmpty(responsable) ? "—" : responsable)</span>
+                                </td>
+                                <td data-order="@l.DateCreation.ToString("yyyyMMddHHmm")">
+                                    <span class="fs-13">@inventorieur</span>
+                                    <span class="lc-sub d-block">le @l.DateCreation.ToString("dd/MM/yyyy à HH:mm")</span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

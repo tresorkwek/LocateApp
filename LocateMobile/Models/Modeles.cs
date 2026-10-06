@@ -83,7 +83,7 @@ public class Organe
     [JsonIgnore] public Color EtapeCouleur => Avancement.Couleur(Etape);
     [JsonIgnore] public Color EtapeFond => Avancement.Fond(Etape);
     [JsonIgnore] public string EtapeGlyphe => Avancement.Glyphe(Etape);
-    /// <summary>Compteur comme eTracking : total / identifiés / inventoriés.</summary>
+    /// <summary>Compteur : total / identifiés / inventoriés.</summary>
     [JsonIgnore] public string Compteur => $"{NbreBien:N0} / {NbreBienIdentifie:N0} / {NbreBienInventorie:N0}";
 }
 
@@ -113,7 +113,7 @@ public class Local
     [JsonIgnore] public Color EtapeCouleur => Avancement.Couleur(Etape);
     [JsonIgnore] public Color EtapeFond => Avancement.Fond(Etape);
     [JsonIgnore] public string EtapeGlyphe => Avancement.Glyphe(Etape);
-    /// <summary>Compteur comme eTracking : total / identifiés / inventoriés.</summary>
+    /// <summary>Compteur : total / identifiés / inventoriés.</summary>
     [JsonIgnore] public string Compteur => $"{QuantiteImmo:N0} / {QuantiteImmoIdentifier:N0} / {QuantiteImmoInventorier:N0}";
 }
 

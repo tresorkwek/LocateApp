@@ -4,8 +4,8 @@ using LocateMobile.Services;
 namespace LocateMobile.Pages;
 
 /// <summary>
-/// Actions sur un bien, partagées par la fiche, les listes et l'inventaire rapide (fonctions reprises d'eTracking :
-/// déclarer non vu, expédier, mettre en service, déclasser, détacher le QR code, ajouter une photo).
+/// Actions sur un bien, partagées par la fiche, les listes et l'inventaire rapide :
+/// déclarer non vu, expédier, mettre en service, déclasser, détacher le QR code, ajouter une photo.
 /// Toutes passent par des routes existantes du serveur. Chaque méthode renvoie vrai si le bien a changé (à recharger).
 /// </summary>
 public abstract partial class PageBase
@@ -19,7 +19,7 @@ public abstract partial class PageBase
     }
 
     /// <summary>
-    /// QR code d'un local, comme eTracking : sans étiquette, en affecter une ; sinon la détacher (pour la réaffecter ailleurs,
+    /// QR code d'un local : sans étiquette, en affecter une ; sinon la détacher (pour la réaffecter ailleurs,
     /// GET /local/resetqrcode/{id}) ou la jeter (abîmée, perdue : GET /local/liveqrcode/{id}), puis proposer d'en scanner une nouvelle.
     /// </summary>
     protected async Task<bool> MenuQrLocal(Local l)
@@ -123,7 +123,7 @@ public abstract partial class PageBase
     }
 
     /// <summary>
-    /// Déclarer un bien non vu (introuvable), comme eTracking : POST /immo/nonvu/{id}. Le serveur range le bien dans le local
+    /// Déclarer un bien non vu (introuvable) : POST /immo/nonvu/{id}. Le serveur range le bien dans le local
     /// « non vu » de l'organe d'affectation ; il apparaît alors dans l'onglet Non vu.
     /// </summary>
     protected async Task<bool> DeclarerNonVu(Immo b, bool demanderConfirmation = true)
@@ -218,7 +218,7 @@ public abstract partial class PageBase
     }
 
     /// <summary>
-    /// Déclasser le bien, comme eTracking : POST /immo/declasser/{id}. Le serveur range le bien dans le local « Déclassé »
+    /// Déclasser le bien : POST /immo/declasser/{id}. Le serveur range le bien dans le local « Déclassé »
     /// de l'entité de l'utilisateur ; il reste actif et pourra ensuite être cédé.
     /// </summary>
     protected async Task<bool> DeclasserBien(Immo b)
@@ -228,7 +228,7 @@ public abstract partial class PageBase
     }
 
     /// <summary>
-    /// Clôturer l'inventaire d'un local, comme eTracking : POST /inventaire/details/local/ (IdLocal). Le serveur enregistre
+    /// Clôturer l'inventaire d'un local : POST /inventaire/details/local/ (IdLocal). Le serveur enregistre
     /// comme inventoriés les biens identifiés et étiquetés du local ; les biens non identifiés ne sont pas concernés.
     /// </summary>
     protected async Task<bool> CloturerLocal(Local l)

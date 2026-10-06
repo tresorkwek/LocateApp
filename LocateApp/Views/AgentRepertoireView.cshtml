@@ -1,0 +1,201 @@
+@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using System.Linq;
+@using System.Collections.Generic;
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+
+@{ AgentRepertoireViewModel Page = (AgentRepertoireViewModel)Model; }
+
+@{ ViewBag.Page = Page;
+   string libellePage = Page.MenuData?.Libelle;
+   string cheminPhotos = Utilities.GetPhotoAgentPath();
+   List<AgentRepertoire> agents = Page.Agents ?? new List<AgentRepertoire>();
+   int nbAgents = agents.Count;
+   int nbAvecCompte = agents.Count(a => !string.IsNullOrEmpty(a.Compte));
+   int nbResponsables = agents.Count(a => a.NbreBiens > 0);
+   int nbStructures = agents.Where(a => !string.IsNullOrEmpty(a.IdStructure)).Select(a => a.IdStructure).Distinct().Count();
+   int nbFemmes = agents.Count(a => a.Sexe != 1);
+   bool peutGererComptes = Utilities.CheckClaimStatus(Page.Identity, "GetUtilisateurModifyMatricule");
+   bool peutAjouter = Utilities.CheckClaimStatus(Page.Identity, "GetAgentAdd");
+   bool peutModifier = Utilities.CheckClaimStatus(Page.Identity, "GetAgentModifyMatricule");
+ }
+
+@{ Layout = "Views/Layout/_Layout.cshtml";}
+
+<div class="row g-3 mb-3">
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-primary-subtle text-primary"><i class="iconoir-group"></i></span>
+            <div>
+                <p class="lc-kpi-label">Agents</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAgents, 0)<small>@Utilities.FormatNumber(nbAgents - nbFemmes, 0) hommes · @Utilities.FormatNumber(nbFemmes, 0) femmes</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-info-subtle text-info"><i class="iconoir-community"></i></span>
+            <div>
+                <p class="lc-kpi-label">Structures</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbStructures, 0)<small>directions et succursales</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-success-subtle text-success"><i class="iconoir-box-iso"></i></span>
+            <div>
+                <p class="lc-kpi-label">Responsables de biens</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbResponsables, 0)<small>agents</small></p>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-6 col-xl-3">
+        <div class="lc-kpi">
+            <span class="lc-kpi-icon bg-warning-subtle text-warning"><i class="iconoir-user-circle"></i></span>
+            <div>
+                <p class="lc-kpi-label">Comptes Locate</p>
+                <p class="lc-kpi-value">@Utilities.FormatNumber(nbAvecCompte, 0)<small>agents utilisateurs</small></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-header">
+        <div class="row align-items-center g-2">
+            <div class="col">
+                <h4 class="card-title">@(string.IsNullOrEmpty(libellePage) ? "Agents" : libellePage)</h4>
+                <p class="lc-card-subtitle">Répertoire des agents de l'entreprise. Recherchez par nom, matricule, organe ou structure ; survolez une photo pour l'agrandir.</p>
+            </div>
+            <div class="col-auto lc-card-actions">
+                @if (peutGererComptes)
+                {
+                    <a href="javascript:void(0)" onclick="$(this).promptUrl('Importation des agents','/utilisateur/import/', 'Qui voulez-vous importer comme utilisateur ?', 'Saisissez une info de l\'agent')" class="btn btn-soft-primary"><i class="iconoir-user-plus me-1"></i>Donner un compte à des agents</a>
+                }
+                @if (peutAjouter)
+                {
+                    <a href="/agent/add/" class="btn btn-primary"><i class="iconoir-plus me-1"></i>Nouvel agent</a>
+                }
+            </div>
+        </div>
+    </div>
+    <div class="card-body pt-0">
+        @if (nbAgents == 0)
+        {
+            <div class="lc-empty">
+                <div class="lc-empty-icon"><i class="iconoir-group"></i></div>
+                <h6>Aucun agent</h6>
+                <p>Le répertoire des agents est vide.</p>
+                @if (peutAjouter)
+                {
+                    <a href="/agent/add/" class="btn btn-primary btn-sm"><i class="iconoir-plus me-1"></i>Nouvel agent</a>
+                }
+            </div>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table id="example" class="table lc-table w-100" data-order='[[0, "asc"]]'>
+                    <thead class="table-light">
+                        <tr>
+                            <th>Agent</th>
+                            <th>Matricule</th>
+                            <th>Organe</th>
+                            <th>Contact</th>
+                            <th>Compte Locate</th>
+                            <th class="text-end">Biens</th>
+                            <th class="text-end">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var agent in agents)
+                        {
+                            string matricule = agent.MatriculeCourt;
+                            string nomComplet = agent.NomComplet;
+                            string photoUser = cheminPhotos + agent.Photo;
+                            string lienBiens = Page.LienBiens + matricule;
+                            bool estStructure = !string.IsNullOrEmpty(agent.CodeOrgane) && agent.CodeOrgane == agent.IdStructure;
+                            <tr>
+                                <td data-order="@nomComplet">
+                                    <div class="lc-entity">
+                                        <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@matricule)" class="lc-thumb avatar-zoom" loading="lazy" />
+                                        <div class="lc-entity-body">
+                                            <span class="lc-name">@nomComplet</span>
+                                            <span class="lc-sub">@agent.Genre@(agent.DateNaissance.Year > 1900 ? " · né" + (agent.Sexe == 1 ? "" : "e") + " le " + agent.DateNaissance.ToString("dd/MM/yyyy") : "")</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td><span class="lc-code">@matricule</span></td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(agent.NomOrgane))
+                                    {
+                                        <span class="d-block text-body text-truncate" style="max-width: 280px;" title="@agent.NomOrgane">@agent.NomOrgane</span>
+                                        <span class="d-block fs-12 text-muted mt-1">
+                                            @if (!estStructure && !string.IsNullOrEmpty(agent.NomStructure))
+                                            {
+                                                <text>@agent.NomStructure · </text>
+                                            }
+                                            <span class="lc-code">@agent.CodeOrgane</span>
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrEmpty(agent.Telephone))
+                                    {
+                                        <span class="d-block fs-13"><i class="iconoir-phone me-1 text-muted"></i>@agent.Telephone</span>
+                                    }
+                                    @if (!string.IsNullOrEmpty(agent.Email))
+                                    {
+                                        <a href="mailto:@agent.Email" class="d-block fs-12 text-muted text-truncate" style="max-width: 240px;"><i class="iconoir-mail me-1"></i>@agent.Email</a>
+                                    }
+                                </td>
+                                <td data-order="@(agent.Compte ?? "")">
+                                    @if (string.IsNullOrEmpty(agent.Compte))
+                                    {
+                                        <span class="text-muted fs-13">—</span>
+                                    }
+                                    else if (peutGererComptes)
+                                    {
+                                        <a href="/utilisateur/modify/@agent.Compte" class="badge lc-badge @(agent.CompteActif ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")" title="Modifier le compte" data-bs-toggle="tooltip"><i class="iconoir-user"></i>@agent.Profil</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge lc-badge @(agent.CompteActif ? "bg-success-subtle text-success" : "bg-secondary-subtle text-secondary")"><i class="iconoir-user"></i>@agent.Profil</span>
+                                    }
+                                </td>
+                                <td class="lc-num" data-order="@agent.NbreBiens">
+                                    @if (agent.NbreBiens > 0)
+                                    {
+                                        <a href="@lienBiens" class="lc-count">@Utilities.FormatNumber(agent.NbreBiens, 0)</a>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">0</span>
+                                    }
+                                </td>
+                                <td class="text-end">
+                                    <span class="lc-actions">
+                                        @if (peutModifier)
+                                        {
+                                            <a href="/agent/modify/@matricule" title="Modifier l'agent" data-bs-toggle="tooltip"><i class="iconoir-edit-pencil"></i></a>
+                                        }
+                                        @if (agent.NbreBiens > 0)
+                                        {
+                                            <a href="@lienBiens" title="Biens dont cet agent est responsable" data-bs-toggle="tooltip"><i class="iconoir-box-iso"></i></a>
+                                        }
+                                    </span>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>

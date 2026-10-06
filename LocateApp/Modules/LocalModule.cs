@@ -177,7 +177,7 @@ namespace LocateApp.Modules
 
             if (etiquette == null)
             {
-                message = $"Vous tentez d'affecter un QRCode non imprimé par l'Hotel des Monnaies, Locate l'a rejeté !";
+                message = $"Vous tentez d'affecter un QRCode qui n'a pas été généré par Locate : il a été rejeté !";
                 return this.RedirectUrl(redirectUrl, message, sucess, messageTitle);
             }
             else if (etiquette.IsUsed)

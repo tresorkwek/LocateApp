@@ -19,7 +19,7 @@ namespace LocateApp.ViewModels
         public IdentityViewModel(string userName = null, MessageAlerte messageAlerte = null) : base(userName, messageAlerte)
         {
             Link = "/utilisateur/modify/";
-            LinkForAgent = "/patient/select/";
+            LinkForAgent = "/immo/responsable/bien/";
             Action = "/utilisateur/disable/";
             ActionName = "Désactivation";
             ActionLabel = "désactiver";

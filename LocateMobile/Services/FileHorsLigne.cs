@@ -14,7 +14,7 @@ public sealed class OperationEnAttente
 }
 
 /// <summary>
-/// File d'attente hors ligne (équivalent du mode hors ligne d'eTracking) : identifications et déclarations « non vu »
+/// File d'attente hors ligne : identifications et déclarations « non vu »
 /// faites sans réseau sont enregistrées dans un fichier de l'application, puis renvoyées dans l'ordre dès que le serveur
 /// répond. Une opération refusée par le serveur (et non par le réseau) est retirée de la file avec son message.
 /// </summary>

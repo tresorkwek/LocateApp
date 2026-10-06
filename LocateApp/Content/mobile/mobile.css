@@ -562,7 +562,7 @@ body.mode-login .m-page { position: relative; z-index: 1; max-width: none; paddi
     .m-rapide { padding-bottom: 0; }
     .m-rapide .m-barre-fin { left: 50%; background: none; }
 }
-/* ---------------------------------------------------------------- fonctions reprises d'eTracking (mouvements, hors ligne, étiquette) */
+/* ---------------------------------------------------------------- mouvements, hors ligne, étiquette */
 .m-btn-rouge { background: var(--m-rouge); color: #fff; box-shadow: 0 6px 16px rgba(220, 38, 38, .28); }
 .m-btn-rouge:active { background: var(--m-rouge-texte); }
 .ico-gris { background: var(--m-gris-fond); color: #475569; }
@@ -639,7 +639,7 @@ body.mode-login .m-page { position: relative; z-index: 1; max-width: none; paddi
 .m-btn-danger-discret i { color: var(--m-rouge); }
 .m-btn-danger-discret:active { background: var(--m-rouge-fond); }
 
-/* Avancement de l'inventaire (comme eTracking) : étape d'un local / organe et état des biens
+/* Avancement de l'inventaire : étape d'un local / organe et état des biens
    Étapes : Vide (gris), À faire (rouge), À clôturer (bleu), Incomplet (orange), Clôturé (vert). */
 .m-etape { display: inline-flex; align-items: center; gap: 4px; font-size: .74rem; font-weight: 700; padding: 3px 9px; border-radius: 999px; line-height: 1.3; white-space: nowrap; }
 .m-etape i { font-size: .85rem; }

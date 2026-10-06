@@ -304,7 +304,7 @@ public class InventaireRapidePage : PageBase
         }
         catch (Services.ReseauException)
         {
-            // Pas de réseau : l'identification est gardée sur la tablette et envoyée au retour du réseau (comme le mode hors ligne d'eTracking).
+            // Pas de réseau : l'identification est gardée sur la tablette et envoyée au retour du réseau.
             Services.FileHorsLigne.Ajouter("inventaire/identifier/", champs, $"Identifier : {bien.Titre}");
             horsLigne = true;
         }

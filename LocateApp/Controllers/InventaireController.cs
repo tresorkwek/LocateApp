@@ -30,6 +30,16 @@ namespace LocateApp.Controllers
             return SqlDataAccess.SelectData<InventaireDetails>(SqlInventaire.SelectDetails, new { Annee });
         }
 
+        public static List<InventaireDetailsOrgane> SelectDetailsParOrgane(int Annee)
+        {
+            return SqlDataAccess.SelectData<InventaireDetailsOrgane>(SqlInventaire.SelectDetailsParOrgane, new { Annee });
+        }
+
+        public static List<InventaireDetails> SelectDetailsByOrgane(int Annee, string CodeOrgane)
+        {
+            return SqlDataAccess.SelectData<InventaireDetails>(SqlInventaire.SelectDetailsByOrgane, new { Annee, CodeOrgane });
+        }
+
         public static InventaireDetails SelectDetailsByImmo(long IdImmo, int? Annee = null)
         {
             Annee = Annee == null ? SelectLastAnneeComptable() : Annee;

@@ -93,10 +93,10 @@
                                     <label class="form-label" for="IdInstitution">Institution</label>
                                     <select name="IdInstitution" class="js-states form-select" tabindex="-1" style="width: 100%" id="IdInstitution">
                                         <option value="" disabled selected>Choisissez une institution</option>
-                                        @foreach (var hopital in Page.Hopital)
+                                        @foreach (var organe in Page.Organes)
                                         {
-                                            string denominationHopital = hopital.Nom?.Trim();
-                                            <option value="@hopital.Id">@denominationHopital</option>
+                                            string denominationOrgane = organe.Nom?.Trim();
+                                            <option value="@organe.Id">@denominationOrgane</option>
                                         }
                                     </select>
                                 </div>

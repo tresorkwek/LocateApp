@@ -114,7 +114,7 @@ namespace LocateApp.Modules
             {
                 MenuData = MenuController.GetMenuByName(this.GetClaimString()),
                 CurrentClaim = "GetUtilisateur",
-                Patients = listOfAgent
+                Agents = listOfAgent
             };
 
             object view = View["IdentityImportView", viewModel];
@@ -190,7 +190,7 @@ namespace LocateApp.Modules
             if (result && insertIdentityRequest.IsExternalUser && file != null) 
             {
                 DefaultRootPathProvider pathProvider = new DefaultRootPathProvider();
-                var filename = Path.Combine(pathProvider.GetRootPath(), "Content/images/photos", insertIdentityRequest.UserName + ".jpg");
+                var filename = Path.Combine(pathProvider.GetRootPath(), "Content/images/photos", insertIdentityRequest.UserName + "00.jpg"); // nom lu par Identity.Photo
                 
                 using (var fileStream = new FileStream(filename, FileMode.Create))
                 {
@@ -220,7 +220,7 @@ namespace LocateApp.Modules
             if (result && modifyIdentityRequest.IsExternalUser && file != null)
             {
                 DefaultRootPathProvider pathProvider = new DefaultRootPathProvider();
-                var filename = Path.Combine(pathProvider.GetRootPath(), "Content/images/photos", modifyIdentityRequest.UserName + ".jpg");
+                var filename = Path.Combine(pathProvider.GetRootPath(), "Content/images/photos", modifyIdentityRequest.UserName + "00.jpg"); // nom lu par Identity.Photo
 
                 using (var fileStream = new FileStream(filename, FileMode.Create))
                 {

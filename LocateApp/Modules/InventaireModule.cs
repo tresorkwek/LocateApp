@@ -146,21 +146,39 @@ namespace LocateApp.Modules
             return this.ResponseObject(view, listOfInventaire, viewModelOfInventaire.Title, success);
         }
 
+        /// <summary>
+        /// Détail d'une campagne : bilan par organe ; avec ?organe={code}, lignes inventoriées de cet organe
+        /// (une campagne compte plusieurs dizaines de milliers de lignes : on ne les charge jamais toutes).
+        /// </summary>
         private object GetDetailsInventaire(int annee)
         {
-            List<InventaireDetails> listOfDetailsInventaire = InventaireController.SelectDetails(annee);
+            string codeOrgane = this.Request.Query["organe"].HasValue ? ((string)this.Request.Query["organe"])?.Trim() : null;
 
-            InventaireListViewModel viewModelOfInventaire = new InventaireListViewModel(this.CurrentUserName(), this.ShowAlert())
+            InventaireDetailsViewModel viewModelOfInventaire = new InventaireDetailsViewModel(this.CurrentUserName(), this.ShowAlert())
             {
                 MenuData = MenuController.GetMenuByName(this.GetClaimString()),
                 CurrentClaim = this.GetClaimString(),
-                InventaireDetails = listOfDetailsInventaire
+                Annee = annee,
+                Inventaire = InventaireController.SelectEntete(annee).FirstOrDefault()
             };
 
-            object view = View["InventaireDetailsListView", viewModelOfInventaire];
-            int success = listOfDetailsInventaire.Count > 0 ? 1 : 0;
+            object donnees;
+            if (string.IsNullOrEmpty(codeOrgane))
+            {
+                viewModelOfInventaire.Organes = InventaireController.SelectDetailsParOrgane(annee);
+                donnees = viewModelOfInventaire.Organes;
+            }
+            else
+            {
+                viewModelOfInventaire.Organe = OrganeController.SelectById(codeOrgane);
+                viewModelOfInventaire.Lignes = InventaireController.SelectDetailsByOrgane(annee, codeOrgane);
+                donnees = viewModelOfInventaire.Lignes;
+            }
 
-            return this.ResponseObject(view, listOfDetailsInventaire, viewModelOfInventaire.Title, success);
+            object view = View["InventaireDetailsListView", viewModelOfInventaire];
+            int success = viewModelOfInventaire.Inventaire != null ? 1 : 0;
+
+            return this.ResponseObject(view, donnees, viewModelOfInventaire.Title, success);
         }
 
         private object GetInventaireEnCours()

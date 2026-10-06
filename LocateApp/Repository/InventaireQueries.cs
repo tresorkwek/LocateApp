@@ -19,6 +19,36 @@ namespace LocateApp.Repository
         public static string SelectDetails { get; } = @"SELECT Id,Annee,IdImmo,ImmoExist,Etat,IdObservation,DateCreation,UserCreation,Responsable,IdLocal,CodeOrgane,Observation,DesignationLocal
                                                         FROM InventaireDetails
                                                         WHERE Annee = @Annee";
+        // Bilan d'une campagne par organe (page /inventaire/details/{annee})
+        public static string SelectDetailsParOrgane { get; } = @"SELECT d.CodeOrgane, o.Nom AS NomOrgane, o.IdStructure, s.Nom AS NomStructure,
+                                                                       COUNT(*) AS NbreLignes, COUNT(DISTINCT d.IdLocal) AS NbreLocaux,
+                                                                       SUM(CASE WHEN d.ImmoExist = 1 THEN 1 ELSE 0 END) AS NbreVus,
+                                                                       SUM(CASE WHEN d.ImmoExist = 1 THEN 0 ELSE 1 END) AS NbreNonVus,
+                                                                       SUM(CASE WHEN d.ImmoExist = 1 AND d.Etat = 'B' THEN 1 ELSE 0 END) AS NbreBons,
+                                                                       SUM(CASE WHEN d.ImmoExist = 1 AND d.Etat = 'M' THEN 1 ELSE 0 END) AS NbreMauvais,
+                                                                       COUNT(DISTINCT d.UserCreation) AS NbreInventorieurs,
+                                                                       MIN(d.DateCreation) AS PremierPassage, MAX(d.DateCreation) AS DernierPassage
+                                                                FROM InventaireDetails d
+                                                                     LEFT JOIN Organe o ON o.Id = d.CodeOrgane
+                                                                     LEFT JOIN Organe s ON s.Id = o.IdStructure
+                                                                WHERE d.Annee = @Annee
+                                                                GROUP BY d.CodeOrgane, o.Nom, o.IdStructure, s.Nom
+                                                                ORDER BY d.CodeOrgane";
+        // Lignes d'une campagne pour un organe, avec les libellés utiles à l'affichage
+        public static string SelectDetailsByOrgane { get; } = @"SELECT d.Id, d.Annee, d.IdImmo, d.ImmoExist, d.Etat, d.IdObservation, d.DateCreation, d.UserCreation, d.Responsable,
+                                                                       d.IdLocal, d.CodeOrgane, d.Observation, ISNULL(NULLIF(d.DesignationLocal, ''), l.Designation) AS DesignationLocal,
+                                                                       i.CodeImmo, a.Designation AS DesignationArticle, a.Marque, ob.Observation AS LibelleObservation, l.Code AS CodeLocal,
+                                                                       LTRIM(RTRIM(ISNULL(u.Prenom, '') + ' ' + ISNULL(u.Nom, ''))) AS NomInventorieur,
+                                                                       LTRIM(RTRIM(ISNULL(ag.Prenom, '') + ' ' + ISNULL(ag.Nom, ''))) AS NomResponsable
+                                                                FROM InventaireDetails d
+                                                                     LEFT JOIN Immo i ON i.Id = d.IdImmo
+                                                                     LEFT JOIN Article a ON a.Id = i.IdArticle
+                                                                     LEFT JOIN ImmoObservation ob ON ob.Id = d.IdObservation
+                                                                     LEFT JOIN Local l ON l.Id = d.IdLocal
+                                                                     LEFT JOIN _Utilisateur u ON u.UserName = d.UserCreation
+                                                                     LEFT JOIN Agent ag ON ag.Matricule = d.Responsable + '00'
+                                                                WHERE d.Annee = @Annee AND d.CodeOrgane = @CodeOrgane
+                                                                ORDER BY ISNULL(NULLIF(d.DesignationLocal, ''), l.Designation), a.Designation";
         public static string SelectDetailsByImmo { get; } = @"SELECT Id,Annee,IdImmo,ImmoExist,Etat,IdObservation,DateCreation,UserCreation,Responsable,IdLocal,CodeOrgane,Observation,DesignationLocal
                                                               FROM InventaireDetails
                                                               WHERE Annee = @Annee AND IdImmo = @IdImmo";

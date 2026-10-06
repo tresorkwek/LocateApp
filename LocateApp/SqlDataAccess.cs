@@ -25,14 +25,6 @@ namespace LocateApp
 
             switch (db)
             {
-                case 2:
-                    serveur = $"Data Source={ConfigurationManager.AppSettings["ServeurMovia"]}";
-                    dataBase = $"Initial Catalog={ConfigurationManager.AppSettings["DataBaseMovia"]}";
-                    userName = $"User ID={ConfigurationManager.AppSettings["UserNameMovia"]}";
-                    password = $"Password={ConfigurationManager.AppSettings["PasswordMovia"]}";
-
-                    break;
-
                 default:
                     serveur = $"Data Source={ConfigurationManager.AppSettings["Serveur"]}";
                     dataBase = $"Initial Catalog={ConfigurationManager.AppSettings["DataBase"]}";
@@ -55,11 +47,6 @@ namespace LocateApp
 
             switch (db)
             {
-                case 2:
-                    dataBase = $"Initial Catalog={ConfigurationManager.AppSettings["DataBaseMovia"]}";
-
-                    break;
-
                 default:
                     dataBase = $"Initial Catalog={ConfigurationManager.AppSettings["DataBase"]}";
                     break;
@@ -163,6 +150,8 @@ namespace LocateApp
                     string dateInString = Utilities.Utilities.GetObjectProperties(data);
 
                     Log.Error(user, $"({module}:{lineNumber}) Une erreur est survenue lors de l'execution de la {resultat} requête SQL  : {sql} \n Valeurs : {dateInString} \n , Voici le message d'erreur : {e.Message}");
+
+                    result = 0; // la transaction est annulée : rien n'a été enregistré
                 }
 
                 return result;

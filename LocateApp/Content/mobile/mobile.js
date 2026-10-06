@@ -177,7 +177,7 @@
         return false;
     }
 
-    /* ------------------------------------------------------------------ mode hors ligne (comme eTracking)
+    /* ------------------------------------------------------------------ mode hors ligne
        Les identifications et déclarations « non vu » faites sans réseau sont gardées dans localStorage
        (clé « locate.fileHorsLigne », entrées { chemin, champs, libelle, date }) puis envoyées dans l'ordre
        au retour du réseau (événement « online », ouverture de l'accueil ou bouton « Envoyer »). */
@@ -834,7 +834,7 @@
         immo.userVu = String(p(etat.user, 'userName') || '').trim() || 'moi';
     }
 
-    /* Étape d'avancement d'un local ou d'un organe, d'après ses compteurs (comme eTracking), testée dans cet ordre :
+    /* Étape d'avancement d'un local ou d'un organe, d'après ses compteurs, testée dans cet ordre :
        Vide (gris), À clôturer (bleu : des biens identifiés ne sont pas encore inventoriés), Clôturé (vert : tous inventoriés),
        Incomplet (orange : clôturé, mais des biens ne sont ni vus ni déclarés non vus), À faire (rouge). */
     function etapeInventaire(total, identifies, inventories) {
@@ -1480,7 +1480,7 @@
         aller('#/rapide/' + p(local, 'id'));
     }
 
-    /* Clôture de l'inventaire d'un local, comme eTracking : POST /inventaire/details/local/ { IdLocal }.
+    /* Clôture de l'inventaire d'un local : POST /inventaire/details/local/ { IdLocal }.
        Le serveur enregistre comme inventoriés les biens actifs du local, étiquetés et identifiés, pas encore inventoriés cette année.
        Sans réseau, la clôture part dans la file hors ligne (après les identifications déjà en file). Résout avec { ok, attente, message } ou null si annulé. */
     async function cloturerLocal(local) {
@@ -1734,7 +1734,7 @@
 
     function nomBien(b) { return p(b, 'designation') || ('Bien ' + p(b, 'id')); }
 
-    /* Déclarer un bien non vu (introuvable), comme eTracking : POST /immo/nonvu/{id} — le serveur range le bien dans le local
+    /* Déclarer un bien non vu (introuvable) : POST /immo/nonvu/{id} — le serveur range le bien dans le local
        « non vu » de l'organe d'affectation (il apparaît dans la page Non vu) ; mis en file sans réseau. */
     async function declarerNonVu(b) {
         if (!(await confirmer('Bien non vu', 'Confirmez-vous définitivement que le bien est non vu ?<br><strong>' + esc(nomBien(b)) + '</strong><br>Il sera placé dans le local « non vu » de votre organe.', 'Oui, déclarer', 'Non', 'm-btn-rouge'))) { return false; }
@@ -1833,7 +1833,7 @@
         return true;
     }
 
-    /* Déclasser le bien, comme eTracking : POST /immo/declasser/{id} (formulaire vide). Le serveur range le bien dans le local
+    /* Déclasser le bien : POST /immo/declasser/{id} (formulaire vide). Le serveur range le bien dans le local
        « Déclassé » de l'entité de l'utilisateur ; le bien reste actif et pourra ensuite être cédé (page Déclassés). */
     async function declasserBien(b) {
         if (!(await confirmer('Déclasser le bien', 'Déclasser «&nbsp;<strong>' + esc(nomBien(b)) + '</strong>&nbsp;»&nbsp;? Il sera rangé dans le local des déclassés de votre entité ; il pourra ensuite être cédé.', 'Déclasser', 'Annuler'))) { return false; }
@@ -1853,7 +1853,7 @@
         return true;
     }
 
-    /* Céder le bien (sortie définitive du patrimoine), comme eTracking : POST /immo/cession/{id}.
+    /* Céder le bien (sortie définitive du patrimoine) : POST /immo/cession/{id}.
        Le serveur exige que le bien ait un QR code. */
     async function cederBien(b) {
         if (!p(b, 'qrCode')) {

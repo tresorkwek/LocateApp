@@ -1,11 +1,7 @@
 ﻿$(document).ready(function() {
     // L'indentation des listes hiérarchiques (organigramme) sert dans la liste ouverte, pas dans le champ fermé.
     $('select').not('.no-select2').select2({ templateSelection: function (choix) { return $.trim(choix.text || ''); } });
-    
-    $('#Specialites').select2({
-        placeholder: 'Faites le choix de l\'hopital pour afficher ses services'
-    });
-       
+
 
     $("#CodeOrgane").on('change', function () {
 

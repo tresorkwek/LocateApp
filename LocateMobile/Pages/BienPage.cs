@@ -107,7 +107,7 @@ public class BienPage : PageBase
         Prop("Observation", b.Observation, true);
         contenu.Children.Add(props);
 
-        // QR code de l'étiquette, affiché comme dans eTracking (vérification visuelle, relecture par un autre appareil).
+        // QR code de l'étiquette, affiché (vérification visuelle, relecture par un autre appareil).
         if (b.AQrCode)
         {
             var qr = new Grid { ColumnSpacing = 14, ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) } };

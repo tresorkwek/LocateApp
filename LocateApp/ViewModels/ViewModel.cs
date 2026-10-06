@@ -30,6 +30,8 @@ namespace LocateApp.ViewModels
         public string AppName => GetAppName();
         public string AppVersion => ConfigurationManager.AppSettings["Version"];
         public string Company => ConfigurationManager.AppSettings["Company"];
+        /// <summary>Éditeur du logiciel (titulaire des droits), distinct de l'organisation cliente (Company).</summary>
+        public string Editeur => string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["Editeur"]) ? "RandareCx" : ConfigurationManager.AppSettings["Editeur"];
         public string PhotoPath => GetPhotoPath();
 
         public ViewModel()
@@ -139,7 +141,7 @@ namespace LocateApp.ViewModels
 
         public bool GetSearchStatus()
         {
-            return Utilities.Utilities.CheckClaimStatus(Identity, "GetPatientSelect");
+            return Utilities.Utilities.CheckClaimStatus(Identity, "PostImmoSelect");
         }
 
         private string GetAppName()

@@ -15,7 +15,7 @@ namespace LocateApp.ViewModels
 
         public AgentListViewModel(string userName = null, MessageAlerte messageAlerte = null) : base(userName, messageAlerte)
         {
-            Link = "/patient/select/";
+            Link = "/immo/responsable/bien/";
         }
     }
 }

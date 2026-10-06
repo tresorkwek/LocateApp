@@ -34,6 +34,7 @@ namespace LocateApp.Modules
             Get("/entite/list/", _ => this.RunHandler<string>(GetImmoViaOrganigrammeEntite, null)); //ok
             Get("/entite/list/{idInstitution_}/", _ => this.RunHandler<string>(GetImmoViaOrganigrammeEntite, (string)_.idInstitution_)); //ok
             Get("/entite/select/{codeOrgane}/", _ => this.RunHandler<string>(GetImmoByEntite, (string)_.codeOrgane));
+            Get("/entite/select/{codeOrgane}/article/{idArticle}", _ => this.RunHandler<string, long>(GetImmoByEntiteAndArticle, (string)_.codeOrgane, (long)_.idArticle));
             Get("/entite/select/", _ => this.RunHandler<string>(GetImmoByEntite, null));
 
             Get("/responsable/list/", _ => this.RunHandler<string>(GetImmoViaOrganigrammeByResponsable, null));
@@ -211,7 +212,7 @@ namespace LocateApp.Modules
                 {
                     agent = AgentController.SelectAgent(immo.Responsable).FirstOrDefault();                   
 
-                    organeAgent = OrganeController.SelectById(agent.CodeOrgane);
+                    organeAgent = agent == null ? null : OrganeController.SelectById(agent.CodeOrgane);
                 }
 
                 viewModel = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
@@ -261,7 +262,7 @@ namespace LocateApp.Modules
                 {
                     agent = AgentController.SelectAgent(immo.Responsable).FirstOrDefault();                    
 
-                    organeAgent = OrganeController.SelectById(agent.CodeOrgane);
+                    organeAgent = agent == null ? null : OrganeController.SelectById(agent.CodeOrgane);
                 }
 
                 viewModel = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
@@ -311,7 +312,7 @@ namespace LocateApp.Modules
                 {
                     agent = AgentController.SelectAgent(immo.Responsable).FirstOrDefault();                   
 
-                    organeAgent = OrganeController.SelectById(agent.CodeOrgane);
+                    organeAgent = agent == null ? null : OrganeController.SelectById(agent.CodeOrgane);
                 }
 
                 viewModel = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
@@ -361,7 +362,7 @@ namespace LocateApp.Modules
                 {
                     agent = AgentController.SelectAgent(immo.Responsable).FirstOrDefault();                    
 
-                    organeAgent = OrganeController.SelectById(agent.CodeOrgane);
+                    organeAgent = agent == null ? null : OrganeController.SelectById(agent.CodeOrgane);
                 }
 
                 viewModel = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
@@ -405,9 +406,14 @@ namespace LocateApp.Modules
             return AfficherImmoOrgane(idOrgane, idArticle);
         }
 
-        private object AfficherImmoOrgane(string idOrgane, long? idArticle)
+        /// <summary>
+        /// Biens d'un organe, ou d'une entité (structure et organes rattachés) quand <paramref name="entite"/> est vrai,
+        /// éventuellement limités à un article ; sélecteur « par article / en détails » vers les vues de même portée.
+        /// </summary>
+        private object AfficherImmoOrgane(string idOrgane, long? idArticle, bool entite = false)
         {
-            List<Immo> listOfImmo = ImmoController.SelectByOrgane(idOrgane);
+            List<Immo> listOfImmo = entite ? ImmoController.SelectByEntite(idOrgane) : ImmoController.SelectByOrgane(idOrgane);
+            string portee = entite ? "entite" : "organe";
             if (idArticle != null) { listOfImmo = listOfImmo.Where(i => i.IdArticle == idArticle).ToList(); }
 
             ViewModel viewModel;
@@ -423,7 +429,7 @@ namespace LocateApp.Modules
                 {
                     agent = AgentController.SelectAgent(immo.Responsable).FirstOrDefault();                   
 
-                    organeAgent = OrganeController.SelectById(agent.CodeOrgane);
+                    organeAgent = agent == null ? null : OrganeController.SelectById(agent.CodeOrgane);
                 }
 
                 viewModel = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
@@ -446,8 +452,8 @@ namespace LocateApp.Modules
                     Immos = listOfImmo,
                     Organe = OrganeController.SelectById(idOrgane),
                     Article = idArticle == null ? null : ArticleController.SelectById((long)idArticle).FirstOrDefault(),
-                    LienParArticle = $"/article/organe/{idOrgane}",
-                    LienDetails = $"/immo/organe/select/{idOrgane}/"
+                    LienParArticle = idOrgane == null ? null : $"/article/{portee}/{idOrgane}",
+                    LienDetails = idOrgane == null ? null : $"/immo/{portee}/select/{idOrgane}/"
                 };
 
                 viewToShow = "ImmoListView";
@@ -462,52 +468,13 @@ namespace LocateApp.Modules
 
         private object GetImmoByEntite(string idOrgane)
         {
-            List<Immo> listOfImmo = ImmoController.SelectByEntite(idOrgane);
+            return AfficherImmoOrgane(idOrgane, null, true);
+        }
 
-            ViewModel viewModel;
-            string viewToShow;
-
-            if (listOfImmo.Count == 1)
-            {
-                Agent agent = null;
-                Organe organeAgent = null;
-                Immo immo = listOfImmo.FirstOrDefault();
-
-                if (immo.Responsable != null)
-                {
-                    agent = AgentController.SelectAgent(immo.Responsable).FirstOrDefault();                                       
-
-                    organeAgent = OrganeController.SelectById(agent.CodeOrgane);
-                }
-
-                viewModel = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
-                {
-                    MenuData = MenuController.GetMenuByName(this.GetClaimString()),
-                    CurrentClaim = this.GetClaimString(),
-                    Immo = immo,
-                    Responsable = agent,
-                    OrganeResponsable = organeAgent
-                };
-
-                viewToShow = "ImmoView";
-            }
-            else
-            {
-                viewModel = new ImmoListViewModel(this.CurrentUserName(), this.ShowAlert())
-                {
-                    MenuData = MenuController.GetMenuByName(this.GetClaimString()),
-                    CurrentClaim = this.GetClaimString(),
-                    Immos = listOfImmo
-                };
-
-                viewToShow = "ImmoListView";
-            }
-
-            object view = View[viewToShow, viewModel];
-            int success = listOfImmo.Count > 0 ? 1 : 0;
-
-
-            return this.ResponseObject(view, listOfImmo, viewModel.Title, success);
+        /// <summary>Biens d'un article dans une entité (pendant de /immo/organe/select/{codeOrgane}/article/{idArticle}).</summary>
+        private object GetImmoByEntiteAndArticle(string idOrgane, long idArticle)
+        {
+            return AfficherImmoOrgane(idOrgane, idArticle, true);
         }
 
         private object GetResponsableImmoByOrgane(string idOrgane)
@@ -546,34 +513,6 @@ namespace LocateApp.Modules
             return this.ResponseObject(view, listOfResponsable, viewModelOfAgent.Title, success);
         }
 
-        private async Task<object> GetImmoByIdViaWS(long id)
-        {
-            Immo immo = ImmoController.SelectById(id);
-            Agent agent = null;
-
-            if(immo.Responsable != null)
-            {
-                Token token = await MoviaAgentApiService.LoginToMoviaAsync();
-                if (token != null)
-                {
-                    agent = MoviaAgentApiService.GetAgentInfoFromMoviaAsync(immo.Responsable, token);
-                }
-            }
-
-            ImmoViewModel viewModelOfImmo = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
-            {
-                MenuData = MenuController.GetMenuByName(this.GetClaimString()),
-                CurrentClaim = this.GetClaimString(),
-                Immo = immo,
-                Responsable = agent
-            };
-
-            object view = View["ImmoView", viewModelOfImmo];
-            int success = immo != null ? 1 : 0;
-
-            return this.ResponseObject(view, immo, viewModelOfImmo.Title, success);
-        }
-
         private object GetImmoById(long id)
         {
             Immo immo = ImmoController.SelectById(id);
@@ -586,7 +525,7 @@ namespace LocateApp.Modules
 
                 
 
-                organeAgent = OrganeController.SelectById(agent.CodeOrgane);
+                organeAgent = agent == null ? null : OrganeController.SelectById(agent.CodeOrgane);
             }
 
             ImmoViewModel viewModelOfImmo = new ImmoViewModel(this.CurrentUserName(), this.ShowAlert())
@@ -857,7 +796,7 @@ namespace LocateApp.Modules
                  redirectUrl = $"/immo/id/{affectQRCodeRequest.Id}";
                  messageTitle = "Affectation du QRCode à un bien";
 
-                 message = $"Vous tentez d'affecter un QRCode non imprimé par l'Hotel des Monnaies, Locate l'a rejeté !";
+                 message = $"Vous tentez d'affecter un QRCode qui n'a pas été généré par Locate : il a été rejeté !";
 
                 return this.RedirectUrl(redirectUrl, message, sucess, messageTitle);
             }
@@ -1523,7 +1462,7 @@ namespace LocateApp.Modules
 
                 if (etiquette == null)
                 {
-                    message = $"Vous tentez d'affecter un QRCode non imprimé par l'Hotel des Monnaies, Locate l'a rejeté !";
+                    message = $"Vous tentez d'affecter un QRCode qui n'a pas été généré par Locate : il a été rejeté !";
                     return this.RedirectUrl(redirectUrl, message, sucess, messageTitle);
                 }
                 else if (etiquette.IsUsed)

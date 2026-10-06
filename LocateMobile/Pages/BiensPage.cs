@@ -64,7 +64,7 @@ public class BiensPage : PageBase
         var organe = S.OrganeParId(local.CodeOrgane);
         enTete.Children.Clear();
         var ligne = new Grid { ColumnSpacing = 10, ColumnDefinitions = { new ColumnDefinition(GridLength.Auto), new ColumnDefinition(GridLength.Star) } };
-        // Appui long sur le QR code du local : l'affecter, le détacher ou le jeter (comme eTracking).
+        // Appui long sur le QR code du local : l'affecter, le détacher ou le jeter.
         var qrLocal = new Border { WidthRequest = 46, HeightRequest = 46, StrokeThickness = 0, BackgroundColor = local.FondQr, StrokeShape = new RoundRectangle { CornerRadius = new CornerRadius(10) }, Padding = new Thickness(4), Content = new Image { Source = local.ImageQr, Aspect = Aspect.AspectFit, WidthRequest = 34, HeightRequest = 34, InputTransparent = true } };
         SemanticProperties.SetHint(qrLocal, "Appui long : affecter, détacher ou jeter le QR code du local");
         AppuiLong(qrLocal, QrDuLocal);

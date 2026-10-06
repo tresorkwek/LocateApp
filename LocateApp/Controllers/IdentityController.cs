@@ -104,18 +104,22 @@ namespace LocateApp.Controllers
 
                 string sexe = agent.Sexe == 1 ? "M" : "F";
 
+                // Sans annuaire d'entreprise (DomaineName vide), le compte importé est un compte local Locate
+                // avec le mot de passe par défaut, à changer à la première connexion.
+                bool compteLocal = string.IsNullOrWhiteSpace(ConfigurationManager.AppSettings["DomaineName"]);
+
                 userValues.IdUser = agent.SerialId;
-                userValues.Password = null;
+                userValues.Password = compteLocal ? new PasswordHasher().HashPassword(ConfigurationManager.AppSettings["DefaultPassword"]) : null;
                 userValues.Nom = agent.Nom?.Trim() ;
                 userValues.Postnom = agent.Postnom?.Trim();
                 userValues.Prenom = agent.Prenom?.Trim();
                 userValues.Sexe = sexe;
                 userValues.Telephone = agent.Telephone?.Trim();
                 userValues.Email = agent.Email?.Trim();
-                userValues.IsExternalUser = false;
-                userValues.FirstConnexion = false;
+                userValues.IsExternalUser = compteLocal;
+                userValues.FirstConnexion = compteLocal;
                 userValues.IdInstitution = null;
-                userValues.CodeOrgane = agent.CodeOrgane + "00";
+                userValues.CodeOrgane = agent.CodeOrgane?.Trim();
 
                 sqlAndDataImport.Add((SqlUtilisateur.Insert, userValues));
 
@@ -160,7 +164,7 @@ namespace LocateApp.Controllers
         {
             Identity userToModify = GetUser(userValues.UserName);
 
-            string sql = userToModify.IsExternalUser ? SqlUtilisateur.Update : SqlUtilisateur.UpdateBcc;
+            string sql = userToModify.IsExternalUser ? SqlUtilisateur.Update : SqlUtilisateur.UpdateInterne;
 
             bool response = false;
             try
@@ -222,8 +226,7 @@ namespace LocateApp.Controllers
             }
             else
             {
-                //Agent BCCC Vérifiez now dans AD 
-
+                // Compte de l'annuaire d'entreprise : vérification dans l'Active Directory
                 try
                 {
                     if (!IsAuthenticated(userName, password))
@@ -282,11 +285,6 @@ namespace LocateApp.Controllers
         public static Identity GetUser(string userName)
         {
             Identity user = SqlDataAccess.SelectData<Identity>(SqlUtilisateur.SelectByUserName, new { UserName = userName }).FirstOrDefault();
-
-            //if (user == null)
-            //{
-            //    user = TransformAgentToUser(PatientController.SelectPatient(true, userName).FirstOrDefault());
-            //}
 
             return user;
         }

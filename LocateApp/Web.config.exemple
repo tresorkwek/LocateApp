@@ -5,8 +5,7 @@
   -->
 <!--
   Modèle de configuration de Locate. Copiez ce fichier en « Web.config » (non versionné) puis renseignez
-  les valeurs « A_RENSEIGNER » : mots de passe SQL (base Locate et base Movia), compte de l'API Movia,
-  mot de passe par défaut des nouveaux comptes.
+  les valeurs « A_RENSEIGNER » : mot de passe SQL de la base Locate et mot de passe par défaut des nouveaux comptes.
 -->
 <configuration>
   
@@ -20,42 +19,28 @@
   
   
   <appSettings>
-    <!--<add key="clinique" value="A_RENSEIGNER" />-->
 	  <add key="Logiciel" value="Locate" />
 	  <add key="Version" value="1.3.0" />
-	  <add key="Url" value="https://etracking.bcc.cd" />
+	  <add key="Url" value="https://locate.horizon-sa.cd" />
 	  <add key="NbreTentative" value="5" />
-	  <add key="Company" value="RandareCx" />
-	  <add key="Acronyme" value="RCx" />
-	  <add key="CompanyAdress" value="2bis Av Dialogue, C/Jolie Parc, C/Ngaliema, Kinshasa" />
-	  <add key="CompanyLogo" value="/Content/images/logoBcc.png" />
+	  <add key="Company" value="Groupe Horizon SA" />
+	  <add key="Acronyme" value="Horizon" />
+	  <!-- Éditeur du logiciel : titulaire du copyright affiché (Company est l'organisation cliente). -->
+	  <add key="Editeur" value="RandareCx" />
+	  <add key="CompanyAdress" value="Avenue de l'Horizon n° 1, Gombe, Kinshasa" />
+	  <add key="CompanyLogo" value="/Content/images/locate-logo.png" />
 	  <add key="DefaultPassword" value="A_RENSEIGNER" />
-	  <add key="MoviaApiBaseUrl" value="https://movia.bcc.cd/" />
-	  <add key="MoviaApiLoginUrl" value="auth/login/" />
-	  <add key="MoviaApiPatientUrl" value="patient/select/" />
-	  <add key="MoviaUserName" value="eTracking" />
-	  <add key="MoviaUserPassword" value="A_RENSEIGNER" />
-      <add key="DomaineName" value="banconet1.local" />
+      <!-- Annuaire d'entreprise (Active Directory) pour les comptes internes ; vide = comptes locaux Locate uniquement. -->
+      <add key="DomaineName" value="" />
 	  <add key="Serveur" value="LAPTOP-KWETUEND\SQLSERVERDEV2019" />
-	  <!--<add key="Serveur" value="SVR-CONSOLDB1" />-->
 	  <add key="DataBase" value="locate" />
-	  <!--<add key="DataBase" value="Env_Formation_etracking" />-->
 	  <add key="UserName" value="sa" />
-	  <!--<add key="UserName" value="etracking_sce" />-->
 	  <add key="Password" value="A_RENSEIGNER" />
-	  <!--<add key="Password" value="A_RENSEIGNER" />-->
 
-	  <add key="ServeurMovia" value="LAPTOP-KWETUEND\SQLSERVERDEV2019" />
-	  <!--<add key="ServeurMovia" value="SVR-CONSOLDB1" />-->
-	  <add key="DataBaseMovia" value="Movia_20" />
-	  <add key="UserNameMovia" value="sa" />
-	  <!--<add key="UserNameMovia" value="etracking_sce" />-->
-	  <add key="PasswordMovia" value="A_RENSEIGNER" />	  
-	  <!--<add key="PasswordMovia" value="A_RENSEIGNER" />-->
 	  
 	  <add key="Local" value="true" />
-	<!--<add key="UserName" value="movia" />
-	<add key="Password" value="A_RENSEIGNER"/>-->
+	  <!-- Photos des agents : dossier de l'application si Local = true ou si PhotoAgentUrl est vide, sinon cette adresse. -->
+	  <add key="PhotoAgentUrl" value="" />
     <add key="connectionString" value="Connect Timeout=60;Encrypt=False;TrustServerCertificate=False;ApplicationIntent=ReadWrite;MultiSubnetFailover=False" />
     <add key="webPages:Enabled" value="false" />
 

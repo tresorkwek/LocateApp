@@ -134,7 +134,7 @@
             </div>
             <div class="startbar-menu">
                 <div class="startbar-collapse" id="startbarCollapse" data-simplebar>
-                    <div class="d-flex align-items-start flex-column w-100">
+                    <div class="d-flex align-items-start flex-column w-100 lc-startbar-flux">
                         <ul class="navbar-nav mb-auto w-100">
                             <li class="menu-label mt-2">
                                 <span>Navigation</span>
@@ -201,7 +201,7 @@
                             </div>
                             <h5 class="mt-3">@PageLayout.AppName <span class="text-white">@appVersion</span></h5>
                             <p class="lc-editeur-libelle mb-1">Une solution</p>
-                            <img src="~/Content/images/randarecx-logo-clair.png" alt="@company" class="lc-editeur-logo mb-2" />
+                            <img src="~/Content/images/randarecx-logo-clair.png" alt="@PageLayout.Editeur" class="lc-editeur-logo mb-2" />
                         </div>
                     </div>
                 </div>
@@ -252,7 +252,7 @@
                             <div class="card mb-0 rounded-bottom-0">
                                 <div class="card-body">
                                     <p class="text-muted mb-0">
-                                        &copy; @DateTime.Now.Year @company. Tous droits réservés.
+                                        &copy; @DateTime.Now.Year @PageLayout.Editeur. Tous droits réservés.
                                         <span class="text-muted d-none d-sm-inline-block float-end">@PageLayout.AppName &middot; version @appVersion</span>
                                     </p>
                                 </div>

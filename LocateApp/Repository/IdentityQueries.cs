@@ -43,7 +43,7 @@ namespace LocateApp.Repository
                                                      Telephone = @Telephone, Email = @Email, IdProfil = @IdProfil, IsExternalUser = @IsExternalUser, 
                                                      IsLocked = @IsLocked, IdInstitution = @IdInstitution
                                                  WHERE UserName = @UserName";
-        public static string UpdateBcc { get; } = @"UPDATE _Utilisateur
+        public static string UpdateInterne { get; } = @"UPDATE _Utilisateur
                                                  SET  Adresse = @Adresse, Telephone = @Telephone, Email = @Email, IdProfil = @IdProfil, 
                                                       IsExternalUser = @IsExternalUser, IsLocked = @IsLocked, FocalPoint = @FocalPoint,
                                                       IdInstitution = @IdInstitution, CodeOrgane = @CodeOrgane

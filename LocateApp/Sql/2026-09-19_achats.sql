@@ -177,7 +177,7 @@ FROM @Droits d JOIN dbo._Menu m ON m.Nom = d.Nom
 WHERE NOT EXISTS (SELECT 1 FROM dbo._Claim c WHERE c.IdProfil = d.IdProfil AND c.IdMenu = m.IdMenu);
 
 /* ---------------------------------------------------------------------------
-   3. Nettoyage des menus et profils hérités de l'ancien projet médical (Movia)
+   3. Nettoyage des menus et profils hérités d'un ancien projet
    --------------------------------------------------------------------------- */
 /* Menus de reporting "passage patient" */
 DELETE FROM dbo._Claim WHERE IdMenu IN (SELECT IdMenu FROM dbo._Menu WHERE Nom IN ('GetReportingPassageIdHopital', 'GetReportingPassagePatient{IdInstitution_}Matricule', 'GetProfileModifyMatricule'));
@@ -199,7 +199,7 @@ DELETE FROM dbo._Profil WHERE Nom IN ('DRHCentreSante', 'AcceuilHopital', 'Factu
   AND NOT EXISTS (SELECT 1 FROM dbo._Utilisateur u WHERE u.IdProfil = dbo._Profil.IdProfil);
 
 /* Libellés génériques et corrections */
-UPDATE dbo._Profil SET Libelle = 'Agent' WHERE Nom = 'Agent' AND Libelle = 'Agent BCC';
+UPDATE dbo._Profil SET Libelle = 'Agent' WHERE Nom = 'Agent' AND Libelle LIKE 'Agent %';
 UPDATE dbo._Menu SET Libelle = 'Ajouter un article' WHERE Libelle = 'Ajouter Ariticle';
 UPDATE dbo._Menu SET Url = '/profil/modify/{idProfil}' WHERE Nom = 'GetProfilModifyIdProfil' AND Url = '/profil/modify/{idProfil';
 UPDATE dbo._Menu SET Libelle = 'Privilège' WHERE Libelle = 'Privillège';

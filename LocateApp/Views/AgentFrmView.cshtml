@@ -1,0 +1,197 @@
+@inherits Nancy.ViewEngines.Razor.NancyRazorViewBase<dynamic>
+@using LocateApp.Models;
+@using LocateApp.ViewModels;
+@using LocateApp.Utilities;
+@using System.Linq;
+@using System.Collections.Generic;
+
+@{ AgentFrmViewModel Page = (AgentFrmViewModel)Model; }
+
+@{ ViewBag.Page = Page; }
+
+@{
+    Layout = "Views/Layout/_LayoutForm.cshtml";
+    Agent agent = Page.Agent;
+    bool ajout = Page.Ajout;
+    string matricule = ajout ? Page.MatriculePropose : agent.Matricule.Trim().Substring(0, 6);
+    string titre = ajout ? "Nouvel agent" : "Modifier l'agent";
+    string nomComplet = ajout ? "" : $"{agent.Nom?.Trim()} {agent.Postnom?.Trim()} {agent.Prenom?.Trim()}".Trim();
+    int sexe = ajout ? 0 : agent.Sexe;
+    string naissance = !ajout && agent.DateNaissance.Year > 1900 ? agent.DateNaissance.ToString("yyyy-MM-dd") : "";
+    string codeOrgane = ajout ? null : agent.CodeOrgane?.Trim();
+    string photo = ajout ? Utilities.GetPhotoAgentPath() + "photoVideHomme.png" : Utilities.GetPhotoAgentPath() + agent.Photo;
+    string dateMax = DateTime.Today.AddYears(-14).ToString("yyyy-MM-dd");
+}
+
+@helper OptionsOrganes(IEnumerable<Organe> organes, string codeOrgane, int niveau)
+{
+    foreach (var organe in organes)
+    {
+        string retrait = new string(' ', niveau * 4); // insécables : Select2 réduirait des espaces ordinaires
+        if (codeOrgane == organe.Id)
+        {
+            <option value="@organe.Id" selected>@(retrait + organe.Nom)</option>
+        }
+        else
+        {
+            <option value="@organe.Id">@(retrait + organe.Nom)</option>
+        }
+        if (organe.Organes != null && organe.Organes.Count > 0)
+        {
+            @OptionsOrganes(organe.Organes, codeOrgane, niveau + 1)
+        }
+    }
+}
+
+<div class="row justify-content-center">
+    <div class="col-xxl-10">
+
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
+            <a href="/agent/" class="btn btn-sm btn-light"><i class="iconoir-arrow-left me-1"></i>Agents</a>
+            <span class="text-muted fs-13">@(ajout ? "Ajout au répertoire des agents" : nomComplet + " · " + matricule)</span>
+        </div>
+
+        <form class="lc-form" method="post" action="@(ajout ? "/agent/add/" : "/agent/modify/")" enctype="multipart/form-data">
+
+            <div class="row g-3">
+                <div class="col-xl-8">
+                    <div class="card h-100 mb-0">
+                        <div class="card-header">
+                            <h4 class="card-title">@titre</h4>
+                            <p class="lc-card-subtitle">@(ajout ? "Identité, affectation et coordonnées du nouvel agent. Le matricule proposé est le prochain disponible." : "Identité, affectation et coordonnées de l'agent. Le matricule ne change pas : il identifie l'agent dans tout l'historique des biens.")</p>
+                        </div>
+                        <div class="card-body">
+
+                            <div class="lc-section-title"><i class="iconoir-user"></i>Identité</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Matricule">Matricule<span class="lc-req">*</span></label>
+                                    @if (ajout)
+                                    {
+                                        <input id="Matricule" name="Matricule" type="text" value="@matricule" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required title="6 chiffres">
+                                        <div class="form-text">6 chiffres. Laissez la proposition ou saisissez le matricule RH.</div>
+                                    }
+                                    else
+                                    {
+                                        <input type="hidden" name="Matricule" value="@matricule">
+                                        <input id="Matricule" type="text" value="@matricule" class="form-control" readonly>
+                                    }
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Nom">Nom<span class="lc-req">*</span></label>
+                                    <input id="Nom" name="Nom" type="text" value="@(ajout ? "" : agent.Nom?.Trim())" class="form-control text-uppercase" maxlength="50" required placeholder="Ex. KOUASSI">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Postnom">Postnom<span class="lc-req">*</span></label>
+                                    <input id="Postnom" name="Postnom" type="text" value="@(ajout ? "" : agent.Postnom?.Trim())" class="form-control text-uppercase" maxlength="50" required placeholder="Ex. DIALLO">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="Prenom">Prénom</label>
+                                    <input id="Prenom" name="Prenom" type="text" value="@(ajout ? "" : agent.Prenom?.Trim())" class="form-control" maxlength="50" placeholder="Ex. Aminata">
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label d-block">Sexe<span class="lc-req">*</span></label>
+                                    <div class="form-check form-check-inline mt-2">
+                                        <input class="form-check-input" name="Sexe" value="1" type="radio" id="SexeM" required @(sexe == 1 ? "checked" : "") />
+                                        <label class="form-check-label" for="SexeM">Masculin</label>
+                                    </div>
+                                    <div class="form-check form-check-inline">
+                                        <input class="form-check-input" name="Sexe" value="2" type="radio" id="SexeF" @(sexe == 2 ? "checked" : "") />
+                                        <label class="form-check-label" for="SexeF">Féminin</label>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <label class="form-label" for="DateNaissance">Date de naissance</label>
+                                    <input id="DateNaissance" name="DateNaissance" type="date" value="@naissance" max="@dateMax" min="1900-01-01" class="form-control">
+                                </div>
+                            </div>
+
+                            <div class="lc-section-title"><i class="iconoir-building"></i>Affectation</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-12">
+                                    <label class="form-label" for="CodeOrgane">Organe d'affectation<span class="lc-req">*</span></label>
+                                    <select name="CodeOrgane" class="form-select" style="width: 100%" id="CodeOrgane" required>
+                                        <option value="" disabled @(string.IsNullOrEmpty(codeOrgane) ? "selected" : "")>Choisissez l'organe</option>
+                                        @OptionsOrganes(Page.Organigramme, codeOrgane, 0)
+                                    </select>
+                                    <div class="form-text">Organe de l'organigramme en vigueur où l'agent travaille.</div>
+                                </div>
+                            </div>
+
+                            <div class="lc-section-title"><i class="iconoir-phone"></i>Coordonnées</div>
+                            <div class="row g-3 mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label" for="Telephone">Téléphone</label>
+                                    <div class="lc-input-icon">
+                                        <i class="iconoir-phone"></i>
+                                        <input id="Telephone" name="Telephone" class="masked form-control" type="text" value="@(ajout ? "" : agent.Telephone?.Trim())" data-inputmask="'mask': '(+999) 99-9999999'">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="Email">E-mail</label>
+                                    <div class="lc-input-icon">
+                                        <i class="iconoir-mail"></i>
+                                        <input id="Email" type="email" name="Email" value="@(ajout ? "" : agent.Email?.Trim())" class="form-control" maxlength="100" placeholder="prenom.nom@entreprise.cd">
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="lc-section-title"><i class="iconoir-camera"></i>Photo<span class="lc-section-hint">JPG ou PNG</span></div>
+                            <div class="d-flex align-items-center gap-3 flex-wrap">
+                                <img src="@photo" alt="" id="ApercuPhoto" class="lc-thumb lc-thumb-xl rounded-circle" style="object-fit: cover;">
+                                <div class="flex-grow-1">
+                                    <label class="form-label" for="Photo">Photo d'identité</label>
+                                    <input type="file" name="Photo" id="Photo" accept="image/jpeg,image/png" class="form-control" />
+                                    <div class="form-text">@(ajout ? "Facultative." : "Laissez vide pour garder la photo actuelle.") Recadrée en carré et réduite automatiquement.</div>
+                                </div>
+                            </div>
+
+                        </div>
+                        <div class="card-footer lc-form-actions">
+                            <span class="lc-form-actions-start"><span class="lc-req">*</span> champs obligatoires</span>
+                            <a href="/agent/" class="btn btn-light">Annuler</a>
+                            <button type="submit" class="btn btn-primary"><i class="iconoir-check me-1"></i>@(ajout ? "Ajouter l'agent" : "Enregistrer")</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-4">
+                    <div class="card h-100 mb-0">
+                        <div class="card-body">
+                            <div class="lc-aside">
+                                <h6><i class="iconoir-light-bulb-on me-1 text-warning"></i>Bon à savoir</h6>
+                                <ul>
+                                    <li>Le matricule identifie l'agent comme responsable de biens et, s'il en a un, comme compte Locate.</li>
+                                    <li>Un agent n'a pas de compte Locate par défaut : donnez-lui un accès depuis « Utilisateurs », « Importer des agents ».</li>
+                                    <li>L'organe d'affectation sert à proposer les responsables des biens de cet organe.</li>
+                                </ul>
+                            </div>
+                            @if (!string.IsNullOrEmpty(Page.Compte))
+                            {
+                                <div class="lc-callout mt-3">
+                                    <i class="iconoir-info-circle"></i>
+                                    <div>Cet agent a le compte Locate <strong>@Page.Compte</strong> : son nom, son sexe, son téléphone et son e-mail y seront mis à jour en même temps.</div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+
+    </div>
+</div>
+
+<script>
+    // Aperçu de la photo choisie avant l'envoi
+    document.addEventListener('DOMContentLoaded', function () {
+        var champ = document.getElementById('Photo');
+        if (!champ || !window.FileReader) { return; }
+        champ.addEventListener('change', function () {
+            if (!champ.files || !champ.files[0]) { return; }
+            var lecteur = new FileReader();
+            lecteur.onload = function (e) { document.getElementById('ApercuPhoto').src = e.target.result; };
+            lecteur.readAsDataURL(champ.files[0]);
+        });
+    });
+</script>

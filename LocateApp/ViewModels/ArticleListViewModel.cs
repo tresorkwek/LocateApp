@@ -19,6 +19,8 @@ namespace LocateApp.ViewModels
         public string LienDetails { get; set; }
         /// <summary>Biens inventoriés par article quand la liste ne porte pas sur un local (organe).</summary>
         public Dictionary<long, long> InventoriesParArticle { get; set; }
+        /// <summary>Vrai quand la liste porte sur une entité (structure et organes rattachés) et non sur un seul organe.</summary>
+        public bool ParEntite { get; set; }
 
         public ArticleListViewModel(string userName = null, MessageAlerte messageAlerte = null) : base(userName, messageAlerte)
         {

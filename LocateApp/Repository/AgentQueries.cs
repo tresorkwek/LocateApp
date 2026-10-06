@@ -25,52 +25,55 @@ namespace LocateApp.Repository
 													FROM Agent
 													WHERE CodeOrgane = @CodeOrgane";
 
-		public static string SelectAllActifNotUser { get; } = @"SELECT V_Patients.SerialId,V_Patients.Matricule,V_Patients.Nom,V_Patients.Postnom,V_Patients.Prenom,V_Patients.Sexe,V_Patients.Adresse,
-														   format(V_Patients.DateNaissance,'dd MMM yyyy') AS DateNaissance,V_Patients.EtatCivil AS SituationFamiliale,Actif,V_Patients.Telephone,V_Patients.Email,
-														   V_Patients.DateNaissance AS DateNaissanceBrute,PrisEnCharge,CodeStructureOrgane as CodeDirection,CodeStructureOrganeSD AS CodeSousDirection, CodeStructOrgService AS CodeService,
-														   NomStructOrgane as Direction,DateFinValidite,Patient.Matricule AS MoviaMatricule,Patient.Nom AS MoviaNom,
-														   Patient.Postnom AS MoviaPostnom,Patient.Prenom AS MoviaPrenom,Patient.Sexe AS MoviaSexe,
-														   Patient.DateNaissance as MoviaDateNaissanceBrute,format(Patient.DateNaissance,'dd MMM yyyy') as MoviaDateNaissance,
-														   Patient.EtatCivil as MoviaSituationFamiliale,accord as MoviaAccordAgent,commentaire as MoviaCommentaire,
-														   AccordDRHPar as MoviaUserAccordDRH,
-														   (SELECT CONCAT(Nom,' ',Postnom,' ',Prenom) FROM Patients
-															where Patients.MATRICULE = CONCAT(AccordDRHPar,'00')) AS MoviaNomUserAccordDRH,
-														   format(DateAccordDRH,'dd MMM yyyy') as MoviaDateAccordDRH,AccordAdminPar as MoviaUserAdminAccord,
-														   (SELECT CONCAT(Nom,' ',Postnom,' ',Prenom)
-    														FROM Patients 
-															where Patients.MATRICULE = CONCAT(AccordAdminPar,'00')) AS MoviaNomUserAdminAccord,
-														   format(DateAccordAdmin,'dd MMM yyyy') as MoviaDateAdminAccord,[User] as MoviaUserImpression, 
-														   format(DateImpression,'dd MMM yyyy') as MoviaDateImpression,retirer as MoviaRetirer,
-														   format(DateRetrait,'dd MMM yyyy') as MoviaDateRetrait,CodeHopitalPreference,IdCategoriePatient
-	        
-													FROM V_Patients LEFT JOIN Patient  ON V_Patients.Matricule = Patient.Matricule
-																	LEFT JOIN impression ON patient.matricule = impression.agent
+		// Répertoire des agents (page /agent/) : une seule requête pour l'organe, le compte et le nombre de biens de chacun.
+		public static string SelectRepertoire { get; } = @"SELECT a.SerialId, a.Matricule, a.Nom, a.Postnom, a.Prenom, a.Sexe, a.DateNaissance, a.Telephone, a.Email, a.CodeOrgane,
+													  o.Nom AS NomOrgane, o.IdStructure, s.Nom AS NomStructure,
+													  u.UserName AS Compte, p.Libelle AS Profil, ISNULL(u.Actif, 0) AS CompteActif,
+													  ISNULL(b.NbreBiens, 0) AS NbreBiens
+												   FROM Agent a
+													    LEFT JOIN Organe o ON o.Id = a.CodeOrgane
+													    LEFT JOIN Organe s ON s.Id = o.IdStructure
+													    LEFT JOIN _Utilisateur u ON u.UserName = LEFT(a.Matricule, 6)
+													    LEFT JOIN _Profil p ON p.IdProfil = u.IdProfil
+													    LEFT JOIN (SELECT Responsable, COUNT(*) AS NbreBiens FROM Immo
+													               WHERE IsActive = 1 AND Responsable IS NOT NULL GROUP BY Responsable) b ON b.Responsable = LEFT(a.Matricule, 6)
+												   ORDER BY a.Nom, a.Postnom, a.Prenom";
 
-													WHERE V_Patients.Matricule Like '%00' AND V_Patients.Actif = 1";
+		// Ajout / modification d'un agent (le matricule de la table Agent est celui de l'agent suivi de « 00 »)
+		public static string SelectByMatricule { get; } = @"SELECT SerialId,Matricule,Nom,Postnom,Prenom,Sexe,DateNaissance,Telephone,Email,CodeOrgane
+													FROM Agent
+													WHERE Matricule = @Matricule + '00'";
+		public static string MatriculeUtilise { get; } = @"SELECT (SELECT COUNT(*) FROM Agent WHERE LEFT(Matricule, 6) = @Matricule)
+													     + (SELECT COUNT(*) FROM _Utilisateur WHERE UserName = @Matricule)";
+		public static string DernierMatricule { get; } = @"SELECT ISNULL(MAX(CAST(LEFT(Matricule, 6) AS int)), 700000)
+													  FROM Agent
+													  WHERE LEN(RTRIM(Matricule)) = 8 AND LEFT(Matricule, 6) NOT LIKE '%[^0-9]%'";
+		public static string Insert { get; } = @"INSERT INTO Agent (SerialId, Matricule, Nom, Postnom, Prenom, Sexe, DateNaissance, Telephone, Email, CodeOrgane)
+												 VALUES (@SerialId, @Matricule + '00', @Nom, @Postnom, @Prenom, @Sexe, @DateNaissance, @Telephone, @Email, @CodeOrgane)";
+		public static string Update { get; } = @"UPDATE Agent
+												 SET Nom = @Nom, Postnom = @Postnom, Prenom = @Prenom, Sexe = @Sexe, DateNaissance = @DateNaissance,
+												     Telephone = @Telephone, Email = @Email, CodeOrgane = @CodeOrgane
+												 WHERE Matricule = @Matricule + '00'";
+		// L'identité d'un agent qui a un compte Locate suit celle du répertoire
+		public static string UpdateCompte { get; } = @"UPDATE _Utilisateur
+													   SET Nom = @Nom, Postnom = @Postnom, Prenom = @Prenom, Sexe = @SexeLettre, Telephone = @Telephone, Email = @Email
+													   WHERE UserName = @Matricule";
 
-		public static string SelectAllActifNotUserById { get; } = @"SELECT V_Patients.SerialId,V_Patients.Matricule,V_Patients.Nom,V_Patients.Postnom,V_Patients.Prenom,V_Patients.Sexe,V_Patients.Adresse,
-														   format(V_Patients.DateNaissance,'dd MMM yyyy') AS DateNaissance,V_Patients.EtatCivil AS SituationFamiliale,Actif,V_Patients.Telephone,V_Patients.Email,
-														   V_Patients.DateNaissance AS DateNaissanceBrute,PrisEnCharge,CodeStructureOrgane as CodeDirection,CodeStructureOrganeSD AS CodeSousDirection, CodeStructOrgService AS CodeService,
-														   NomStructOrgane as Direction,DateFinValidite,Patient.Matricule AS MoviaMatricule,Patient.Nom AS MoviaNom,
-														   Patient.Postnom AS MoviaPostnom,Patient.Prenom AS MoviaPrenom,Patient.Sexe AS MoviaSexe,
-														   Patient.DateNaissance as MoviaDateNaissanceBrute,format(Patient.DateNaissance,'dd MMM yyyy') as MoviaDateNaissance,
-														   Patient.EtatCivil as MoviaSituationFamiliale,accord as MoviaAccordAgent,commentaire as MoviaCommentaire,
-														   AccordDRHPar as MoviaUserAccordDRH,
-														   (SELECT CONCAT(Nom,' ',Postnom,' ',Prenom) FROM Patients
-															where Patients.MATRICULE = CONCAT(AccordDRHPar,'00')) AS MoviaNomUserAccordDRH,
-														   format(DateAccordDRH,'dd MMM yyyy') as MoviaDateAccordDRH,AccordAdminPar as MoviaUserAdminAccord,
-														   (SELECT CONCAT(Nom,' ',Postnom,' ',Prenom)
-    														FROM Patients 
-															where Patients.MATRICULE = CONCAT(AccordAdminPar,'00')) AS MoviaNomUserAdminAccord,
-														   format(DateAccordAdmin,'dd MMM yyyy') as MoviaDateAdminAccord,[User] as MoviaUserImpression, 
-														   format(DateImpression,'dd MMM yyyy') as MoviaDateImpression,retirer as MoviaRetirer,
-														   format(DateRetrait,'dd MMM yyyy') as MoviaDateRetrait,CodeHopitalPreference,IdCategoriePatient
-	        
-													FROM V_Patients LEFT JOIN Patient  ON V_Patients.Matricule = Patient.Matricule
-																	LEFT JOIN impression ON patient.matricule = impression.agent
+		public static string SelectBySerialId { get; } = @"SELECT SerialId,Matricule,Nom,Postnom,Prenom,Sexe,DateNaissance,Telephone,Email,CodeOrgane
+													FROM Agent
+													WHERE SerialId = @Id";
 
-													WHERE Actif = 1 AND  V_Patients.Matricule Like '%00' AND V_Patients.Actif = 1 
-														  AND (V_Patients.Matricule LIKE @Matricule OR V_Patients.Nom LIKE @Matricule OR V_Patients.Postnom LIKE @Matricule OR V_Patients.Prenom LIKE @Matricule)";
+		// Agents sans compte utilisateur (le matricule d'agent est le nom d'utilisateur suivi de « 00 »).
+		public static string SelectAllActifNotUser { get; } = @"SELECT SerialId,Matricule,Nom,Postnom,Prenom,Sexe,DateNaissance,Telephone,Email,CodeOrgane
+													FROM Agent
+													WHERE NOT EXISTS (SELECT 1 FROM _Utilisateur WHERE _Utilisateur.UserName + '00' = RTRIM(Agent.Matricule))
+													ORDER BY Nom, Postnom, Prenom";
+
+		public static string SelectAllActifNotUserById { get; } = @"SELECT SerialId,Matricule,Nom,Postnom,Prenom,Sexe,DateNaissance,Telephone,Email,CodeOrgane
+													FROM Agent
+													WHERE NOT EXISTS (SELECT 1 FROM _Utilisateur WHERE _Utilisateur.UserName + '00' = RTRIM(Agent.Matricule))
+													  AND (Matricule LIKE @Matricule OR Nom LIKE @Matricule OR Postnom LIKE @Matricule OR Prenom LIKE @Matricule)
+													ORDER BY Nom, Postnom, Prenom";
 
 	}
 	

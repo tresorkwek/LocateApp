@@ -17,7 +17,8 @@ namespace LocateApp.Utilities
     {
         public static bool CheckClaimStatus(Identity identity, string claimString)
         {
-            return identity.Claims.Any(c => c.Equals(claimString) || c.Equals("Root"));
+            // Sans identité (requête sans session, ex. jeton d'API) : aucun droit, plutôt qu'une erreur au rendu de la page
+            return identity?.Claims != null && identity.Claims.Any(c => c.Equals(claimString) || c.Equals("Root"));
         }
 
         public static string GenerateClaimName(string claim, Identity identity)
@@ -107,11 +108,12 @@ namespace LocateApp.Utilities
             // sinon /utilisateur/ donnait /utilisateur/Content/images/photos/ -> 404).
             string local = VirtualPathUtility.ToAbsolute("~/Content/images/photos/");
             //string local = HttpContext.Current.Server.MapPath("~/Content/images/photos/");
-            string distant = "https://movia.bcc.cd/Content/images/photos/";
+            // Photos hébergées ailleurs (clé PhotoAgentUrl, ex. serveur RH) quand Local = false ; sinon dossier de l'application.
+            string distant = ConfigurationManager.AppSettings["PhotoAgentUrl"];
 
-            bool IsLocal = bool.Parse(ConfigurationManager.AppSettings["Local"]);
+            bool.TryParse(ConfigurationManager.AppSettings["Local"], out bool IsLocal);
 
-            return IsLocal ? local : distant;
+            return IsLocal || string.IsNullOrWhiteSpace(distant) ? local : distant;
         }
 
         public static bool URLExists(string url)
@@ -121,7 +123,7 @@ namespace LocateApp.Utilities
                 return false;
             }
 
-            // Chemin interne à l'application (ex. /Content/images/photos/905851.jpg) :
+            // Chemin interne à l'application (ex. /Content/images/photos/70000100.jpg) :
             // on vérifie directement le fichier sur le disque, sans requête HTTP vers soi-même.
             if (!Uri.TryCreate(url, UriKind.Absolute, out Uri uri) || uri.IsFile)
             {

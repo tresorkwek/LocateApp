@@ -12,7 +12,7 @@
 @{ ViewBag.Page = Page;
     string libellePage = Page.MenuData?.Libelle;
     string cheminPhotos = Utilities.GetPhotoAgentPath();
-    int nbAgents = Page.Patients == null ? 0 : Page.Patients.Count;
+    int nbAgents = Page.Agents == null ? 0 : Page.Agents.Count;
     // Noms des organes déjà lus (évite une requête par ligne quand plusieurs agents partagent le même organe).
     Dictionary<string, string> nomsOrganes = new Dictionary<string, string>();
  }
@@ -85,37 +85,37 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach (var patient in Page.Patients)
+                            @foreach (var agent in Page.Agents)
                             {
-                                string link = Page.Link + patient.Matricule.Substring(0, 6);
-                                string td = "td" + patient.Matricule;
-                                string agentName = $"{patient.Nom?.Trim()} {patient.Postnom?.Trim()} {patient.Prenom?.Trim()}";
+                                string link = Page.Link + agent.Matricule.Substring(0, 6);
+                                string td = "td" + agent.Matricule;
+                                string agentName = $"{agent.Nom?.Trim()} {agent.Postnom?.Trim()} {agent.Prenom?.Trim()}";
                                 string nomComplet = agentName.Trim();
                                 // La photo est vérifiée sur le serveur de photos : une seule lecture par agent.
-                                string photo = patient.Photo;
+                                string photo = agent.Photo;
                                 string photoUser = cheminPhotos + photo;
-                                string idSelect = patient.Matricule + "_0_" + agentName + "_" + photo;
-                                string naissance = patient.DateNaissance.Year > 1900 ? ((patient.Sexe == 1) ? "Né le " : "Née le ") + patient.DateNaissance.ToString("dd/MM/yyyy") : null;
+                                string idSelect = agent.Matricule + "_0_" + agentName + "_" + photo;
+                                string naissance = agent.DateNaissance.Year > 1900 ? ((agent.Sexe == 1) ? "Né le " : "Née le ") + agent.DateNaissance.ToString("dd/MM/yyyy") : null;
                                 string nomOrgane = null;
-                                if (!string.IsNullOrEmpty(patient.CodeOrgane))
+                                if (!string.IsNullOrEmpty(agent.CodeOrgane))
                                 {
-                                    if (!nomsOrganes.TryGetValue(patient.CodeOrgane, out nomOrgane))
+                                    if (!nomsOrganes.TryGetValue(agent.CodeOrgane, out nomOrgane))
                                     {
-                                        nomOrgane = OrganeController.SelectNameById(patient.CodeOrgane);
-                                        nomsOrganes[patient.CodeOrgane] = nomOrgane;
+                                        nomOrgane = OrganeController.SelectNameById(agent.CodeOrgane);
+                                        nomsOrganes[agent.CodeOrgane] = nomOrgane;
                                     }
                                 }
 
                                 <tr>
                                     <td id="@td">
-                                        <label for="@("Matricule" + patient.Matricule)" class="mb-0"><a href="@Html.Raw(link)" class="lc-code text-decoration-none">@patient.Matricule</a></label>
+                                        <label for="@("Matricule" + agent.Matricule)" class="mb-0"><a href="@Html.Raw(link)" class="lc-code text-decoration-none">@agent.Matricule</a></label>
                                     </td>
                                     <td data-order="@nomComplet">
                                         <div class="lc-entity">
-                                            <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@patient.Matricule)" class="lc-thumb avatar-zoom" loading="lazy" />
+                                            <img src="@photoUser" alt="@nomComplet" data-zoom-legende="@nomComplet (@agent.Matricule)" class="lc-thumb avatar-zoom" loading="lazy" />
                                             <div class="lc-entity-body">
                                                 <a href="@Html.Raw(link)" class="lc-name">@nomComplet</a>
-                                                <span class="lc-sub">@(patient.Genre + (naissance == null ? "" : " · " + naissance))</span>
+                                                <span class="lc-sub">@(agent.Genre + (naissance == null ? "" : " · " + naissance))</span>
                                             </div>
                                         </div>
                                     </td>
@@ -123,7 +123,7 @@
                                         @if (!string.IsNullOrEmpty(nomOrgane))
                                         {
                                             <span class="d-block text-body text-truncate" style="max-width: 280px;" title="@nomOrgane">@nomOrgane</span>
-                                            <span class="d-block fs-12 text-muted mt-1"><span class="lc-code">@patient.CodeOrgane</span></span>
+                                            <span class="d-block fs-12 text-muted mt-1"><span class="lc-code">@agent.CodeOrgane</span></span>
                                         }
                                         else
                                         {
@@ -137,7 +137,7 @@
                                             {
                                                 if (!profil.DefaultProfil && !profil.Externe)
                                                 {
-                                                    idSelect = patient.Matricule + "_" + profil.IdProfil + "_" + agentName + "_" + photo;
+                                                    idSelect = agent.Matricule + "_" + profil.IdProfil + "_" + agentName + "_" + photo;
                                                     <option value="@idSelect">@profil.Nom</option>
                                                 }
                                             }
